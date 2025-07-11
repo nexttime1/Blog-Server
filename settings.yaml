@@ -1,4 +1,26 @@
 system:
   ip:
   port: 8080
+  env: dev
 
+log:
+  app: blog_server
+  dir: logs
+
+db:  #读库
+  user: root
+  password: root
+  host: 127.0.0.1
+  port: 3306
+  db: Blog
+  debug: false
+  source: mysql
+
+db1:  #写库
+  user: root
+  password: root
+  host: 127.0.0.1
+  port: 3306
+  db: Blog
+  debug: false
+  source: mysql
