@@ -1,5 +1,9 @@
 package global
 
-import "Blog_server/conf"
+import (
+	"Blog_server/conf"
+)
 
-var Config *conf.Config
+var (
+	Config *conf.Config
+)
