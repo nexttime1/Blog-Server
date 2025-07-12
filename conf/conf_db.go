@@ -13,7 +13,8 @@ type DB struct {
 }
 
 func (d DB) DSN() string {
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local&timeout=10s", d.User, d.Password, d.Host, d.Port, d.DB)
+	timeout := "10s"
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local&timeout=%s", d.User, d.Password, d.Host, d.Port, d.DB, timeout)
 }
 
 func (d DB) Empty() bool {

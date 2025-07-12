@@ -1,7 +1,6 @@
 package core
 
 import (
-	"Blog_server/conf"
 	"Blog_server/global"
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/mysql"
@@ -15,7 +14,7 @@ func InitDB() *gorm.DB {
 	dc := global.Config.DB   //读库
 	dc1 := global.Config.DB1 //写库
 
-	db, err := gorm.Open(mysql.Open(conf.DB{}.DSN()), &gorm.Config{
+	db, err := gorm.Open(mysql.Open(global.Config.DB.DSN()), &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true, //不生成外键约束
 	})
 	if err != nil {

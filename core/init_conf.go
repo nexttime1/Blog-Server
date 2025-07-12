@@ -9,7 +9,6 @@ import (
 )
 
 // 从main文件的 根目录
-var confPath = "settings.yaml"
 
 func ReadConf() *conf.Config {
 	file, err := os.ReadFile(flags.FileOption.File)
@@ -23,6 +22,7 @@ func ReadConf() *conf.Config {
 	}
 
 	fmt.Printf("读取配置文件 %s 成功\n", flags.FileOption.File)
+	fmt.Println(c)
 
 	return c
 }

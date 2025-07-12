@@ -7,8 +7,10 @@ import (
 )
 
 func main() {
-	flags.Parse()
+	flags.Parse() //绑定命令行参数
 	global.Config = core.ReadConf()
 	core.InitLogrus()
+	global.DB = core.InitDB()
 
+	flags.Run()
 }

@@ -12,7 +12,7 @@ db:  #读库
   password: root
   host: 127.0.0.1
   port: 3306
-  db: Blog
+  db: blog
   debug: false
   source: mysql
 
@@ -21,6 +21,6 @@ db1:  #写库
   password: root
   host: 127.0.0.1
   port: 3306
-  db: Blog
+  db: blog
   debug: false
   source: mysql
