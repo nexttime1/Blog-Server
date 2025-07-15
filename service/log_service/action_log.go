@@ -14,6 +14,7 @@ type ActionLog struct {
 	level   enum.LevelType
 	title   string
 	content string
+	req
 }
 
 func (ac *ActionLog) SetTitle(title string) {
