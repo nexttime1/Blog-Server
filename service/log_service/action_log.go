@@ -29,9 +29,10 @@ type ActionLog struct {
 }
 
 // SetLink 设置超链接
-func (ac *ActionLog) SetLink(label string, href string) string {
+func (ac *ActionLog) SetLink(label string, href string) {
 	ac.itemList = append(ac.itemList, fmt.Sprintf("<div class=\"log_item link\"><div class=\"log_item_label\">%s</div><div class=\"log_item_content\"><a href=\"%s\" target=\"_blank\">%s</a> </div></div>",
 		label, href, href))
+
 }
 
 func (ac *ActionLog) setItem(label string, value any, levelType enum.LevelType) {
