@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
 type SiteApi struct {
@@ -25,7 +26,12 @@ func (SiteApi) SiteInfoView(c *gin.Context) {
 }
 
 func (SiteApi) SiteUpdateView(c *gin.Context) {
+	log := log_service.GetLog(c)
 	fmt.Println("SiteUpdateView")
+	log.ShowRequest()
+	log.ShowResponse()
+	log.SetTitle("更新")
+	log.SetItemInfo("请求时间", time.Now())
 
 	var req SiteUpdateRequest
 	err := c.ShouldBindJSON(&req)
@@ -34,8 +40,11 @@ func (SiteApi) SiteUpdateView(c *gin.Context) {
 	}
 	fmt.Println("req", req)
 
-	log.Save()
-
-	c.JSON(200, gin.H{"code": 200, "msg": "站点信息"})
+	log.SetItemInfo("请求结构体", req)
+	log.SetItemInfo("请求切片", []string{"1", "2", "3"})
+	log.SetItemInfo("字符串", "你好")
+	log.SetItemInfo("数字", 123)
+	log.Save()                                         //先调用
+	c.JSON(200, gin.H{"code": 200, "msg": "站点信息"}) //调用 c.JSON() 方法时，它最终会自动调用你自定义的 ResponseWriter 的Write方法
 	return
 }
