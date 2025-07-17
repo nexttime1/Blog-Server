@@ -11,21 +11,40 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"io"
+	"net/http"
 	"reflect"
 	"strings"
 )
 
 type ActionLog struct {
-	c            *gin.Context
-	level        enum.LevelType
-	title        string
-	content      string
-	requestBody  []byte
-	responseBody []byte
-	log          *models.LogModel //备份
-	showRequest  bool
-	showResponse bool
-	itemList     []string
+	c                  *gin.Context
+	level              enum.LevelType
+	title              string
+	content            string
+	requestBody        []byte
+	responseBody       []byte
+	log                *models.LogModel //备份
+	showRequestHeader  bool
+	showRequest        bool
+	showResponseHeader bool
+	showResponse       bool
+	itemList           []string
+	ResponseHeader     http.Header
+}
+
+func (ac *ActionLog) SetError(label string, err error) {
+	fmt.Println(label, err)
+
+}
+
+// ShowRequestHeader 显示请求头
+func (ac *ActionLog) ShowRequestHeader() {
+	ac.showRequestHeader = true
+}
+
+// ShowResponseHeader 显示响应头
+func (ac *ActionLog) ShowResponseHeader() {
+	ac.showResponseHeader = true
 }
 
 // SetLink 设置超链接
@@ -33,6 +52,10 @@ func (ac *ActionLog) SetLink(label string, href string) {
 	ac.itemList = append(ac.itemList, fmt.Sprintf("<div class=\"log_item link\"><div class=\"log_item_label\">%s</div><div class=\"log_item_content\"><a href=\"%s\" target=\"_blank\">%s</a> </div></div>",
 		label, href, href))
 
+}
+
+func (ac *ActionLog) SetImage(src string) {
+	ac.itemList = append(ac.itemList, fmt.Sprintf("<div class=\"log_image\"><img src=\"%s\" alt=\"\" ></div>", src))
 }
 
 func (ac *ActionLog) setItem(label string, value any, levelType enum.LevelType) {
@@ -95,6 +118,10 @@ func (ac *ActionLog) SetResponse(data []byte) {
 	ac.responseBody = data
 }
 
+func (ac *ActionLog) SetResponseHeader(header http.Header) {
+	ac.ResponseHeader = header
+}
+
 func (ac *ActionLog) Save() {
 	if ac.log != nil {
 		//说明已经存在  更新一下
@@ -103,8 +130,13 @@ func (ac *ActionLog) Save() {
 		})
 		return
 	}
-
 	var newItemList []string
+	//请求头
+	if ac.showRequestHeader {
+		//fmt.Println("ac.itemList\n", ac.itemList)   //先 中间件请求部分   再是Api Api最后才调用Save方法   在是中间件响应
+		ByteData, _ := json.Marshal(ac.c.Request.Header)
+		newItemList = append(newItemList, fmt.Sprintf("<div class=\"log_request_header\"><pre class=\"log_json_body\">%s</pre></div>", string(ByteData)))
+	}
 
 	//设置请求
 	if ac.showRequest {
@@ -118,6 +150,14 @@ func (ac *ActionLog) Save() {
 
 	//设置 content
 	newItemList = append(newItemList, ac.itemList...)
+
+	//响应头
+	if ac.showResponseHeader {
+
+		ByteData, _ := json.Marshal(ac.ResponseHeader)
+		fmt.Println("showResponseHeader  ", string(ByteData))
+		newItemList = append(newItemList, fmt.Sprintf("<div class=\"log_response_header\"><pre class=\"log_json_body\">%s</pre></div>", string(ByteData)))
+	}
 
 	//设置响应
 	if ac.showResponse {
