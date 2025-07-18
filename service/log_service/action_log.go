@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	e "github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
@@ -30,10 +31,14 @@ type ActionLog struct {
 	showResponse       bool
 	itemList           []string
 	ResponseHeader     http.Header
+	IsMiddenWare       bool
 }
 
 func (ac *ActionLog) SetError(label string, err error) {
-	fmt.Println(label, err)
+	msg := e.WithStack(err)
+	logrus.Errorf("%s  %s", label, err.Error())
+	ac.itemList = append(ac.itemList, fmt.Sprintf("<div class=\"log_error\"><div class=\"line\"><div class=\"label\">%s</div><div class=\"value\">%s</div><div class=\"type\">%T</div></div><div class=\"stack\">%+v</div></div>\n",
+		label, err, err, msg))
 
 }
 
@@ -122,13 +127,44 @@ func (ac *ActionLog) SetResponseHeader(header http.Header) {
 	ac.ResponseHeader = header
 }
 
-func (ac *ActionLog) Save() {
+func (ac *ActionLog) MiddleSave() {
+	value, _ := ac.c.Get("SaveLog")
+	b, _ := value.(bool)
+	if !b { //如果 b是false 说明 我没有调用 该Save的函数  就不要保存 操作日志
+		return
+	}
+	if ac.log == nil {
+		ac.IsMiddenWare = true
+		ac.Save()
+	}
+	//如果 调用 中间件响应  之前 save 过
+	//响应头
+	if ac.showResponseHeader {
+
+		ByteData, _ := json.Marshal(ac.ResponseHeader)
+		fmt.Println("showResponseHeader  ", string(ByteData))
+		ac.itemList = append(ac.itemList, fmt.Sprintf("<div class=\"log_response_header\"><pre class=\"log_json_body\">%s</pre></div>", string(ByteData)))
+	}
+
+	//设置响应
+	if ac.showResponse {
+		ac.itemList = append(ac.itemList, fmt.Sprintf("<div class=\"log_response\"><pre class=\"log_json_body\">%s</pre></div>",
+			string(ac.responseBody),
+		))
+	}
+	ac.Save()
+}
+
+func (ac *ActionLog) Save() uint {
 	if ac.log != nil {
 		//说明已经存在  更新一下
+		NewItemList := strings.Join(ac.itemList, "\n")
+		content := ac.log.Content + "\n" + NewItemList
+
 		global.DB.Model(ac.log).Updates(map[string]interface{}{
-			"title": "更新",
+			"content": content,
 		})
-		return
+		return ac.log.ID
 	}
 	var newItemList []string
 	//请求头
@@ -151,19 +187,23 @@ func (ac *ActionLog) Save() {
 	//设置 content
 	newItemList = append(newItemList, ac.itemList...)
 
-	//响应头
-	if ac.showResponseHeader {
+	if ac.IsMiddenWare { //只有是 走到中间件响应才走这个 要不 没有
+		//响应头
+		if ac.showResponseHeader {
 
-		ByteData, _ := json.Marshal(ac.ResponseHeader)
-		fmt.Println("showResponseHeader  ", string(ByteData))
-		newItemList = append(newItemList, fmt.Sprintf("<div class=\"log_response_header\"><pre class=\"log_json_body\">%s</pre></div>", string(ByteData)))
-	}
+			ByteData, _ := json.Marshal(ac.ResponseHeader)
+			fmt.Println("showResponseHeader  ", string(ByteData))
+			newItemList = append(newItemList, fmt.Sprintf("<div class=\"log_response_header\"><pre class=\"log_json_body\">%s</pre></div>", string(ByteData)))
+		}
 
-	//设置响应
-	if ac.showResponse {
-		newItemList = append(newItemList, fmt.Sprintf("<div class=\"log_response\"><pre class=\"log_json_body\">%s</pre></div>",
-			string(ac.responseBody),
-		))
+		//设置响应
+		if ac.showResponse {
+			newItemList = append(newItemList, fmt.Sprintf("<div class=\"log_response\"><pre class=\"log_json_body\">%s</pre></div>",
+				string(ac.responseBody),
+			))
+		}
+		//清空  如果第二次调用Save   ac.itemList我只希望有尾部
+		ac.itemList = []string{}
 	}
 
 	ip := ac.c.ClientIP()
@@ -181,10 +221,10 @@ func (ac *ActionLog) Save() {
 	err := global.DB.Create(&log).Error
 	if err != nil {
 		logrus.Errorf("日志创建失败 %s", err.Error())
-		return
+		return 0
 	}
 	ac.log = &log
-
+	return ac.log.ID
 }
 
 func NewActionLogByGin(c *gin.Context) *ActionLog {
@@ -192,6 +232,7 @@ func NewActionLogByGin(c *gin.Context) *ActionLog {
 }
 
 func GetLog(c *gin.Context) *ActionLog {
+	//c.Get的功能是从当前请求的上下文里获取之前存进去的值。
 	_log, exists := c.Get("log")
 	if !exists {
 		return NewActionLogByGin(c)
@@ -200,6 +241,7 @@ func GetLog(c *gin.Context) *ActionLog {
 	if !ok {
 		return NewActionLogByGin(c)
 	}
+	c.Set("SaveLog", true) //这样如果没有调用该Save的函数  就可以不去走 Save方法  因为中间件必走 最后会调用Save
 	return log
 
 }

@@ -34,6 +34,8 @@ func LogMiddleware(c *gin.Context) {
 	log := log_service.NewActionLogByGin(c)
 
 	log.SetRequest(c)
+	//"log"是设定的键，这是个字符串类型。  存到上下文中   c.get就开源拿出来
+	//log则是要存储的值，它属于*ActionLog类型。
 	c.Set("log", log)
 
 	res := &ResponseWriter{
@@ -49,6 +51,6 @@ func LogMiddleware(c *gin.Context) {
 	log.SetResponse(res.Body)
 	log.SetResponseHeader(res.Head)
 
-	log.Save()
+	log.MiddleSave()
 
 }
