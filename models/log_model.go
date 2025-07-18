@@ -17,4 +17,5 @@ type LogModel struct {
 	UserName    string         `gorm:"size:32" json:"userName"`
 	Pwd         string         `gorm:"size:32" json:"pwd"`
 	LoginType   enum.LoginType `json:"loginType"`
+	ServiceName string         `gorm:"size:32" json:"serviceName"`
 }
