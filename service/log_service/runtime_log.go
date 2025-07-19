@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"reflect"
 	"strings"
+	"time"
 )
 
 type RuntimeLog struct {
@@ -75,8 +76,12 @@ func (rc *RuntimeLog) SetLevel(level enum.LevelType) {
 	rc.level = level
 }
 
-func (rc *RuntimeLog) Save() {
+func (rc *RuntimeLog) SetNowTime() {
+	rc.ItemList = append(rc.ItemList, fmt.Sprintf("<div class=\"log_time\">%s</div>", time.Now().Format("2006-01-02 15:04:05")))
+}
 
+func (rc *RuntimeLog) Save() {
+	rc.SetNowTime()
 	var log models.LogModel
 	global.DB.Debug().Find(&log, fmt.Sprintf("service_name = ? and log_type = ? and created_at >= date_sub(now(), %s)", rc.RuntimeDateType.GetSqlTime()),
 		rc.ServiceName, enum.RuntimeLogType)
