@@ -65,7 +65,7 @@ func FailWithCode(c *gin.Context, code Code) {
 	Response{code, empty, code.Message()}.Json(c)
 }
 
-func OkWithList(c *gin.Context, List any, Count int64) {
+func OkWithList(c *gin.Context, List any, Count int) {
 	Response{SuccessCode, map[string]any{
 		"List":  List,
 		"Count": Count,
