@@ -2,6 +2,7 @@ package site_api
 
 import (
 	"Blog_server/common/res"
+	"Blog_server/service/log_service"
 	"fmt"
 	"github.com/gin-gonic/gin"
 )
@@ -22,7 +23,9 @@ func (SiteApi) SiteInfoView(c *gin.Context) {
 
 func (SiteApi) SiteUpdateView(c *gin.Context) {
 	//先走的中间件  我这里获得的 就是中间件里的log
-	//log := log_service.GetLog(c)
+	log := log_service.GetLog(c)
+	log.ShowRequest()
+	log.ShowResponse()
 	fmt.Println("SiteUpdateView")
 
 	var req SiteUpdateRequest

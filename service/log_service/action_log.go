@@ -114,7 +114,7 @@ func (ac *ActionLog) SetRequest(c *gin.Context) {
 	if err != nil {
 		logrus.Errorf(err.Error())
 	}
-	fmt.Println("Body", string(ByteData))
+	//fmt.Println("Body", string(ByteData))
 	c.Request.Body = io.NopCloser(bytes.NewReader(ByteData))
 	ac.requestBody = ByteData
 }
@@ -136,13 +136,14 @@ func (ac *ActionLog) MiddleSave() {
 	if ac.log == nil {
 		ac.IsMiddenWare = true
 		ac.Save()
+		return
 	}
 	//如果 调用 中间件响应  之前 save 过
 	//响应头
 	if ac.showResponseHeader {
 
 		ByteData, _ := json.Marshal(ac.ResponseHeader)
-		fmt.Println("showResponseHeader  ", string(ByteData))
+		//fmt.Println("showResponseHeader  ", string(ByteData))
 		ac.itemList = append(ac.itemList, fmt.Sprintf("<div class=\"log_response_header\"><pre class=\"log_json_body\">%s</pre></div>", string(ByteData)))
 	}
 
@@ -184,10 +185,10 @@ func (ac *ActionLog) Save() uint {
 		))
 	}
 
-	//设置 content
+	//设置 content   setItem 已经把 ac.itemList 填好了 中间肚子
 	newItemList = append(newItemList, ac.itemList...)
 
-	if ac.IsMiddenWare { //只有是 走到中间件响应才走这个 要不 没有
+	if ac.IsMiddenWare { //只有是 走到中间件响应才走这个 要不 没有    因为不走中间件  也没用响应头
 		//响应头
 		if ac.showResponseHeader {
 

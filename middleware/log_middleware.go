@@ -24,7 +24,7 @@ func (w *ResponseWriter) Write(data []byte) (int, error) {
 	return w.ResponseWriter.Write(data)
 }
 
-func (w *ResponseWriter) Header() http.Header {
+func (w *ResponseWriter) Header() http.Header { // 使用 c.JSON这样的 自动往里面写东西
 	return w.Head
 }
 

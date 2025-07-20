@@ -3,8 +3,11 @@ package log_api
 import (
 	"Blog_server/common"
 	"Blog_server/common/res"
+	"Blog_server/global"
 	"Blog_server/models"
 	"Blog_server/models/enum"
+	"Blog_server/service/log_service"
+	"fmt"
 	"github.com/gin-gonic/gin"
 )
 
@@ -60,4 +63,47 @@ func (LogApi) LogListNew(c *gin.Context) {
 	}
 
 	res.OkWithList(c, _list, count)
+}
+
+func (LogApi) LogReadView(c *gin.Context) {
+	var cr models.IDRequest
+	err := c.ShouldBindUri(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	var log models.LogModel
+	err = global.DB.Take(&log, cr.ID).Error
+	if err != nil {
+		res.FailWithMsg(c, "不存在的日志")
+		return
+	}
+	// 判断是否已经读取
+	if !log.IsRead {
+		global.DB.Debug().Model(&log).Update("is_read", true)
+	}
+	res.OkWithMessage(c, "读取成功")
+
+}
+
+func (LogApi) LogRemoveView(c *gin.Context) {
+	var rc models.RemoveRequest
+	err := c.ShouldBindJSON(&rc)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	//删除我 需要保存操作日志   先走中间件  中间件 设置了Set  Log  所以我这里可以获得 log  可以激活Save函数
+	log := log_service.GetLog(c)
+	log.ShowRequest()
+	log.ShowResponse()
+
+	var ModelList []models.LogModel
+	global.DB.Find(&ModelList, "id in ?", rc.IDList)
+
+	if len(ModelList) > 0 {
+		global.DB.Delete(&ModelList)
+	}
+	msg := fmt.Sprintf("日志删除成功，共删除%d条数据", len(ModelList))
+	res.OkWithMessage(c, msg)
 }

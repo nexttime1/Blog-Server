@@ -5,7 +5,14 @@ import (
 )
 
 type Model struct {
-	ID        uint      `gorm:"primarykey"`
+	ID        uint      `gorm:"primarykey" json:"id"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"UpdatedAt"`
+}
+
+type IDRequest struct {
+	ID string `json:"id" form:"id" uri:"id"`
+}
+type RemoveRequest struct {
+	IDList []int `json:"IDList"`
 }
