@@ -88,5 +88,6 @@ func ListQuery[T any](model T, options Options) (list []T, count int, err error)
 	limit := options.PageInfo.GetLimit()
 	offset := options.PageInfo.GetOffset()
 	err = query.Limit(limit).Offset(offset).Find(&list).Error
+
 	return
 }

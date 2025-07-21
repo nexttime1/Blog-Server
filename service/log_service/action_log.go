@@ -5,6 +5,7 @@ import (
 	"Blog_server/global"
 	"Blog_server/models"
 	"Blog_server/models/enum"
+	"Blog_server/utils/jwts"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -209,7 +210,12 @@ func (ac *ActionLog) Save() uint {
 
 	ip := ac.c.ClientIP()
 	addr := core.GetIpAddr(ip)
-	UserID := uint(0)
+	claims, err := jwts.ParseTokenByGin(ac.c)
+	UserID := uint(0) //提前定义好  找不到Token 就ID = 0
+	if err == nil && claims != nil {
+		UserID = claims.UserID
+	}
+
 	log := models.LogModel{
 		LogType: enum.ActionLogType,
 		Title:   ac.title,
@@ -219,7 +225,7 @@ func (ac *ActionLog) Save() uint {
 		IP:      ip,
 		Addr:    addr,
 	}
-	err := global.DB.Create(&log).Error
+	err = global.DB.Create(&log).Error
 	if err != nil {
 		logrus.Errorf("日志创建失败 %s", err.Error())
 		return 0

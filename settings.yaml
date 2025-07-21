@@ -8,6 +8,15 @@ log:
   app: blog_server
   dir: logs
 
+jwt:
+  expire: 3       #单位小时
+  secret: skw
+  issuer: xiaosong
+redis:
+  addr: 127.0.0.1:6379
+  password:
+  db: 0
+
 db:  #读库
   user: root
   password: root
