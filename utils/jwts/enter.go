@@ -2,6 +2,7 @@ package jwts
 
 import (
 	"Blog_server/global"
+	"Blog_server/models/enum"
 	"errors"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -10,9 +11,9 @@ import (
 )
 
 type Claims struct {
-	UserID   uint   `json:"userID"`
-	Username string `json:"username"`
-	Role     int    `json:"role"`
+	UserID   uint          `json:"userID"`
+	Username string        `json:"username"`
+	Role     enum.RoleType `json:"role"`
 }
 
 type MyClaims struct {

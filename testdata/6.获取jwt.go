@@ -4,6 +4,7 @@ import (
 	"Blog_server/core"
 	"Blog_server/flags"
 	"Blog_server/global"
+	"Blog_server/models/enum"
 	"Blog_server/utils/jwts"
 	"fmt"
 )
@@ -14,8 +15,8 @@ func main() {
 	global.Config = core.ReadConf()
 	core.InitLogrus()
 	token, err := jwts.GetToken(jwts.Claims{
-		UserID: 2,
-		Role:   2,
+		UserID: 1,
+		Role:   enum.AdminRole,
 	})
 	if err != nil {
 		fmt.Println(err)

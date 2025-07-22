@@ -1,19 +1,22 @@
 package models
 
-import "time"
+import (
+	"Blog_server/models/enum"
+	"time"
+)
 
 type UserModel struct {
 	Model
-	Username       string `gorm:"size:32" json:"username"`
-	Nickname       string `gorm:"size:32" json:"nickname"`
-	Password       string `gorm:"size:64" json:"-"`
-	Avatar         string `gorm:"size:256" json:"avatar"` //头像
-	Abstract       string `gorm:"size:256" json:"abstract"`
-	RegisterSource string `json:"registerSource"`
-	CodeAge        string `json:"codeAge"`
-	Email          string `gorm:"size:256" json:"email"`
-	OpenID         string `gorm:"size:64 " json:"openID"` //第三方登陆的唯一id
-	Role           int8   `gorm:"default:1" json:"role"`  // 1 为管理员  2 为 普通用户
+	Username       string        `gorm:"size:32" json:"username"`
+	Nickname       string        `gorm:"size:32" json:"nickname"`
+	Password       string        `gorm:"size:64" json:"-"`
+	Avatar         string        `gorm:"size:256" json:"avatar"` //头像
+	Abstract       string        `gorm:"size:256" json:"abstract"`
+	RegisterSource string        `json:"registerSource"`
+	CodeAge        string        `json:"codeAge"`
+	Email          string        `gorm:"size:256" json:"email"`
+	OpenID         string        `gorm:"size:64 " json:"openID"` //第三方登陆的唯一id
+	Role           enum.RoleType `json:"role"`                   // 1 为管理员  2 为 普通用户
 }
 
 type UserConfModel struct {
