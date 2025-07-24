@@ -4,7 +4,7 @@ import (
 	"Blog_server/core"
 	"Blog_server/global"
 	"Blog_server/models"
-	"Blog_server/models/enum"
+	enum2 "Blog_server/models/enum"
 	"Blog_server/utils/jwts"
 	"bytes"
 	"encoding/json"
@@ -20,7 +20,7 @@ import (
 
 type ActionLog struct {
 	c                  *gin.Context
-	level              enum.LevelType
+	level              enum2.LevelType
 	title              string
 	content            string
 	requestBody        []byte
@@ -64,7 +64,7 @@ func (ac *ActionLog) SetImage(src string) {
 	ac.itemList = append(ac.itemList, fmt.Sprintf("<div class=\"log_image\"><img src=\"%s\" alt=\"\" ></div>", src))
 }
 
-func (ac *ActionLog) setItem(label string, value any, levelType enum.LevelType) {
+func (ac *ActionLog) setItem(label string, value any, levelType enum2.LevelType) {
 	var v string
 	t := reflect.TypeOf(value)
 	switch t.Kind() {
@@ -80,17 +80,17 @@ func (ac *ActionLog) setItem(label string, value any, levelType enum.LevelType) 
 }
 
 func (ac *ActionLog) SetItem(label string, value any) {
-	ac.setItem(label, value, enum.LogInfoLevel)
+	ac.setItem(label, value, enum2.LogInfoLevel)
 }
 
 func (ac *ActionLog) SetItemInfo(label string, value any) {
-	ac.setItem(label, value, enum.LogInfoLevel)
+	ac.setItem(label, value, enum2.LogInfoLevel)
 }
 func (ac *ActionLog) SetItemWarn(label string, value any) {
-	ac.setItem(label, value, enum.LogWainLevel)
+	ac.setItem(label, value, enum2.LogWainLevel)
 }
 func (ac *ActionLog) SetItemError(label string, value any) {
-	ac.setItem(label, value, enum.LogErrLevel)
+	ac.setItem(label, value, enum2.LogErrLevel)
 
 }
 
@@ -106,7 +106,7 @@ func (ac *ActionLog) SetTitle(title string) {
 	ac.title = title
 }
 
-func (ac *ActionLog) SetLevel(level enum.LevelType) {
+func (ac *ActionLog) SetLevel(level enum2.LevelType) {
 	ac.level = level
 }
 
@@ -217,7 +217,7 @@ func (ac *ActionLog) Save() uint {
 	}
 
 	log := models.LogModel{
-		LogType: enum.ActionLogType,
+		LogType: enum2.ActionLogType,
 		Title:   ac.title,
 		Content: strings.Join(newItemList, "\n"), //按照换行去合并
 		Level:   ac.level,

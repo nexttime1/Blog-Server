@@ -1,4 +1,4 @@
-package models
+package models_new
 
 // CollectModel 收藏夹
 type CollectModel struct {

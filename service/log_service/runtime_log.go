@@ -3,7 +3,7 @@ package log_service
 import (
 	"Blog_server/global"
 	"Blog_server/models"
-	"Blog_server/models/enum"
+	enum2 "Blog_server/models/enum"
 	"encoding/json"
 	"fmt"
 	e "github.com/pkg/errors"
@@ -14,7 +14,7 @@ import (
 )
 
 type RuntimeLog struct {
-	level           enum.LevelType
+	level           enum2.LevelType
 	title           string
 	ItemList        []string
 	ServiceName     string
@@ -39,7 +39,7 @@ func (rc *RuntimeLog) SetLink(label string, href string) {
 func (rc *RuntimeLog) SetImage(src string) {
 	rc.ItemList = append(rc.ItemList, fmt.Sprintf("<div class=\"log_image\"><img src=\"%s\" alt=\"\" ></div>", src))
 }
-func (rc *RuntimeLog) setItem(label string, value any, levelType enum.LevelType) {
+func (rc *RuntimeLog) setItem(label string, value any, levelType enum2.LevelType) {
 	var v string
 	t := reflect.TypeOf(value)
 	switch t.Kind() {
@@ -55,24 +55,24 @@ func (rc *RuntimeLog) setItem(label string, value any, levelType enum.LevelType)
 }
 
 func (rc *RuntimeLog) SetItem(label string, value any) {
-	rc.setItem(label, value, enum.LogInfoLevel)
+	rc.setItem(label, value, enum2.LogInfoLevel)
 }
 
 func (rc *RuntimeLog) SetItemInfo(label string, value any) {
-	rc.setItem(label, value, enum.LogInfoLevel)
+	rc.setItem(label, value, enum2.LogInfoLevel)
 }
 func (rc *RuntimeLog) SetItemWarn(label string, value any) {
-	rc.setItem(label, value, enum.LogWainLevel)
+	rc.setItem(label, value, enum2.LogWainLevel)
 }
 func (rc *RuntimeLog) SetItemError(label string, value any) {
-	rc.setItem(label, value, enum.LogErrLevel)
+	rc.setItem(label, value, enum2.LogErrLevel)
 
 }
 func (rc *RuntimeLog) SetTitle(title string) {
 	rc.title = title
 }
 
-func (rc *RuntimeLog) SetLevel(level enum.LevelType) {
+func (rc *RuntimeLog) SetLevel(level enum2.LevelType) {
 	rc.level = level
 }
 
@@ -84,7 +84,7 @@ func (rc *RuntimeLog) Save() {
 	rc.SetNowTime()
 	var log models.LogModel
 	global.DB.Debug().Find(&log, fmt.Sprintf("service_name = ? and log_type = ? and created_at >= date_sub(now(), %s)", rc.RuntimeDateType.GetSqlTime()),
-		rc.ServiceName, enum.RuntimeLogType)
+		rc.ServiceName, enum2.RuntimeLogType)
 
 	if log.ID != 0 { // 找到了 更新
 		newContent := strings.Join(rc.ItemList, "\n")
@@ -96,7 +96,7 @@ func (rc *RuntimeLog) Save() {
 
 	content := strings.Join(rc.ItemList, "\n")
 	err := global.DB.Create(&models.LogModel{
-		LogType:     enum.RuntimeLogType,
+		LogType:     enum2.RuntimeLogType,
 		Title:       rc.title,
 		Content:     content,
 		Level:       rc.level,

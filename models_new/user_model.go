@@ -1,4 +1,4 @@
-package models
+package models_new
 
 import (
 	enum2 "Blog_server/models/enum"
@@ -17,12 +17,10 @@ type UserModel struct {
 	Email          string             `gorm:"size:256" json:"email"`
 	Tel            string             `gorm:"size:18" json:"tel"`
 	Addr           string             `gorm:"size:64" json:"addr"`
-	Token          string             `gorm:"size:64" json:"token"` //第三方登陆的唯一id
+	Token          string             `gorm:"size:64" json:"token"`
 	IP             string             `gorm:"size:32" json:"ip"`
-	Role           enum2.RoleType     `json:"role"`                                                                                  // 1 为管理员  2 为 普通用户
-	ArticleModels  []ArticleModel     `gorm:"foreignKey:UserID" json:"-"`                                                            // 发布的文章列表
-	CollectsModels []ArticleModel     `gorm:"many2many:user_collect_models;joinForeignKey:UserID;JoinReferences:ArticleID" json:"-"` // 收藏的文章列表
-
+	OpenID         string             `gorm:"size:64 " json:"openID"` //第三方登陆的唯一id
+	Role           enum2.RoleType     `json:"role"`                   // 1 为管理员  2 为 普通用户
 }
 
 type UserConfModel struct {

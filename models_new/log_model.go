@@ -1,4 +1,4 @@
-package models
+package models_new
 
 import (
 	enum2 "Blog_server/models/enum"

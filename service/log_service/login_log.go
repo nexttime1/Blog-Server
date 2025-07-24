@@ -4,12 +4,12 @@ import (
 	"Blog_server/core"
 	"Blog_server/global"
 	"Blog_server/models"
-	"Blog_server/models/enum"
+	enum2 "Blog_server/models/enum"
 	"Blog_server/utils/jwts"
 	"github.com/gin-gonic/gin"
 )
 
-func NewLoginSuccess(c *gin.Context, loginType enum.LoginType) {
+func NewLoginSuccess(c *gin.Context, loginType enum2.LoginType) {
 	ip := c.ClientIP()
 	addr := core.GetIpAddr(ip)
 
@@ -22,7 +22,7 @@ func NewLoginSuccess(c *gin.Context, loginType enum.LoginType) {
 	}
 
 	global.DB.Create(&models.LogModel{
-		LogType:     enum.LoginLogType,
+		LogType:     enum2.LoginLogType,
 		Title:       "用户登录",
 		Content:     "",
 		UserID:      UserID,
@@ -35,12 +35,12 @@ func NewLoginSuccess(c *gin.Context, loginType enum.LoginType) {
 	})
 
 }
-func NewLoginFail(c *gin.Context, loginType enum.LoginType, msg string, username string, pwd string) {
+func NewLoginFail(c *gin.Context, loginType enum2.LoginType, msg string, username string, pwd string) {
 	ip := c.ClientIP()
 	addr := core.GetIpAddr(ip)
 
 	global.DB.Create(&models.LogModel{
-		LogType:     enum.LoginLogType,
+		LogType:     enum2.LoginLogType,
 		Title:       "用户登录失败",
 		Content:     msg,
 		IP:          ip,

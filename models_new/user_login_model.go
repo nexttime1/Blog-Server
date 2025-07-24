@@ -1,4 +1,4 @@
-package models
+package models_new
 
 type UserLoginModel struct {
 	Model

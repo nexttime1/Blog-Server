@@ -4,8 +4,8 @@ import (
 	"Blog_server/common"
 	"Blog_server/common/res"
 	"Blog_server/global"
-	"Blog_server/models"
-	"Blog_server/models/enum"
+	enum2 "Blog_server/models/enum"
+	"Blog_server/models_new"
 	"Blog_server/service/log_service"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -16,16 +16,16 @@ type LogApi struct {
 
 type LogListView struct {
 	common.PageInfo
-	LogType     enum.LogType   `form:"logType"` //日志类型 1 2 3
-	Level       enum.LevelType `form:"level"`   //日志级别  1 2 3
-	UserID      uint           `form:"userID"`  //用户id   可以没有  没登录  设置为0
-	IP          string         `form:"ip"`
-	LoginStatus bool           `form:"loginStatus"` //登录状态
-	ServiceName string         `form:"serviceName"`
+	LogType     enum2.LogType   `form:"logType"` //日志类型 1 2 3
+	Level       enum2.LevelType `form:"level"`   //日志级别  1 2 3
+	UserID      uint            `form:"userID"`  //用户id   可以没有  没登录  设置为0
+	IP          string          `form:"ip"`
+	LoginStatus bool            `form:"loginStatus"` //登录状态
+	ServiceName string          `form:"serviceName"`
 }
 
 type LogListResponse struct {
-	models.LogModel
+	models_new.LogModel
 	UserNickName string `form:"userNickname"`
 	UserAvatar   string `form:"userAvatar"`
 }
@@ -38,7 +38,7 @@ func (LogApi) LogListNew(c *gin.Context) {
 		return
 	}
 
-	list, count, err := common.ListQuery(models.LogModel{ //前端没赋值  就相当于没用  Where  就是显示全部
+	list, count, err := common.ListQuery(models_new.LogModel{ //前端没赋值  就相当于没用  Where  就是显示全部
 		LogType:     cr.LogType,
 		Level:       cr.Level,
 		UserID:      cr.UserID,
@@ -66,13 +66,13 @@ func (LogApi) LogListNew(c *gin.Context) {
 }
 
 func (LogApi) LogReadView(c *gin.Context) {
-	var cr models.IDRequest
+	var cr models_new.IDRequest
 	err := c.ShouldBindUri(&cr)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
-	var log models.LogModel
+	var log models_new.LogModel
 	err = global.DB.Take(&log, cr.ID).Error
 	if err != nil {
 		res.FailWithMsg(c, "不存在的日志")
@@ -87,7 +87,7 @@ func (LogApi) LogReadView(c *gin.Context) {
 }
 
 func (LogApi) LogRemoveView(c *gin.Context) {
-	var rc models.RemoveRequest
+	var rc models_new.RemoveRequest
 	err := c.ShouldBindJSON(&rc)
 	if err != nil {
 		res.FailWithErr(c, err)
@@ -98,7 +98,7 @@ func (LogApi) LogRemoveView(c *gin.Context) {
 	log.ShowRequest()
 	log.ShowResponse()
 
-	var ModelList []models.LogModel
+	var ModelList []models_new.LogModel
 	global.DB.Find(&ModelList, "id in ?", rc.IDList)
 
 	if len(ModelList) > 0 {
