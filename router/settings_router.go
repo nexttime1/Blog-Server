@@ -7,5 +7,5 @@ import (
 
 func SettingsRouter(nr *gin.RouterGroup) {
 	app := api.App.SettingApi
-	nr.GET("/settings", app.SettingInfoView)
+	nr.GET("settings/:name", app.SettingInfoView)
 }

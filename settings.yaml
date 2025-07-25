@@ -34,3 +34,50 @@ db1:  #写库
   db: blog
   debug: false
   source: mysql
+
+site_info:
+  created_at: "2025-7-25"
+  bei_an:
+  title: 下次一定的个人博客
+  qq_image:
+  version: 1.0.0
+  email: 2083933996@qq.com
+  wechat_image:
+  name: 下次一定
+  job: 后端开发
+  addr: 山东青岛
+  slogan: golang
+  slogan_en: GOLANG
+  web:
+  bilibili_url:
+  gitee_url:
+  github_url:
+
+qq:
+  app_id: "Xx"
+  key: xx
+  redirect:
+
+email:
+  host: smtp.qq.com
+  port: 465
+  user: xxx@qq.com
+  password: xxx
+  default_from_email: 下次一定
+  use_ssl: true
+  user_tls: true
+
+qiniu:
+  access_key: xxUMM-xx-FdRIf-xx
+  secret_key: xx
+  bucket: xiaciyiding
+  cdn:
+  zone:
+  prefix:
+  size: 5
+
+upload:
+  size: 2
+  path: uploads/file
+
+

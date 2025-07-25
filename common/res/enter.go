@@ -16,10 +16,10 @@ var empty = map[string]interface{}{}
 type Code int
 
 const (
-	SuccessCode     Code = 0
-	FailValidCode   Code = 1001
-	FailServiceCode Code = 1002 //服务异常
-
+	SuccessCode      Code = 0
+	FailValidCode    Code = 1001
+	FailServiceCode  Code = 1002 //服务异常
+	FailArgumentCode Code = 1003
 )
 
 func (c Code) Message() string {
@@ -30,6 +30,8 @@ func (c Code) Message() string {
 		return "参数校验失败"
 	case FailServiceCode:
 		return "服务异常"
+	case FailArgumentCode:
+		return "参数错误"
 	}
 	return ""
 }
