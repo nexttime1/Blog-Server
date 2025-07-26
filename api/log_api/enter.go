@@ -4,6 +4,7 @@ import (
 	"Blog_server/common"
 	"Blog_server/common/res"
 	"Blog_server/global"
+	"Blog_server/models"
 	enum2 "Blog_server/models/enum"
 	"Blog_server/models_new"
 	"Blog_server/service/log_service"
@@ -25,7 +26,7 @@ type LogListView struct {
 }
 
 type LogListResponse struct {
-	models_new.LogModel
+	models.LogModel
 	UserNickName string `form:"userNickname"`
 	UserAvatar   string `form:"userAvatar"`
 }
@@ -38,7 +39,7 @@ func (LogApi) LogListNew(c *gin.Context) {
 		return
 	}
 
-	list, count, err := common.ListQuery(models_new.LogModel{ //前端没赋值  就相当于没用  Where  就是显示全部
+	list, count, err := common.ListQuery(models.LogModel{ //前端没赋值  就相当于没用  Where  就是显示全部
 		LogType:     cr.LogType,
 		Level:       cr.Level,
 		UserID:      cr.UserID,

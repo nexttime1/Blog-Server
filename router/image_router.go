@@ -7,6 +7,7 @@ import (
 
 func ImageRouter(r *gin.RouterGroup) {
 	app := api.App.ImageApi
+	r.GET("images", app.ImageInfoView)
 	r.POST("images", app.ImageUploadView)
 
 }
