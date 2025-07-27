@@ -5,26 +5,16 @@ import (
 	"Blog_server/common/res"
 	"Blog_server/global"
 	"Blog_server/models"
-	"Blog_server/utils/image"
-	"Blog_server/utils/md5"
+	"Blog_server/service/image_service"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"path"
-	"strings"
 )
 
 type ImageApi struct {
 }
 
-type ImageListResponse struct {
-	Filename  string  `json:"filename"`
-	Size      float64 `json:"size"`
-	IsSuccess bool    `json:"is_success"`
-	Msg       string  `json:"msg"`
-}
-
-// ImageListView 接受参数
+// ImageListView 接受 查询图片 参数
 type ImageListView struct {
 	common.PageInfo
 	Path string `form:"path"` // 图片路径
@@ -32,18 +22,12 @@ type ImageListView struct {
 	Name string `form:"name"` // 图片名称
 }
 
-// WhiteImageList 白名单
-var WhiteImageList = []string{
-	"jpg",
-	"png",
-	"jpeg",
-	"ico",
-	"tiff",
-	"gif",
-	"svg",
-	"webp",
+type ImageUpdateRequest struct {
+	ID   uint   `json:"id" binding:"required"`
+	Name string `json:"name" binding:"required"`
 }
 
+// ImageUploadView 上传图片
 func (ImageApi) ImageUploadView(c *gin.Context) {
 	form, err := c.MultipartForm()
 	if err != nil {
@@ -56,76 +40,17 @@ func (ImageApi) ImageUploadView(c *gin.Context) {
 		return
 	}
 	// 记录n个照片上传
-	var response []ImageListResponse
+	var responseList []image_service.ImageListResponse
 
 	for _, FileHeader := range FileHeaderList {
-		//首先 先判断白名单
-		filename := FileHeader.Filename
-		splitList := strings.Split(filename, ".")
-		suffix := strings.ToLower(splitList[(len(splitList) - 1)])
-
-		ok = image.InList(suffix, WhiteImageList)
-		if !ok {
-			response = append(response, ImageListResponse{
-				Filename:  FileHeader.Filename,
-				Size:      float64(FileHeader.Size) / float64(1024*1024),
-				IsSuccess: false,
-				Msg:       "图片格式错误 上传失败",
-			})
-			continue
+		response, err := image_service.UploadService(c, FileHeader)
+		if err != nil {
+			res.FailWithErr(c, err)
+			return
 		}
-
-		//如果超出 预设的2MB  上传失败  如果没超 那就上传成功
-		size := float64(FileHeader.Size) / float64(1024*1024) //size 单位 MB
-		if size <= float64(global.Config.Upload.Size) {
-			//可以上传
-			filepath := path.Join("uploads", FileHeader.Filename)
-			// md5  去数据库查看hash 存不存在
-			hashString, err := md5.MD5_Hash(c, FileHeader)
-			if err != nil {
-				res.FailWithErr(c, err)
-				return
-			}
-			err = global.DB.Take(&models.BannerModel{}, "Hash = ?", hashString).Error
-			if err == nil {
-				//说明已经找到了  上传重复
-				response = append(response, ImageListResponse{
-					Filename:  FileHeader.Filename,
-					Size:      float64(FileHeader.Size) / float64(1024*1024), //size 单位 MB
-					IsSuccess: false,
-					Msg:       "图片已存在上传失败",
-				})
-				continue
-			}
-			global.DB.Create(&models.BannerModel{
-				Path: filepath,
-				Hash: hashString,
-				Name: filename,
-			})
-
-			err = c.SaveUploadedFile(FileHeader, filepath)
-			if err != nil {
-				res.FailWithErr(c, err)
-				return
-			}
-
-			response = append(response, ImageListResponse{
-				Filename:  FileHeader.Filename,
-				Size:      size,
-				IsSuccess: true,
-				Msg:       fmt.Sprintf("该图片共%.2fMB， 上传成功", size),
-			})
-		} else {
-			response = append(response, ImageListResponse{
-				Filename:  FileHeader.Filename,
-				Size:      size,
-				IsSuccess: false,
-				Msg:       fmt.Sprintf("该图片共%.2fMB，超出预设的%dMB,上传失败", size, global.Config.Upload.Size),
-			})
-		}
-
+		responseList = append(responseList, response)
 	}
-	res.OkWithData(c, response)
+	res.OkWithData(c, responseList)
 }
 
 // ImageInfoView 查看图片
@@ -150,5 +75,44 @@ func (ImageApi) ImageInfoView(c *gin.Context) {
 		return
 	}
 	res.OkWithList(c, list, count)
+
+}
+
+// ImageRemoveView 批量删除图片
+func (ImageApi) ImageRemoveView(c *gin.Context) {
+	var cr models.RemoveRequest
+	err := c.ShouldBindJSON(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	var ModelList []models.BannerModel
+	ModelList = common.BatchRemove(ModelList, cr)
+
+	msg := fmt.Sprintf("图片删除成功，共删除%d条数据", len(ModelList))
+
+	res.OkWithMessage(c, msg)
+
+}
+
+func (ImageApi) ImageUpdateView(c *gin.Context) {
+	var cr ImageUpdateRequest
+	err := c.ShouldBindJSON(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	var model models.BannerModel
+	err = global.DB.Take(&model, cr.ID).Error
+	if err != nil {
+		res.FailWithErr(c, errors.New(fmt.Sprintf("未查找到该图片 %s", err)))
+		return
+	}
+	err = global.DB.Model(&model).Update("name", cr.Name).Error
+	if err != nil {
+		res.FailWithErr(c, errors.New(fmt.Sprintf("图片修改失败 %s", err.Error())))
+		return
+	}
+	res.OkWithMessage(c, "图片名称修改成功")
 
 }

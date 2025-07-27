@@ -17,6 +17,7 @@ func Run() {
 	nr := r.Group("/api")
 	nr.Use(middleware.LogMiddleware)
 	SiteRouter(nr)
+	AdvertRouter(nr)
 	ImageRouter(nr)
 	SettingsRouter(nr)
 	LogRouter(nr)

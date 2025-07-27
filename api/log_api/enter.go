@@ -88,7 +88,7 @@ func (LogApi) LogReadView(c *gin.Context) {
 }
 
 func (LogApi) LogRemoveView(c *gin.Context) {
-	var rc models_new.RemoveRequest
+	var rc models.RemoveRequest
 	err := c.ShouldBindJSON(&rc)
 	if err != nil {
 		res.FailWithErr(c, err)
@@ -99,12 +99,10 @@ func (LogApi) LogRemoveView(c *gin.Context) {
 	log.ShowRequest()
 	log.ShowResponse()
 
-	var ModelList []models_new.LogModel
-	global.DB.Find(&ModelList, "id in ?", rc.IDList)
+	var ModelList []models.LogModel
 
-	if len(ModelList) > 0 {
-		global.DB.Delete(&ModelList)
-	}
+	ModelList = common.BatchRemove(ModelList, rc)
+
 	msg := fmt.Sprintf("日志删除成功，共删除%d条数据", len(ModelList))
 	res.OkWithMessage(c, msg)
 }

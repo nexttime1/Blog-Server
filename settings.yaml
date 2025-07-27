@@ -68,12 +68,13 @@ email:
   user_tls: true
 
 qiniu:
-  access_key: xxUMM-xx-FdRIf-xx
-  secret_key: xx
+  enable: true
+  access_key: D3bqvd7CrziBb7S70D-0dQHReO-h0xwperqoVUbg
+  secret_key: sv2jm0MGuHM4bn8ca_6qjBTItOlxxjDm4bKq1fY8
   bucket: xiaciyiding
-  cdn:
-  zone:
-  prefix:
+  cdn: http://t01tk5089.hn-bkt.clouddn.com/
+  zone: z2
+  prefix: "gvb"
   size: 5
 
 upload:
