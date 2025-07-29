@@ -10,5 +10,6 @@ func AdvertRouter(c *gin.RouterGroup) {
 	c.POST("adverts", app.AdvertAddView)
 	c.GET("adverts", app.AdvertListView)
 	c.PUT("adverts/:id", app.AdvertUpdateView)
+	c.DELETE("adverts", app.AdvertDeleteView)
 
 }

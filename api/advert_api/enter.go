@@ -6,6 +6,7 @@ import (
 	"Blog_server/global"
 	"Blog_server/models"
 	"Blog_server/service/log_service"
+	"Blog_server/utils/struct_to_map"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -13,10 +14,10 @@ import (
 )
 
 type AdvertRequest struct { //json
-	Title  string `json:"title" binding:"required"`      // 显示的标题
-	Href   string `json:"href" binding:"required,url"`   // 跳转链接
-	Images string `json:"images" binding:"required,url"` // 图片
-	IsShow bool   `json:"is_show"`                       // 是否展示
+	Title  string `json:"title" binding:"required" `      // 显示的标题
+	Href   string `json:"href" binding:"required,url" `   // 跳转链接
+	Images string `json:"images" binding:"required,url" ` // 图片
+	IsShow bool   `json:"is_show" `                       // 是否展示
 }
 
 type AdvertListResponse struct {
@@ -25,6 +26,13 @@ type AdvertListResponse struct {
 	Href   string `json:"href"`    // 跳转链接
 	Images string `json:"images"`  // 图片
 	IsShow bool   `json:"is_show"` // 是否展示
+
+}
+type AdvertUpdateRequest struct {
+	Title  string `json:"title" structs:"title"`                                // 显示的标题
+	Href   string `json:"href" structs:"href"`                                  // 跳转链接
+	Images string `json:"images" structs:"images"`                              // 图片
+	IsShow *bool  `json:"is_show,omitempty" structs:"is_show" gorm:"omitempty"` // 是否展示
 
 }
 
@@ -99,10 +107,11 @@ func (AdvertApi) AdvertListView(c *gin.Context) {
 func (AdvertApi) AdvertUpdateView(c *gin.Context) {
 	id := c.Param("id")
 
-	var ac AdvertListResponse
+	var ac AdvertUpdateRequest
 	err := c.ShouldBindJSON(&ac)
 	if err != nil {
 		res.FailWithErr(c, err)
+		return
 	}
 	var UpdateAdvert models.AdvertModel
 	err = global.DB.Take(&UpdateAdvert, "id = ?", id).Error
@@ -112,22 +121,35 @@ func (AdvertApi) AdvertUpdateView(c *gin.Context) {
 	}
 	// 判断 title 唯一    如果重复  不嫩修改.
 	var advert models.AdvertModel
-	err = global.DB.Take(&advert, fmt.Sprintf("title = ? and id != %s", id), ac.Title).Error
+	err = global.DB.Debug().Where("title = ? and id != ?", ac.Title, id).Take(&advert).Error
 	if err == nil {
 		res.FailWithErr(c, errors.New("title 值重复"))
 		return
 	}
+	//把结构体变成map  把没传值的 都给 去掉  不去修改 数据库
+	fmt.Println(ac)
+	toMap := struct_to_map.StructToMap(ac)
+	if toMap == nil {
+		toMap["is_show"] = UpdateAdvert.IsShow
+	}
 
 	//修改
-	err = global.DB.Model(&UpdateAdvert).Updates(map[string]interface{}{
-		"title":   ac.Title,
-		"href":    ac.Href,
-		"images":  ac.Images,
-		"is_show": ac.IsShow,
-	}).Error
+	err = global.DB.Model(&UpdateAdvert).Updates(toMap).Error
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
 	res.OkWithMessage(c, "修改成功")
+}
+
+func (AdvertApi) AdvertDeleteView(c *gin.Context) {
+	var removeRequest models.RemoveRequest
+	err := c.ShouldBindJSON(&removeRequest)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	var advertModels []models.AdvertModel
+	advertModels = common.BatchRemove(advertModels, removeRequest)
+	res.OkWithMessage(c, fmt.Sprintf("成功删除%d条广告", len(advertModels)))
 }
