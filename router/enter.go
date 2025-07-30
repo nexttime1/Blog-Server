@@ -4,12 +4,14 @@ import (
 	"Blog_server/global"
 	"Blog_server/middleware"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	gs "github.com/swaggo/gin-swagger"
 )
 
 func Run() {
 	gin.SetMode(global.Config.System.GinMode)
 	r := gin.Default()
-
+	r.GET("/swagger/*any", gs.WrapHandler(swaggerFiles.Handler))
 	//静态路由   一般设置一样的  前面的也就是重命名的意思  127.0.0.1:8080/uploads/a.txt
 	r.Static("/uploads", "uploads")
 

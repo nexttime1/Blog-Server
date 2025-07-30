@@ -39,6 +39,15 @@ type AdvertUpdateRequest struct {
 type AdvertApi struct {
 }
 
+// AdvertAddView 添加广告
+// @Tags 广告管理
+// @Summary 创建广告
+// @Description 创建一个广告
+// @Param data body AdvertRequest    true  "表示多个参数"
+// @Param token header string  true  "token"
+// @Router /api/adverts [post]
+// @Produce json
+// @Success 200 {object} res.Response{}
 func (AdvertApi) AdvertAddView(c *gin.Context) {
 	var ar AdvertRequest
 	err := c.ShouldBindJSON(&ar)
@@ -73,6 +82,14 @@ func (AdvertApi) AdvertAddView(c *gin.Context) {
 
 }
 
+// AdvertListView 广告列表
+// @Tags 广告管理
+// @Summary 广告列表
+// @Description 查询广告
+// @Param data query AdvertListResponse    false  "查询参数"
+// @Router /api/adverts [get]
+// @Produce json
+// @Success 200 {object} res.Response{data=map[string]any}
 func (AdvertApi) AdvertListView(c *gin.Context) {
 	var as AdvertListResponse
 	err := c.ShouldBindQuery(&as)
@@ -104,6 +121,16 @@ func (AdvertApi) AdvertListView(c *gin.Context) {
 
 }
 
+// AdvertUpdateView 广告更新
+// @Tags 广告管理
+// @Summary 更新广告
+// @Param token header string  true  "token"
+// @Description 更新广告
+// @Param data body AdvertRequest    true  "广告的一些参数"
+// @Param id path int true "id"
+// @Router /api/adverts/{id} [put]
+// @Produce json
+// @Success 200 {object} res.Response{}
 func (AdvertApi) AdvertUpdateView(c *gin.Context) {
 	id := c.Param("id")
 
@@ -142,6 +169,15 @@ func (AdvertApi) AdvertUpdateView(c *gin.Context) {
 	res.OkWithMessage(c, "修改成功")
 }
 
+// AdvertDeleteView 广告删除
+// @Tags 广告管理
+// @Summary 批量删除广告
+// @Description 批量删除广告
+// @Param token header string  true  "token"
+// @Param data body models.RemoveRequest    true  "广告id列表"
+// @Router /api/adverts [delete]
+// @Produce json
+// @Success 200 {object} res.Response{}
 func (AdvertApi) AdvertDeleteView(c *gin.Context) {
 	var removeRequest models.RemoveRequest
 	err := c.ShouldBindJSON(&removeRequest)

@@ -27,6 +27,12 @@ type ImageUpdateRequest struct {
 	Name string `json:"name" binding:"required"`
 }
 
+type ImageNameListResponse struct {
+	ID   uint   `json:"id"`
+	Path string `json:"path"` // 图片路径
+	Name string `json:"name"` // 图片名称
+}
+
 // ImageUploadView 上传图片
 func (ImageApi) ImageUploadView(c *gin.Context) {
 	form, err := c.MultipartForm()
@@ -115,4 +121,21 @@ func (ImageApi) ImageUpdateView(c *gin.Context) {
 	}
 	res.OkWithMessage(c, "图片名称修改成功")
 
+}
+
+// ImageNameListView 只返回  三个参数 的查询图片
+// @Tags 图片管理
+// @Summary 图片名称列表
+// @Description 只返回一些重要的
+// @Router /api/images_name [get]
+// @Produce json
+// @Success 200 {object} res.Response{data=[]ImageNameListResponse}
+func (ImageApi) ImageNameListView(c *gin.Context) {
+	var imageList []ImageNameListResponse
+	err := global.DB.Model(&models.BannerModel{}).Select("id", "path", "name").Scan(&imageList).Error
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	res.OkWithData(c, imageList)
 }
