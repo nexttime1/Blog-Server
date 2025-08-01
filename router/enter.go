@@ -18,6 +18,7 @@ func Run() {
 	//路由分组
 	nr := r.Group("/api")
 	nr.Use(middleware.LogMiddleware)
+	MenuRouter(nr)
 	SiteRouter(nr)
 	AdvertRouter(nr)
 	ImageRouter(nr)

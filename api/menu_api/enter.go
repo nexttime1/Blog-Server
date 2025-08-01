@@ -4,67 +4,115 @@ import (
 	"Blog_server/common/res"
 	"Blog_server/global"
 	"Blog_server/models"
-	"Blog_server/models/enum"
-	"fmt"
+	"Blog_server/service/menu_service"
 	"github.com/gin-gonic/gin"
 )
 
 type MenuApi struct {
 }
 
-type ImageSort struct {
-	ImageID uint `json:"image_id"`
-	Sort    int  `json:"sort"`
+type Banners struct {
+	ID   uint   `json:"id"`
+	Path string `json:"path"`
 }
-type MenuAddRequest struct {
-	Title       string `json:"title" binding:"required" structs:"title"`
-	MenuTitleEn string `json:"menu_title_en" binding:"required" structs:"menu_title_en"`
-	//Path          string      `json:"path" binding:"required" structs:"path"`
-	Slogan        string      `json:"slogan" structs:"slogan"`
-	Abstract      enum.Array  `json:"abstract" structs:"abstract"`
-	AbstractTime  int         `json:"abstract_time" structs:"abstract_time"`  // 切换的时间，单位秒
-	BannerTime    int         `json:"banner_time" structs:"banner_time"`      // 切换的时间，单位秒
-	Sort          int         `json:"sort" binding:"required" structs:"sort"` // 菜单的序号
-	ImageSortList []ImageSort `json:"image_sort_list" structs:"-"`            // 添加的图片和顺序
+type MenuListResponse struct {
+	models.MenuModel
+	Banners []Banners
+}
+type MenuNameListResponse struct {
+	ID    uint   `json:"id"`
+	Title string `json:"title"`
+	Path  string `json:"path"`
 }
 
+// MenuCreateView 添加菜单
+// @Summary 添加菜单
+// @Description 创建一个新的菜单，包含Title Slogan Abstract等
+// @Tags 菜单管理
+// @Accept json
+// @Produce json
+// @Param data body menu_service.MenuAddRequest true "菜单信息"
+// @Param token header string true "用户认证令牌"
+// @Success 200 {object} res.Response "操作成功"
+// @Failure 400 {object} res.Response "请求参数错误"
+// @Failure 500 {object} res.Response "服务器内部错误"
+// @Router /api/menus [post]
 func (MenuApi) MenuCreateView(c *gin.Context) {
-	var mc MenuAddRequest
+	var mc menu_service.MenuAddRequest
 	err := c.ShouldBindJSON(&mc)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
-	//重复着 title 不能重复
-	var model models.MenuModel
-	err = global.DB.Where("title = ?", mc.Title).Take(&model).Error
-	if err == nil {
-		//找到了 不行
-		res.FailWithMsg(c, "菜单title 值已经存在")
-		return
-	}
-
-	menuModel := models.MenuModel{
-		MenuTitle:    mc.Title,
-		MenuTitleEn:  mc.MenuTitleEn,
-		Slogan:       mc.Slogan,
-		Abstract:     mc.Abstract,
-		AbstractTime: mc.AbstractTime,
-		BannerTime:   mc.BannerTime,
-		Sort:         mc.Sort,
-	}
-	err = global.DB.Create(&menuModel).Error
+	err, menuBannerList := menu_service.MenuAddService(c, mc)
 	if err != nil {
-		res.FailWithMsg(c, fmt.Sprintf("添加失败 %s", err))
+		res.FailWithErr(c, err)
 		return
 	}
-	// 如果不添加图片 就不需要操作第三张表  直接成功
-	if len(mc.ImageSortList) == 0 {
+	if menuBannerList == nil {
 		res.OkWithMessage(c, "菜单添加成功")
 		return
 	}
+	res.OkWithData(c, menuBannerList)
+}
 
-	//到现在说明 要构建第三张表
-	var menuBannerList []models.MenuBannerModel
+// MenuListView 菜单列表
+// @Summary 获取菜单列表
+// @Description 等修改
+// @Tags 菜单管理
+// @Produce json
+// @Param token header string true "用户认证令牌"
+// @Success 200 {object} res.Response{data=[]MenuListResponse}
+// @Failure 400 {object} res.Response "请求参数错误"
+// @Failure 500 {object} res.Response "服务器内部错误"
+// @Router /api/menus [get]
+func (MenuApi) MenuListView(c *gin.Context) {
+	var MenuList []models.MenuModel
+	var MenuIdList []uint
+	global.DB.Order("sort desc").Find(&MenuList).Select("id").Scan(&MenuIdList)
 
+	var MenuBannerList []models.MenuBannerModel
+	var menus []MenuListResponse
+	err := global.DB.Preload("BannerModel").Order("sort desc").Where("menu_id in ?", MenuIdList).Find(&MenuBannerList).Error
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	for _, model := range MenuList {
+		var banners []Banners
+		for _, banner := range MenuBannerList {
+			if model.ID != banner.MenuID {
+				continue
+			}
+			banners = append(banners, Banners{
+				ID:   banner.BannerID,
+				Path: banner.BannerModel.Path,
+			})
+		}
+		menus = append(menus, MenuListResponse{
+			MenuModel: model,
+			Banners:   banners,
+		})
+	}
+	res.OkWithData(c, menus)
+}
+
+// MenuNameListView 菜单名称列表
+// @Summary 获取菜单名称列表
+// @Description 等修改
+// @Tags 菜单管理
+// @Produce json
+// @Param token header string true "用户认证令牌"
+// @Success 200 {object} res.Response{data=[]MenuNameListResponse}
+// @Failure 400 {object} res.Response "请求参数错误"
+// @Failure 500 {object} res.Response "服务器内部错误"
+// @Router /api/menus_name [get]
+func (MenuApi) MenuNameListView(c *gin.Context) {
+	var mr []MenuNameListResponse
+	err := global.DB.Model(models.MenuModel{}).Select("id, title, path").Scan(&mr).Error
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	res.OkWithData(c, mr)
 }

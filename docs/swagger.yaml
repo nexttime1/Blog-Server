@@ -34,6 +34,14 @@ definitions:
         description: 显示的标题
         type: string
     type: object
+  enum.ImageType:
+    enum:
+    - 1
+    - 2
+    type: integer
+    x-enum-varnames:
+    - LocationType
+    - QiNiuType
   image_api.ImageNameListResponse:
     properties:
       id:
@@ -67,6 +75,114 @@ definitions:
         type: string
       size:
         type: number
+    type: object
+  menu_api.Banners:
+    properties:
+      id:
+        type: integer
+      path:
+        type: string
+    type: object
+  menu_api.MenuListResponse:
+    properties:
+      UpdatedAt:
+        type: string
+      abstract:
+        description: 简介
+        items:
+          type: string
+        type: array
+      abstract_time:
+        description: 简介的切换时间
+        type: integer
+      banner_time:
+        description: 菜单图片的切换时间 为 0 表示不切换
+        type: integer
+      banners:
+        items:
+          $ref: '#/definitions/menu_api.Banners'
+        type: array
+      createdAt:
+        type: string
+      id:
+        type: integer
+      path:
+        type: string
+      slogan:
+        description: slogan
+        type: string
+      sort:
+        description: 菜单的顺序
+        type: integer
+      title:
+        type: string
+    type: object
+  menu_api.MenuNameListResponse:
+    properties:
+      id:
+        type: integer
+      path:
+        type: string
+      title:
+        type: string
+    type: object
+  menu_service.ImageSort:
+    properties:
+      image_id:
+        type: integer
+      sort:
+        type: integer
+    type: object
+  menu_service.MenuAddRequest:
+    properties:
+      abstract:
+        items:
+          type: string
+        type: array
+      abstract_time:
+        description: 切换的时间，单位秒
+        type: integer
+      banner_time:
+        description: 切换的时间，单位秒
+        type: integer
+      image_sort_list:
+        description: 添加的图片和顺序
+        items:
+          $ref: '#/definitions/menu_service.ImageSort'
+        type: array
+      path:
+        type: string
+      slogan:
+        type: string
+      sort:
+        description: 菜单的序号
+        type: integer
+      title:
+        type: string
+    required:
+    - path
+    - sort
+    - title
+    type: object
+  models.BannerModel:
+    properties:
+      UpdatedAt:
+        type: string
+      createdAt:
+        type: string
+      hash:
+        description: 图片的hash值，用于判断重复图片
+        type: string
+      id:
+        type: integer
+      image_type:
+        $ref: '#/definitions/enum.ImageType'
+      name:
+        description: 图片名称
+        type: string
+      path:
+        description: 图片路径
+        type: string
     type: object
   models.RemoveRequest:
     properties:
@@ -469,4 +585,106 @@ paths:
       summary: 图片名称列表
       tags:
       - 图片管理
+  /api/menus:
+    get:
+      description: 等修改
+      parameters:
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/menu_api.MenuListResponse'
+                  type: array
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 获取菜单列表
+      tags:
+      - 菜单管理
+    post:
+      consumes:
+      - application/json
+      description: 创建一个新的菜单，包含Title Slogan Abstract等
+      parameters:
+      - description: 菜单信息
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/menu_service.MenuAddRequest'
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 操作成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 添加菜单
+      tags:
+      - 菜单管理
+  /api/menus_name:
+    get:
+      description: 等修改
+      parameters:
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/menu_api.MenuNameListResponse'
+                  type: array
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 获取菜单名称列表
+      tags:
+      - 菜单管理
 swagger: "2.0"
