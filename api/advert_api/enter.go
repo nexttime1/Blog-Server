@@ -40,14 +40,17 @@ type AdvertApi struct {
 }
 
 // AdvertAddView 添加广告
-// @Tags 广告管理
 // @Summary 创建广告
-// @Description 创建一个广告
-// @Param data body AdvertRequest    true  "表示多个参数"
-// @Param token header string  true  "token"
-// @Router /api/adverts [post]
+// @Description 创建一个新的广告条目，包含标题、跳转链接、图片和展示状态
+// @Tags 广告管理
+// @Accept json
 // @Produce json
-// @Success 200 {object} res.Response{}
+// @Param data body AdvertRequest true "广告信息"
+// @Param token header string true "用户认证令牌"
+// @Success 200 {object} res.Response "操作成功"
+// @Failure 400 {object} res.Response "请求参数错误"
+// @Failure 500 {object} res.Response "服务器内部错误"
+// @Router /api/adverts [post]
 func (AdvertApi) AdvertAddView(c *gin.Context) {
 	var ar AdvertRequest
 	err := c.ShouldBindJSON(&ar)
@@ -83,13 +86,22 @@ func (AdvertApi) AdvertAddView(c *gin.Context) {
 }
 
 // AdvertListView 广告列表
+// @Summary 获取广告列表
+// @Description 分页查询广告列表，支持根据标题、链接等条件筛选
 // @Tags 广告管理
-// @Summary 广告列表
-// @Description 查询广告
-// @Param data query AdvertListResponse    false  "查询参数"
-// @Router /api/adverts [get]
+// @Accept json
 // @Produce json
-// @Success 200 {object} res.Response{data=map[string]any}
+// @Param title query string false "标题筛选（模糊匹配）"
+// @Param href query string false "链接筛选（模糊匹配）"
+// @Param images query string false "图片筛选（模糊匹配）"
+// @Param is_show query bool false "是否展示（true/false）"
+// @Param page query int false "页码，默认1" mininum(1)
+// @Param limit query int false "每页条数，默认10" mininum(1) maxinum(100)
+// @Param token header string true "用户认证令牌"
+// @Success 200 {object} res.Response{data=res.DataListResponse}
+// @Failure 400 {object} res.Response "请求参数错误"
+// @Failure 500 {object} res.Response "服务器内部错误"
+// @Router /api/adverts [get]
 func (AdvertApi) AdvertListView(c *gin.Context) {
 	var as AdvertListResponse
 	err := c.ShouldBindQuery(&as)
@@ -122,15 +134,19 @@ func (AdvertApi) AdvertListView(c *gin.Context) {
 }
 
 // AdvertUpdateView 广告更新
-// @Tags 广告管理
 // @Summary 更新广告
-// @Param token header string  true  "token"
 // @Description 更新广告
-// @Param data body AdvertRequest    true  "广告的一些参数"
-// @Param id path int true "id"
-// @Router /api/adverts/{id} [put]
+// @Tags 广告管理
+// @Accept json
 // @Produce json
-// @Success 200 {object} res.Response{}
+// @Param data body AdvertUpdateRequest false "更新的广告信息（可选字段，如title/href等，不传则不更新）"
+// @Param id path int true "id"
+// @Param token header string true "token"
+// @Success 200 {object} res.Response "更新成功"
+// @Failure 400 {object} res.Response "请求参数错误（如ID格式错误、标题重复等）"
+// @Failure 404 {object} res.Response "广告不存在"
+// @Failure 500 {object} res.Response "服务器内部错误"
+// @Router /api/adverts/{id} [put]
 func (AdvertApi) AdvertUpdateView(c *gin.Context) {
 	id := c.Param("id")
 
@@ -170,14 +186,18 @@ func (AdvertApi) AdvertUpdateView(c *gin.Context) {
 }
 
 // AdvertDeleteView 广告删除
-// @Tags 广告管理
 // @Summary 批量删除广告
 // @Description 批量删除广告
-// @Param token header string  true  "token"
-// @Param data body models.RemoveRequest    true  "广告id列表"
-// @Router /api/adverts [delete]
+// @Tags 广告管理
+// @Accept json
 // @Produce json
-// @Success 200 {object} res.Response{}
+// @Param data body models.RemoveRequest true "广告id列表"
+// @Param token header string true "token"
+// @Success 200 {object} res.Response "删除成功"
+// @Failure 400 {object} res.Response "请求参数错误（如id格式错误、列表为空）"
+// @Failure 404 {object} res.Response "部分广告id不存在"
+// @Failure 500 {object} res.Response "服务器内部错误"
+// @Router /api/adverts [delete]
 func (AdvertApi) AdvertDeleteView(c *gin.Context) {
 	var removeRequest models.RemoveRequest
 	err := c.ShouldBindJSON(&removeRequest)

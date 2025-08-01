@@ -18,59 +18,60 @@ const docTemplate = `{
     "paths": {
         "/api/adverts": {
             "get": {
-                "description": "查询广告",
+                "description": "分页查询广告列表，支持根据标题、链接等条件筛选",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "广告管理"
                 ],
-                "summary": "广告列表",
+                "summary": "获取广告列表",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "跳转链接",
+                        "description": "标题筛选（模糊匹配）",
+                        "name": "title",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "链接筛选（模糊匹配）",
                         "name": "href",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "图片",
+                        "description": "图片筛选（模糊匹配）",
                         "name": "images",
                         "in": "query"
                     },
                     {
                         "type": "boolean",
-                        "description": "是否展示",
+                        "description": "是否展示（true/false）",
                         "name": "is_show",
                         "in": "query"
                     },
                     {
-                        "type": "string",
-                        "name": "key",
+                        "type": "integer",
+                        "description": "页码，默认1",
+                        "name": "page",
                         "in": "query"
                     },
                     {
                         "type": "integer",
+                        "description": "每页条数，默认10",
                         "name": "limit",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "前端可以覆盖",
-                        "name": "order",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "显示的标题",
-                        "name": "title",
-                        "in": "query"
+                        "description": "用户认证令牌",
+                        "name": "token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -85,18 +86,32 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "type": "object",
-                                            "additionalProperties": true
+                                            "$ref": "#/definitions/res.DataListResponse"
                                         }
                                     }
                                 }
                             ]
                         }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
                     }
                 }
             },
             "post": {
-                "description": "创建一个广告",
+                "description": "创建一个新的广告条目，包含标题、跳转链接、图片和展示状态",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -106,7 +121,7 @@ const docTemplate = `{
                 "summary": "创建广告",
                 "parameters": [
                     {
-                        "description": "表示多个参数",
+                        "description": "广告信息",
                         "name": "data",
                         "in": "body",
                         "required": true,
@@ -116,7 +131,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "token",
+                        "description": "用户认证令牌",
                         "name": "token",
                         "in": "header",
                         "required": true
@@ -124,7 +139,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "操作成功",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
                         "schema": {
                             "$ref": "#/definitions/res.Response"
                         }
@@ -133,6 +160,9 @@ const docTemplate = `{
             },
             "delete": {
                 "description": "批量删除广告",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -142,13 +172,6 @@ const docTemplate = `{
                 "summary": "批量删除广告",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "token",
-                        "name": "token",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
                         "description": "广告id列表",
                         "name": "data",
                         "in": "body",
@@ -156,11 +179,36 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/models.RemoveRequest"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "token",
+                        "name": "token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "删除成功",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误（如id格式错误、列表为空）",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "部分广告id不存在",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
                         "schema": {
                             "$ref": "#/definitions/res.Response"
                         }
@@ -171,6 +219,9 @@ const docTemplate = `{
         "/api/adverts/{id}": {
             "put": {
                 "description": "更新广告",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -180,19 +231,11 @@ const docTemplate = `{
                 "summary": "更新广告",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "token",
-                        "name": "token",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "description": "广告的一些参数",
+                        "description": "更新的广告信息（可选字段，如title/href等，不传则不更新）",
                         "name": "data",
                         "in": "body",
-                        "required": true,
                         "schema": {
-                            "$ref": "#/definitions/advert_api.AdvertRequest"
+                            "$ref": "#/definitions/advert_api.AdvertUpdateRequest"
                         }
                     },
                     {
@@ -201,11 +244,285 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "token",
+                        "name": "token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "更新成功",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误（如ID格式错误、标题重复等）",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "广告不存在",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/images": {
+            "get": {
+                "description": "查询对应参数的图片",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "图片管理"
+                ],
+                "summary": "查看图片",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "输入对对应参数",
+                        "name": "path",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "输入对对应参数",
+                        "name": "hash",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "输入对对应参数",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "页码，默认1",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页条数，默认10",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "token",
+                        "name": "token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "对于图片的各个信息",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/res.DataListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "根据给出的id 去更新Name",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "图片管理"
+                ],
+                "summary": "更新图片",
+                "parameters": [
+                    {
+                        "description": "输入要修改的id和修改后的名字",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/image_api.ImageUpdateRequest"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "token",
+                        "name": "token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "更新成功",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误（如ID格式错误、标题重复等）",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "图片不存在",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "支持多图片上传，自动验证格式（白名单）和大小，重复图片会被拦截",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "图片管理"
+                ],
+                "summary": "批量上传图片",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "用户认证令牌",
+                        "name": "token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "图片文件列表（支持多文件，格式：jpg/jpeg/png/gif等）",
+                        "name": "image",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "上传结果列表（包含每个文件的上传状态、路径等信息）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/image_service.ImageListResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "请求错误（如文件不存在、格式错误、大小超限等）",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器错误（如上传七牛云失败、保存文件失败等）",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "批量删除图片",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "图片管理"
+                ],
+                "summary": "批量删除图片",
+                "parameters": [
+                    {
+                        "description": "图片id列表",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.RemoveRequest"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "token",
+                        "name": "token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "删除成功",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误（如id格式错误、列表为空）",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "部分图片id不存在",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
                         "schema": {
                             "$ref": "#/definitions/res.Response"
                         }
@@ -215,7 +532,7 @@ const docTemplate = `{
         },
         "/api/images_name": {
             "get": {
-                "description": "只返回一些重要的",
+                "description": "只返回一些重要的图片信息",
                 "produces": [
                     "application/json"
                 ],
@@ -223,6 +540,15 @@ const docTemplate = `{
                     "图片管理"
                 ],
                 "summary": "图片名称列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "token",
+                        "name": "token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -276,6 +602,27 @@ const docTemplate = `{
                 }
             }
         },
+        "advert_api.AdvertUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "href": {
+                    "description": "跳转链接",
+                    "type": "string"
+                },
+                "images": {
+                    "description": "图片",
+                    "type": "string"
+                },
+                "is_show": {
+                    "description": "是否展示",
+                    "type": "boolean"
+                },
+                "title": {
+                    "description": "显示的标题",
+                    "type": "string"
+                }
+            }
+        },
         "image_api.ImageNameListResponse": {
             "type": "object",
             "properties": {
@@ -289,6 +636,41 @@ const docTemplate = `{
                 "path": {
                     "description": "图片路径",
                     "type": "string"
+                }
+            }
+        },
+        "image_api.ImageUpdateRequest": {
+            "type": "object",
+            "required": [
+                "id",
+                "name"
+            ],
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "image_service.ImageListResponse": {
+            "type": "object",
+            "properties": {
+                "filename": {
+                    "type": "string"
+                },
+                "filepath": {
+                    "type": "string"
+                },
+                "is_success": {
+                    "type": "boolean"
+                },
+                "msg": {
+                    "type": "string"
+                },
+                "size": {
+                    "type": "number"
                 }
             }
         },
@@ -320,6 +702,15 @@ const docTemplate = `{
                 "FailServiceCode",
                 "FailArgumentCode"
             ]
+        },
+        "res.DataListResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "list": {}
+            }
         },
         "res.Response": {
             "type": "object",

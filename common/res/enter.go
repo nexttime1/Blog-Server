@@ -36,6 +36,11 @@ func (c Code) Message() string {
 	return ""
 }
 
+type DataListResponse struct {
+	List  any
+	Count int
+}
+
 func (r Response) Json(c *gin.Context) {
 	c.JSON(200, r)
 }
@@ -68,8 +73,8 @@ func FailWithCode(c *gin.Context, code Code) {
 }
 
 func OkWithList(c *gin.Context, List any, Count int) {
-	Response{SuccessCode, map[string]any{
-		"List":  List,
-		"Count": Count,
+	Response{SuccessCode, DataListResponse{
+		List:  List,
+		Count: Count,
 	}, "成功"}.Json(c)
 }

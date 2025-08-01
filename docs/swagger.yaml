@@ -19,6 +19,21 @@ definitions:
     - images
     - title
     type: object
+  advert_api.AdvertUpdateRequest:
+    properties:
+      href:
+        description: 跳转链接
+        type: string
+      images:
+        description: 图片
+        type: string
+      is_show:
+        description: 是否展示
+        type: boolean
+      title:
+        description: 显示的标题
+        type: string
+    type: object
   image_api.ImageNameListResponse:
     properties:
       id:
@@ -29,6 +44,29 @@ definitions:
       path:
         description: 图片路径
         type: string
+    type: object
+  image_api.ImageUpdateRequest:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    required:
+    - id
+    - name
+    type: object
+  image_service.ImageListResponse:
+    properties:
+      filename:
+        type: string
+      filepath:
+        type: string
+      is_success:
+        type: boolean
+      msg:
+        type: string
+      size:
+        type: number
     type: object
   models.RemoveRequest:
     properties:
@@ -51,6 +89,12 @@ definitions:
     - FailValidCode
     - FailServiceCode
     - FailArgumentCode
+  res.DataListResponse:
+    properties:
+      count:
+        type: integer
+      list: {}
+    type: object
   res.Response:
     properties:
       code:
@@ -68,60 +112,76 @@ info:
 paths:
   /api/adverts:
     delete:
+      consumes:
+      - application/json
       description: 批量删除广告
       parameters:
-      - description: token
-        in: header
-        name: token
-        required: true
-        type: string
       - description: 广告id列表
         in: body
         name: data
         required: true
         schema:
           $ref: '#/definitions/models.RemoveRequest'
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: 删除成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误（如id格式错误、列表为空）
+          schema:
+            $ref: '#/definitions/res.Response'
+        "404":
+          description: 部分广告id不存在
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
           schema:
             $ref: '#/definitions/res.Response'
       summary: 批量删除广告
       tags:
       - 广告管理
     get:
-      description: 查询广告
+      consumes:
+      - application/json
+      description: 分页查询广告列表，支持根据标题、链接等条件筛选
       parameters:
-      - description: 跳转链接
+      - description: 标题筛选（模糊匹配）
+        in: query
+        name: title
+        type: string
+      - description: 链接筛选（模糊匹配）
         in: query
         name: href
         type: string
-      - description: 图片
+      - description: 图片筛选（模糊匹配）
         in: query
         name: images
         type: string
-      - description: 是否展示
+      - description: 是否展示（true/false）
         in: query
         name: is_show
         type: boolean
-      - in: query
-        name: key
-        type: string
-      - in: query
-        name: limit
-        type: integer
-      - description: 前端可以覆盖
+      - description: 页码，默认1
         in: query
-        name: order
-        type: string
-      - in: query
         name: page
         type: integer
-      - description: 显示的标题
+      - description: 每页条数，默认10
         in: query
-        name: title
+        name: limit
+        type: integer
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
         type: string
       produces:
       - application/json
@@ -133,22 +193,31 @@ paths:
             - $ref: '#/definitions/res.Response'
             - properties:
                 data:
-                  additionalProperties: true
-                  type: object
+                  $ref: '#/definitions/res.DataListResponse'
               type: object
-      summary: 广告列表
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 获取广告列表
       tags:
       - 广告管理
     post:
-      description: 创建一个广告
+      consumes:
+      - application/json
+      description: 创建一个新的广告条目，包含标题、跳转链接、图片和展示状态
       parameters:
-      - description: 表示多个参数
+      - description: 广告信息
         in: body
         name: data
         required: true
         schema:
           $ref: '#/definitions/advert_api.AdvertRequest'
-      - description: token
+      - description: 用户认证令牌
         in: header
         name: token
         required: true
@@ -157,7 +226,15 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: 操作成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
           schema:
             $ref: '#/definitions/res.Response'
       summary: 创建广告
@@ -165,37 +242,216 @@ paths:
       - 广告管理
   /api/adverts/{id}:
     put:
+      consumes:
+      - application/json
       description: 更新广告
+      parameters:
+      - description: 更新的广告信息（可选字段，如title/href等，不传则不更新）
+        in: body
+        name: data
+        schema:
+          $ref: '#/definitions/advert_api.AdvertUpdateRequest'
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误（如ID格式错误、标题重复等）
+          schema:
+            $ref: '#/definitions/res.Response'
+        "404":
+          description: 广告不存在
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 更新广告
+      tags:
+      - 广告管理
+  /api/images:
+    delete:
+      consumes:
+      - application/json
+      description: 批量删除图片
+      parameters:
+      - description: 图片id列表
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/models.RemoveRequest'
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误（如id格式错误、列表为空）
+          schema:
+            $ref: '#/definitions/res.Response'
+        "404":
+          description: 部分图片id不存在
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 批量删除图片
+      tags:
+      - 图片管理
+    get:
+      description: 查询对应参数的图片
+      parameters:
+      - description: 输入对对应参数
+        in: query
+        name: path
+        type: string
+      - description: 输入对对应参数
+        in: query
+        name: hash
+        type: string
+      - description: 输入对对应参数
+        in: query
+        name: name
+        type: string
+      - description: 页码，默认1
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数，默认10
+        in: query
+        name: limit
+        type: integer
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 对于图片的各个信息
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/res.DataListResponse'
+              type: object
+      summary: 查看图片
+      tags:
+      - 图片管理
+    post:
+      consumes:
+      - multipart/form-data
+      description: 支持多图片上传，自动验证格式（白名单）和大小，重复图片会被拦截
+      parameters:
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: 图片文件列表（支持多文件，格式：jpg/jpeg/png/gif等）
+        in: formData
+        name: image
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 上传结果列表（包含每个文件的上传状态、路径等信息）
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/image_service.ImageListResponse'
+                  type: array
+              type: object
+        "400":
+          description: 请求错误（如文件不存在、格式错误、大小超限等）
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器错误（如上传七牛云失败、保存文件失败等）
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 批量上传图片
+      tags:
+      - 图片管理
+    put:
+      consumes:
+      - application/json
+      description: 根据给出的id 去更新Name
+      parameters:
+      - description: 输入要修改的id和修改后的名字
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/image_api.ImageUpdateRequest'
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误（如ID格式错误、标题重复等）
+          schema:
+            $ref: '#/definitions/res.Response'
+        "404":
+          description: 图片不存在
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 更新图片
+      tags:
+      - 图片管理
+  /api/images_name:
+    get:
+      description: 只返回一些重要的图片信息
       parameters:
       - description: token
         in: header
         name: token
         required: true
         type: string
-      - description: 广告的一些参数
-        in: body
-        name: data
-        required: true
-        schema:
-          $ref: '#/definitions/advert_api.AdvertRequest'
-      - description: id
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/res.Response'
-      summary: 更新广告
-      tags:
-      - 广告管理
-  /api/images_name:
-    get:
-      description: 只返回一些重要的
       produces:
       - application/json
       responses:

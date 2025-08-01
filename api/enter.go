@@ -4,6 +4,7 @@ import (
 	"Blog_server/api/advert_api"
 	"Blog_server/api/image_api"
 	"Blog_server/api/log_api"
+	"Blog_server/api/menu_api"
 	"Blog_server/api/settings_api"
 	"Blog_server/api/site_api"
 )
@@ -14,6 +15,7 @@ type Api struct {
 	SettingApi settings_api.SettingApi
 	ImageApi   image_api.ImageApi
 	AdvertApi  advert_api.AdvertApi
+	MenuApi    menu_api.MenuApi
 }
 
 var App = Api{}
