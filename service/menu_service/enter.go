@@ -14,7 +14,7 @@ type ImageSort struct {
 	Sort    int  `json:"sort"`
 }
 
-type MenuAddRequest struct {
+type MenuRequest struct {
 	Title         string      `json:"title" binding:"required" structs:"title"`
 	Path          string      `json:"path" binding:"required" structs:"path"`
 	Slogan        string      `json:"slogan" structs:"slogan"`
@@ -25,7 +25,7 @@ type MenuAddRequest struct {
 	ImageSortList []ImageSort `json:"image_sort_list" structs:"-"`            // 添加的图片和顺序
 }
 
-func MenuAddService(c *gin.Context, mc MenuAddRequest) (error, []models.MenuBannerModel) {
+func MenuAddService(c *gin.Context, mc MenuRequest) (error, []models.MenuBannerModel) {
 	//重复着 title 不能重复
 	var model models.MenuModel
 	err := global.DB.Where("title = ? or path = ?", mc.Title, mc.Path).Take(&model).Error
