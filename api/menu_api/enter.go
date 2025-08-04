@@ -76,17 +76,30 @@ func (MenuApi) MenuListView(c *gin.Context) {
 
 	var MenuBannerList []models.MenuBannerModel
 	var menus []MenuListResponse
-	err := global.DB.Preload("BannerModel").Order("sort desc").Where("menu_id in ?", MenuIdList).Find(&MenuBannerList).Error
+	err := global.DB.Preload("BannerModel").Order("menu_id ASC, sort DESC").Where("menu_id in ?", MenuIdList).Find(&MenuBannerList).Error
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
+
 	for _, model := range MenuList {
 		var banners []Banners
-		for _, banner := range MenuBannerList {
-			if model.ID != banner.MenuID {
-				continue
+		high := len(MenuBannerList) - 1
+		low := 0
+		for low < high {
+			mid := (low + high) / 2
+			if MenuBannerList[mid].MenuID >= model.ID {
+				high = mid
+			} else {
+				low = mid + 1
 			}
+		}
+		// 增加判断，确认找到的元素是否符合条件
+		for i := low; i < len(MenuBannerList); i++ {
+			if MenuBannerList[i].MenuID != model.ID {
+				break
+			}
+			banner := MenuBannerList[i]
 			banners = append(banners, Banners{
 				ID:   banner.BannerID,
 				Path: banner.BannerModel.Path,
