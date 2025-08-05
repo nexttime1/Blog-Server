@@ -1,27 +1,27 @@
 package models
 
 import (
-	enum2 "Blog_server/models/enum"
+	"Blog_server/models/enum"
 	"time"
 )
 
 type UserModel struct {
 	Model
-	Username       string             `gorm:"size:32" json:"username"`
-	Nickname       string             `gorm:"size:32" json:"nickname"`
-	Password       string             `gorm:"size:64" json:"-"`
-	Avatar         string             `gorm:"size:256" json:"avatar"` //头像
-	Abstract       string             `gorm:"size:256" json:"abstract"`
-	RegisterSource enum2.RegisterType `json:"registerSource"`
-	CodeAge        string             `json:"codeAge"`
-	Email          string             `gorm:"size:256" json:"email"`
-	Tel            string             `gorm:"size:18" json:"tel"`
-	Addr           string             `gorm:"size:64" json:"addr"`
-	Token          string             `gorm:"size:64" json:"token"` //第三方登陆的唯一id
-	IP             string             `gorm:"size:32" json:"ip"`
-	Role           enum2.RoleType     `json:"role"`                                                                                  // 1 为管理员  2 为 普通用户
-	ArticleModels  []ArticleModel     `gorm:"foreignKey:UserID" json:"-"`                                                            // 发布的文章列表
-	CollectsModels []ArticleModel     `gorm:"many2many:user_collect_models;joinForeignKey:UserID;JoinReferences:ArticleID" json:"-"` // 收藏的文章列表
+	Username       string            `gorm:"size:32" json:"username"`
+	Nickname       string            `gorm:"size:32" json:"nickname"`
+	Password       string            `gorm:"size:64" json:"-"`
+	Avatar         string            `gorm:"size:256" json:"avatar"` //头像
+	Abstract       string            `gorm:"size:256" json:"abstract"`
+	RegisterSource enum.RegisterType `json:"registerSource"`
+	CodeAge        string            `json:"codeAge"`
+	Email          string            `gorm:"size:256" json:"email"`
+	Tel            string            `gorm:"size:18" json:"tel"`
+	Addr           string            `gorm:"size:64" json:"addr"`
+	Token          string            `gorm:"size:64" json:"token"` //第三方登陆的唯一id
+	IP             string            `gorm:"size:32" json:"ip"`
+	Role           enum.RoleType     `json:"role"`                                                                                  // 1 为管理员  2 为 普通用户
+	ArticleModels  []ArticleModel    `gorm:"foreignKey:UserID" json:"-"`                                                            // 发布的文章列表
+	CollectsModels []ArticleModel    `gorm:"many2many:user_collect_models;joinForeignKey:UserID;JoinReferences:ArticleID" json:"-"` // 收藏的文章列表
 
 }
 

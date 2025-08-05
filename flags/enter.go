@@ -15,6 +15,8 @@ type Options struct {
 
 var FileOption = new(Options)
 
+var Signate = false
+
 func Parse() {
 	flag.StringVar(&FileOption.File, "f", "settings.yaml", "配置文件")
 	flag.BoolVar(&FileOption.DB, "db", false, "数据库迁移")
@@ -31,11 +33,10 @@ func Run() {
 	}
 	if FileOption.User == "admin" || FileOption.User == "user" {
 		FlagUser(FileOption.User)
-		fmt.Println("<UNK>")
-
-	} else {
-		//那就是写错了
-		flag.Usage()
-	}
+		os.Exit(0)
+	} //else {
+	//那就是写错了
+	//flag.Usage()
+	//}
 
 }
