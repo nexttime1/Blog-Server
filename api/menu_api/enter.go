@@ -34,7 +34,7 @@ type MenuNameListResponse struct {
 // @Tags 菜单管理
 // @Accept json
 // @Produce json
-// @Param data body menu_service.MenuAddRequest true "菜单信息"
+// @Param data body menu_service.MenuRequest true "菜单信息"
 // @Param token header string true "用户认证令牌"
 // @Success 200 {object} res.Response "操作成功"
 // @Failure 400 {object} res.Response "请求参数错误"

@@ -1,5 +1,12 @@
 package enum
 
+import (
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
+	"strconv"
+)
+
 type RoleType int8
 
 const (
@@ -21,4 +28,67 @@ func (r RoleType) ParseRole() string {
 		return "黑名单"
 	}
 	return "游客（未知）"
+}
+
+// Scan 实现 sql.Scanner 接口，用于从数据库读取数据时的类型转换
+func (r *RoleType) Scan(value interface{}) error {
+	if value == nil {
+		*r = VisitorRole // 默认为游客角色
+		return nil
+	}
+
+	// 尝试将数据库值转换为int64
+	switch v := value.(type) {
+	case int64:
+		*r = RoleType(v)
+	case int:
+		*r = RoleType(v)
+	case []byte:
+		// 如果数据库存储的是字符串形式的数字
+		val, err := strconv.ParseInt(string(v), 10, 8)
+		if err != nil {
+			return err
+		}
+		*r = RoleType(val)
+	default:
+		return errors.New("类型有错误")
+	}
+
+	return nil
+}
+
+// Value 实现 driver.Valuer 接口，用于将RoleType存入数据库时的转换
+func (r RoleType) Value() (driver.Value, error) {
+	return int64(r), nil
+}
+
+// MarshalJSON 实现 json.Marshaler 接口，序列化时返回中文名称
+func (r RoleType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(r.ParseRole())
+}
+
+// UnmarshalJSON 实现 json.Unmarshaler 接口，反序列化时将字符串转换为对应的RoleType
+func (r *RoleType) UnmarshalJSON(data []byte) error {
+	var roleStr string
+	// 先将JSON数据解析为字符串
+	if err := json.Unmarshal(data, &roleStr); err != nil {
+		return err
+	}
+
+	// 根据字符串匹配对应的枚举值
+	switch roleStr {
+	case "1", "管理员":
+		*r = AdminRole
+	case "2", "普通用户":
+		*r = UserRole
+	case "3", "游客":
+		*r = VisitorRole
+	case "4", "黑名单":
+		*r = BlackRole
+	default:
+		// 处理未知角色，可根据需求返回错误或设为默认值
+		return errors.New("无效的角色类型: " + roleStr)
+		// 或者设为默认值：*r = VisitorRole; return nil
+	}
+	return nil
 }

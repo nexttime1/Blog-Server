@@ -1,8 +1,11 @@
 package user_service
 
 import (
+	"Blog_server/common"
 	"Blog_server/global"
 	"Blog_server/models"
+	"Blog_server/models/enum"
+	"Blog_server/utils/desensitization"
 	"Blog_server/utils/jwts"
 	"Blog_server/utils/pwd"
 	"errors"
@@ -11,6 +14,11 @@ import (
 type EmailLoginRequest struct {
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
+}
+
+type UserInfoRequest struct {
+	common.PageInfo
+	Username string `json:"username"`
 }
 
 func UserEmailLoginService(mr EmailLoginRequest) (token string, msg string, err error) {
@@ -41,4 +49,28 @@ func UserEmailLoginService(mr EmailLoginRequest) (token string, msg string, err 
 	}
 
 	return
+}
+
+func UserInfoService(UserInfo UserInfoRequest) ([]models.UserModel, int, error) {
+	list, count, err := common.ListQuery(models.UserModel{
+		Username: UserInfo.Username,
+	}, common.Options{
+		PageInfo: UserInfo.PageInfo,
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+	var UserModelList []models.UserModel
+	for _, model := range list {
+		if model.Role == enum.AdminRole {
+			//隐藏
+			model.Username = ""
+		}
+		model.Tel = desensitization.TelDesensitization(model.Tel)
+		model.Email = desensitization.EmailDesensitization(model.Email)
+		UserModelList = append(UserModelList, model)
+	}
+
+	return UserModelList, count, nil
+
 }

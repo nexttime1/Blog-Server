@@ -15,8 +15,8 @@ func main() {
 	global.Config = core.ReadConf()
 	core.InitLogrus()
 	token, err := jwts.GetToken(jwts.Claims{
-		UserID: 2,
-		Role:   enum.UserRole,
+		UserID: 4,
+		Role:   enum.AdminRole,
 	})
 	if err != nil {
 		fmt.Println(err)

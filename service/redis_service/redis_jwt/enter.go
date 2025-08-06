@@ -45,20 +45,21 @@ func (b BlackType) String() string {
 	return fmt.Sprintf("%d", b)
 }
 
-func TokenBlack(token string, value BlackType) {
+func TokenBlack(token string, value BlackType) error {
 	key := fmt.Sprintf("xtm_token_%s", token)
 	Chains, err := jwts.ParseToken(token)
 	if err != nil {
 		logrus.Errorf("token解析失败 %s", err.Error())
+		return err
 	}
 	scend := Chains.ExpiresAt - time.Now().Unix()
 
 	_, err = global.Redis.Set(key, value.String(), time.Duration(scend)*time.Hour).Result()
 	if err != nil {
 		logrus.Errorf("redis黑名单加载失败 %s", err.Error())
-		return
+		return err
 	}
-
+	return nil
 }
 
 func HasTokenBlack(token string) (bool, BlackType) {
@@ -78,4 +79,13 @@ func HasTokenBlackByGin(c *gin.Context) (bool, BlackType) {
 
 	}
 	return HasTokenBlack(token)
+}
+
+func TokenBlackByGin(c *gin.Context, value BlackType) error {
+	token := c.GetHeader("Token")
+	if token == "" {
+		token = c.Query("token")
+
+	}
+	return TokenBlack(token, value)
 }

@@ -133,7 +133,7 @@ definitions:
       sort:
         type: integer
     type: object
-  menu_service.MenuAddRequest:
+  menu_service.MenuRequest:
     properties:
       abstract:
         items:
@@ -218,6 +218,16 @@ definitions:
       data: {}
       msg:
         type: string
+    type: object
+  user_service.EmailLoginRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
     type: object
 host: 127.0.0.01:8080
 info:
@@ -399,6 +409,41 @@ paths:
       summary: 更新广告
       tags:
       - 广告管理
+  /api/email_login:
+    post:
+      consumes:
+      - application/json
+      description: 邮箱登录 输入 用户名和密码  都是必填
+      parameters:
+      - description: 登录信息
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/user_service.EmailLoginRequest'
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登录成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 邮箱登录
+      tags:
+      - 用户管理
   /api/images:
     delete:
       consumes:
@@ -586,6 +631,44 @@ paths:
       tags:
       - 图片管理
   /api/menus:
+    delete:
+      consumes:
+      - application/json
+      description: 批量菜单删除
+      parameters:
+      - description: 菜单id列表
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/models.RemoveRequest'
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误（如id格式错误、列表为空）
+          schema:
+            $ref: '#/definitions/res.Response'
+        "404":
+          description: 部分菜单id不存在
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 批量菜单删除
+      tags:
+      - 菜单管理
     get:
       description: 等修改
       parameters:
@@ -629,7 +712,7 @@ paths:
         name: data
         required: true
         schema:
-          $ref: '#/definitions/menu_service.MenuAddRequest'
+          $ref: '#/definitions/menu_service.MenuRequest'
       - description: 用户认证令牌
         in: header
         name: token
@@ -651,6 +734,87 @@ paths:
           schema:
             $ref: '#/definitions/res.Response'
       summary: 添加菜单
+      tags:
+      - 菜单管理
+  /api/menus/{id}:
+    get:
+      description: 获取某个菜单
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/menu_api.MenuListResponse'
+                  type: array
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 获取某个菜单
+      tags:
+      - 菜单管理
+    put:
+      consumes:
+      - application/json
+      description: 菜单更新
+      parameters:
+      - description: 更新的菜单信息（可选字段，如title/path等，不传则不更新）
+        in: body
+        name: data
+        schema:
+          $ref: '#/definitions/menu_service.MenuRequest'
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误（如ID格式错误、标题重复等）
+          schema:
+            $ref: '#/definitions/res.Response'
+        "404":
+          description: 菜单不存在
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 菜单更新
       tags:
       - 菜单管理
   /api/menus_name:
@@ -687,4 +851,44 @@ paths:
       summary: 获取菜单名称列表
       tags:
       - 菜单管理
+  /api/users:
+    get:
+      description: 获取用户列表
+      parameters:
+      - description: 页码，默认1
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数，默认10
+        in: query
+        name: limit
+        type: integer
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/res.DataListResponse'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 用户列表
+      tags:
+      - 用户管理
 swagger: "2.0"
