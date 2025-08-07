@@ -52,9 +52,9 @@ func TokenBlack(token string, value BlackType) error {
 		logrus.Errorf("token解析失败 %s", err.Error())
 		return err
 	}
-	scend := Chains.ExpiresAt - time.Now().Unix()
+	second := Chains.ExpiresAt - time.Now().Unix()
 
-	_, err = global.Redis.Set(key, value.String(), time.Duration(scend)*time.Hour).Result()
+	_, err = global.Redis.Set(key, value.String(), time.Duration(second)*time.Second).Result()
 	if err != nil {
 		logrus.Errorf("redis黑名单加载失败 %s", err.Error())
 		return err

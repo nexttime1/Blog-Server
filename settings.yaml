@@ -61,9 +61,9 @@ qq:
 email:
   host: smtp.qq.com
   port: 465
-  user: xxx@qq.com
-  password: xxx
-  default_from_email: 下次一定
+  user: 2083933996@qq.com
+  password: ebwamormxkmqccje
+  default_from_email: "下次一定"
   use_ssl: true
   user_tls: true
 

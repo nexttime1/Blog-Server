@@ -28,6 +28,16 @@ func (w *ResponseWriter) Header() http.Header { // 使用 c.JSON这样的 自动
 	return w.Head
 }
 
+// WriteHeader 方法：在发送状态码前，将自定义 Head 同步到原始响应头
+func (w *ResponseWriter) WriteHeader(code int) {
+	// 关键：将自定义 Head 中的所有头信息复制到原始响应头
+	for k, v := range w.Head {
+		w.ResponseWriter.Header()[k] = v
+	}
+	// 调用原始 WriteHeader 发送状态码
+	w.ResponseWriter.WriteHeader(code)
+}
+
 func LogMiddleware(c *gin.Context) {
 	//请求部分
 	fmt.Println("中间件") //先走中间件

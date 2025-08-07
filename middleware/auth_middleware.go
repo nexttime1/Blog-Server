@@ -24,7 +24,7 @@ func AuthMiddleware(c *gin.Context) {
 		return
 	}
 	c.Set("claims", claims)
-
+	c.Next()
 	return
 }
 
@@ -49,5 +49,5 @@ func AdminMiddleware(c *gin.Context) {
 		return
 	}
 	c.Set("claims", claims)
-
+	c.Next()
 }
