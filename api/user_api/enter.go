@@ -3,10 +3,12 @@ package user_api
 import (
 	"Blog_server/common"
 	"Blog_server/common/res"
+	"Blog_server/core"
 	"Blog_server/global"
 	"Blog_server/models"
 	"Blog_server/models/enum"
 	"Blog_server/plugins/email"
+	"Blog_server/plugins/qq"
 	"Blog_server/service/redis_service/redis_jwt"
 	"Blog_server/service/user_service"
 	"Blog_server/utils/jwts"
@@ -327,4 +329,56 @@ func (u UserApi) UserBindEmailView(c *gin.Context) {
 	session.Delete("email")
 	session.Save() // 保存修改
 	res.OkWithMessage(c, "绑定成功")
+}
+
+// UserQQLogin 用户QQ登录
+// @Summary 用户QQ登录
+// @Description 通过QQ授权码进行登录，支持新用户自动注册
+// @Tags 用户管理
+// @Accept json
+// @Produce json
+// @Param code query string true "QQ授权返回的code参数"
+// @Success 200 {object} res.Response{data=string} "登录成功，返回token"
+// @Failure 400 {object} res.Response "请求参数错误（如缺少code）"
+// @Failure 500 {object} res.Response "服务器内部错误（如QQ接口调用失败、数据库错误等）"
+// @Router /api/qq_login [post]
+func (u UserApi) UserQQLogin(c *gin.Context) {
+	code := c.Query("code")
+	qqInfo, err := qq.NewQQLogin(code)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	var model models.UserModel
+	err = global.DB.Where("token = ?", qqInfo.OpenID).Take(&model).Error
+	if err != nil {
+		// 没找到  注册
+		model = models.UserModel{
+			Username:       qqInfo.OpenID,
+			Nickname:       qqInfo.Nickname,
+			Password:       random.GenerateRandomString(8),
+			Avatar:         qqInfo.Avatar,
+			RegisterSource: enum.SignQQ,
+			Addr:           core.GetIpAddr(c.ClientIP()),
+			Token:          qqInfo.OpenID,
+			IP:             c.ClientIP(),
+			Role:           enum.UserRole,
+		}
+		err = global.DB.Create(&model).Error
+		if err != nil {
+			res.FailWithMsg(c, fmt.Sprintf("注册用户失败 %v", err))
+			return
+		}
+	}
+	//登录操作
+	token, err := jwts.GetToken(jwts.Claims{
+		UserID:   model.ID,
+		Username: model.Username,
+		Role:     model.Role,
+	})
+	if err != nil {
+		res.FailWithMsg(c, fmt.Sprintf("token 申请失败 %v", err))
+		return
+	}
+	res.OWithData(c, token)
 }

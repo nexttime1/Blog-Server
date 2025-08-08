@@ -14,6 +14,7 @@ func UserRouter(r *gin.RouterGroup) {
 	app := api.App.UserApi
 	r.Use(sessions.Sessions("sessionid", store))
 	r.POST("email_login", app.UserEmailLogin)
+	r.POST("qq_login", app.UserQQLogin)
 	r.GET("users", middleware.AuthMiddleware, app.UserInfoView)
 	r.PUT("users_role", middleware.AdminMiddleware, app.UserUpdateView)
 	r.PUT("users_pwd", middleware.AuthMiddleware, app.UserPasswordView)
