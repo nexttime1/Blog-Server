@@ -33,16 +33,17 @@ func FlagUser(permission string) {
 		logrus.Errorf("两次密码不一致，请重新输入")
 		return
 	}
+	role := enum.UserRole
+	if permission == "admin" {
+		role = enum.AdminRole
+	}
+
 	var model models.UserModel
 	err := global.DB.Where("username = ?", UserName).Take(&model).Error
 	if err == nil {
 		//找到了  重复
 		logrus.Errorf("用户名已存在")
 		return
-	}
-	role := enum.UserRole
-	if permission == "admin" {
-		role = enum.AdminRole
 	}
 
 	//对密码 进行哈希

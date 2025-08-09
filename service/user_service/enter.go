@@ -9,6 +9,7 @@ import (
 	"Blog_server/utils/jwts"
 	"Blog_server/utils/pwd"
 	"errors"
+	"github.com/sirupsen/logrus"
 )
 
 type EmailLoginRequest struct {
@@ -19,6 +20,13 @@ type EmailLoginRequest struct {
 type UserInfoRequest struct {
 	common.PageInfo
 	Username string `json:"username"`
+}
+
+type UserCreateRequest struct {
+	NickName string        `json:"nick_name" binding:"required" msg:"请输入昵称"`   // 昵称
+	UserName string        `json:"user_name" binding:"required" msg:"请输入用户名"` // 用户名
+	Password string        `json:"password" binding:"required" msg:"请输入密码"`    // 密码
+	Role     enum.RoleType `json:"role" binding:"required" msg:"请选择权限"`        // 权限  1 管理员  2 普通用户  3 游客
 }
 
 func UserEmailLoginService(mr EmailLoginRequest) (token string, msg string, err error) {
@@ -73,4 +81,36 @@ func UserInfoService(UserInfo UserInfoRequest) ([]models.UserModel, int, error) 
 
 	return UserModelList, count, nil
 
+}
+
+const Avatar = "uploads/avatars/default.png"
+
+func UserCreateService(UserName, NickName, Password string, Role enum.RoleType, Email string, Ip string) error {
+	var model models.UserModel
+	err := global.DB.Where("username = ?", UserName).Take(&model).Error
+	if err == nil {
+		//找到了  重复
+		logrus.Errorf("用户名已存在")
+		return errors.New("用户名已存在")
+	}
+	//对密码 进行哈希
+	hashPwd := pwd.HashPwd(Password)
+
+	//入库
+	err = global.DB.Create(&models.UserModel{
+		Nickname:       NickName,
+		Username:       UserName,
+		Password:       hashPwd,
+		Email:          Email,
+		Role:           Role,
+		Avatar:         Avatar,
+		IP:             Ip,
+		Addr:           ip.GetAddr(),
+		RegisterSource: enum.SignEmail,
+	}).Error
+	if err != nil {
+		logrus.Errorf("创建用户失败")
+		return
+	}
+	logrus.Infof("创建%s用户成功", UserName)
 }

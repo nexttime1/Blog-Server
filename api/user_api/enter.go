@@ -380,5 +380,20 @@ func (u UserApi) UserQQLogin(c *gin.Context) {
 		res.FailWithMsg(c, fmt.Sprintf("token 申请失败 %v", err))
 		return
 	}
-	res.OWithData(c, token)
+	res.OkWithData(c, token)
+}
+
+func (u UserApi) UserCreateView(c *gin.Context) {
+	_, exists := c.Get("claims")
+	if !exists {
+		return
+	}
+	var mr user_service.UserCreateRequest
+	err := c.ShouldBindJSON(&mr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	user_service.UserCreateService(mr.UserName, mr.NickName, mr.Password, mr.Role, "")
+
 }
