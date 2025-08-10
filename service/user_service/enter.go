@@ -9,6 +9,7 @@ import (
 	"Blog_server/utils/jwts"
 	"Blog_server/utils/pwd"
 	"errors"
+	"fmt"
 	"github.com/sirupsen/logrus"
 )
 
@@ -85,7 +86,7 @@ func UserInfoService(UserInfo UserInfoRequest) ([]models.UserModel, int, error) 
 
 const Avatar = "uploads/avatars/default.png"
 
-func UserCreateService(UserName, NickName, Password string, Role enum.RoleType, Email string, Ip string) error {
+func UserCreateService(UserName, NickName, Password string, Role enum.RoleType, Email string, Ip string, address string) error {
 	var model models.UserModel
 	err := global.DB.Where("username = ?", UserName).Take(&model).Error
 	if err == nil {
@@ -105,12 +106,13 @@ func UserCreateService(UserName, NickName, Password string, Role enum.RoleType, 
 		Role:           Role,
 		Avatar:         Avatar,
 		IP:             Ip,
-		Addr:           ip.GetAddr(),
+		Addr:           address,
 		RegisterSource: enum.SignEmail,
 	}).Error
 	if err != nil {
 		logrus.Errorf("创建用户失败")
-		return
+		return fmt.Errorf("创建用户失败  %s", err.Error())
 	}
 	logrus.Infof("创建%s用户成功", UserName)
+	return nil
 }

@@ -1,0 +1,174 @@
+package tag_api
+
+import (
+	"Blog_server/common"
+	"Blog_server/common/res"
+	"Blog_server/global"
+	"Blog_server/models"
+	"fmt"
+	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
+)
+
+type TagApi struct {
+}
+type TagRequest struct {
+	Title string `json:"title" binding:"required"`
+}
+
+type TagListRequest struct {
+	common.PageInfo
+	Title string `json:"title"`
+}
+
+// TagAddView 添加标签
+// @Summary 添加标签
+// @Description 创建一个新的标签，包含标题
+// @Tags 标签管理
+// @Accept json
+// @Produce json
+// @Param data body TagRequest true "标签信息"
+// @Param token header string true "用户认证令牌"
+// @Success 200 {object} res.Response "创建成功"
+// @Failure 400 {object} res.Response "请求参数错误"
+// @Failure 500 {object} res.Response "服务器内部错误"
+// @Router /api/tags [post]
+func (TagApi) TagAddView(c *gin.Context) {
+	_, exists := c.Get("claims")
+	if !exists {
+		return
+	}
+
+	var mr TagRequest
+	err := c.ShouldBindJSON(&mr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	var model models.TagModel
+	err = global.DB.Where("title = ?", mr.Title).Take(&model).Error
+	if err == nil {
+		logrus.Errorf("标签已经存在")
+		res.FailWithMsg(c, "标签已经存在")
+		return
+	}
+	err = global.DB.Create(&models.TagModel{
+		Title: mr.Title,
+	}).Error
+	if err != nil {
+		res.FailWithMsg(c, fmt.Sprintf("存入数据库失败 %s", err.Error()))
+		return
+	}
+	res.OkWithMessage(c, "创建标签成功")
+}
+
+// TagListView 标签列表
+// @Summary 获取标签列表
+// @Description 分页查询标签列表
+// @Tags 标签管理
+// @Produce json
+// @Param page query int false "页码，默认1" mininum(1)
+// @Param limit query int false "每页条数，默认10" mininum(1) maxinum(100)
+// @Param token header string true "用户认证令牌"
+// @Success 200 {object} res.Response{data=res.DataListResponse}
+// @Failure 400 {object} res.Response "请求参数错误"
+// @Failure 500 {object} res.Response "服务器内部错误"
+// @Router /api/tags [get]
+func (TagApi) TagListView(c *gin.Context) {
+	_, exists := c.Get("claims")
+	if !exists {
+		return
+	}
+	var mr TagListRequest
+	
+	err := c.ShouldBindQuery(&mr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	list, count, err := common.ListQuery(models.TagModel{}, common.Options{
+		PageInfo: mr.PageInfo,
+		Preload:  []string{"Articles"},
+	})
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+
+	res.OkWithList(c, list, count)
+
+}
+
+// TagUpdateView 更新标签
+// @Summary 更新标签
+// @Description 更新标签
+// @Tags 标签管理
+// @Accept json
+// @Produce json
+// @Param data body TagRequest true "更新的标签"
+// @Param id path int true "id"
+// @Param token header string true "token"
+// @Success 200 {object} res.Response "更新成功"
+// @Failure 400 {object} res.Response "请求参数错误"
+// @Failure 404 {object} res.Response "标签不存在"
+// @Failure 500 {object} res.Response "服务器内部错误"
+// @Router /api/tags/{id} [put]
+func (TagApi) TagUpdateView(c *gin.Context) {
+	_, exists := c.Get("claims")
+	if !exists {
+	}
+	var Request models.IDRequest
+	err := c.ShouldBindUri(&Request)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	var mr TagRequest
+	err = c.ShouldBindJSON(&mr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	var model models.TagModel
+	err = global.DB.Where("id = ?", Request.ID).Take(&model).Error
+	if err != nil {
+		res.FailWithMsg(c, fmt.Sprintf("未找到此id %s", err.Error()))
+		return
+	}
+	err = global.DB.Model(&model).Update("title", mr.Title).Error
+	if err != nil {
+		res.FailWithMsg(c, fmt.Sprintf("更新失败 %s", err.Error()))
+		return
+	}
+	res.OkWithMessage(c, "更新成功")
+
+}
+
+// TagDeleteView 批量删除标签
+// @Summary 批量删除标签
+// @Description 批量删除标签
+// @Tags 标签管理
+// @Accept json
+// @Produce json
+// @Param token header string true "token"
+// @Success 200 {object} res.Response "删除成功"
+// @Failure 400 {object} res.Response "请求参数错误"
+// @Failure 500 {object} res.Response "服务器内部错误"
+// @Router /api/tags [delete]
+func (TagApi) TagDeleteView(c *gin.Context) {
+	_, exists := c.Get("claims")
+	if !exists {
+		return
+	}
+	var mr models.RemoveRequest
+	err := c.ShouldBindJSON(&mr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	var modelList []models.TagModel
+	modelList = common.BatchRemove(modelList, mr)
+	count := len(modelList)
+	res.OkWithMessage(c, fmt.Sprintf("删除成功 共删除%d个标签", count))
+
+}

@@ -57,7 +57,7 @@ func UploadService(c *gin.Context, FileHeader *multipart.FileHeader) (ImageListR
 		imageType := enum.LocationType //默认
 		filepath := path.Join("uploads", FileHeader.Filename)
 
-		// md5  去数据库查看hash 存不存在
+		// md5  去数据库查看hash 存不存在  哈希算法
 		hashString, ByteData, err := md5.MD5_Hash(FileHeader)
 		if err != nil { //转换失败
 			res.FailWithErr(c, err)

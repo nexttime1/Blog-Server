@@ -383,6 +383,18 @@ func (u UserApi) UserQQLogin(c *gin.Context) {
 	res.OkWithData(c, token)
 }
 
+// UserCreateView 创建用户
+// @Summary 创建用户
+// @Description 创建用户 输入 昵称 用户名 密码 权限
+// @Tags 用户管理
+// @Accept json
+// @Produce json
+// @Param data body user_service.UserCreateRequest true "创建信息"
+// @Param token header string true "用户认证令牌"
+// @Success 200 {object} res.Response "创建成功"
+// @Failure 400 {object} res.Response "请求参数错误"
+// @Failure 500 {object} res.Response "服务器内部错误"
+// @Router /api/users [post]
 func (u UserApi) UserCreateView(c *gin.Context) {
 	_, exists := c.Get("claims")
 	if !exists {
@@ -394,6 +406,11 @@ func (u UserApi) UserCreateView(c *gin.Context) {
 		res.FailWithErr(c, err)
 		return
 	}
-	user_service.UserCreateService(mr.UserName, mr.NickName, mr.Password, mr.Role, "")
+	err = user_service.UserCreateService(mr.UserName, mr.NickName, mr.Password, mr.Role, "", c.ClientIP(), core.GetIpAddr(c.ClientIP()))
+	if err != nil {
+		res.FailWithMsg(c, fmt.Sprintf("创造用户失败 %v", err))
+		return
+	}
 
+	res.OkWithMessage(c, fmt.Sprintf("创建%s用户成功", mr.UserName))
 }

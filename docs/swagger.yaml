@@ -42,6 +42,18 @@ definitions:
     x-enum-varnames:
     - LocationType
     - QiNiuType
+  enum.RoleType:
+    enum:
+    - 1
+    - 2
+    - 3
+    - 4
+    type: integer
+    x-enum-varnames:
+    - AdminRole
+    - UserRole
+    - VisitorRole
+    - BlackRole
   image_api.ImageNameListResponse:
     properties:
       id:
@@ -164,6 +176,24 @@ definitions:
     - sort
     - title
     type: object
+  message_service.MessageAddRequest:
+    properties:
+      content:
+        type: string
+      rev_user_id:
+        description: 接收人id
+        type: integer
+      send_user_id:
+        description: 发送人id
+        type: integer
+    type: object
+  message_service.MessageRecordRequest:
+    properties:
+      user_id:
+        type: integer
+    required:
+    - user_id
+    type: object
   models.BannerModel:
     properties:
       UpdatedAt:
@@ -219,6 +249,42 @@ definitions:
       msg:
         type: string
     type: object
+  tag_api.TagRequest:
+    properties:
+      title:
+        type: string
+    required:
+    - title
+    type: object
+  user_api.UserPwdUpdateRequest:
+    properties:
+      new_pwd:
+        type: string
+      pwd:
+        type: string
+    required:
+    - new_pwd
+    - pwd
+    type: object
+  user_api.UserTypeUpdateRequest:
+    properties:
+      nick_name:
+        description: 防止用户昵称非法，管理员有能力修改
+        type: string
+      role:
+        allOf:
+        - $ref: '#/definitions/enum.RoleType'
+        enum:
+        - 1
+        - 2
+        - 3
+        - 4
+      user_id:
+        type: integer
+    required:
+    - role
+    - user_id
+    type: object
   user_service.EmailLoginRequest:
     properties:
       password:
@@ -228,6 +294,27 @@ definitions:
     required:
     - password
     - username
+    type: object
+  user_service.UserCreateRequest:
+    properties:
+      nick_name:
+        description: 昵称
+        type: string
+      password:
+        description: 密码
+        type: string
+      role:
+        allOf:
+        - $ref: '#/definitions/enum.RoleType'
+        description: 权限  1 管理员  2 普通用户  3 游客
+      user_name:
+        description: 用户名
+        type: string
+    required:
+    - nick_name
+    - password
+    - role
+    - user_name
     type: object
 host: 127.0.0.01:8080
 info:
@@ -413,7 +500,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: 邮箱登录 输入 用户名和密码  都是必填
+      description: 用户绑定邮箱 输入 邮箱 密码 验证码  第一次 只填 邮箱 必填  第二次 都是必填
       parameters:
       - description: 登录信息
         in: body
@@ -441,7 +528,7 @@ paths:
           description: 服务器内部错误
           schema:
             $ref: '#/definitions/res.Response'
-      summary: 邮箱登录
+      summary: 用户绑定邮箱
       tags:
       - 用户管理
   /api/images:
@@ -851,7 +938,329 @@ paths:
       summary: 获取菜单名称列表
       tags:
       - 菜单管理
+  /api/messages:
+    get:
+      description: 显示全部消息
+      parameters:
+      - description: 页码，默认1
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数，默认10
+        in: query
+        name: limit
+        type: integer
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 操作成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 显示全部消息
+      tags:
+      - 消息管理
+    post:
+      consumes:
+      - application/json
+      description: 发送一个新的消息
+      parameters:
+      - description: 信息
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/message_service.MessageAddRequest'
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 发送成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 发送消息
+      tags:
+      - 消息管理
+  /api/messages_record:
+    get:
+      consumes:
+      - application/json
+      description: 显示全部聊天记录
+      parameters:
+      - description: 输入要看谁的聊天记录
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/message_service.MessageRecordRequest'
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 操作成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 显示全部聊天记录
+      tags:
+      - 消息管理
+  /api/qq_login:
+    post:
+      consumes:
+      - application/json
+      description: 通过QQ授权码进行登录，支持新用户自动注册
+      parameters:
+      - description: QQ授权返回的code参数
+        in: query
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登录成功，返回token
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  type: string
+              type: object
+        "400":
+          description: 请求参数错误（如缺少code）
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误（如QQ接口调用失败、数据库错误等）
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 用户QQ登录
+      tags:
+      - 用户管理
+  /api/tags:
+    delete:
+      consumes:
+      - application/json
+      description: 批量删除标签
+      parameters:
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 批量删除标签
+      tags:
+      - 标签管理
+    get:
+      description: 分页查询标签列表
+      parameters:
+      - description: 页码，默认1
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数，默认10
+        in: query
+        name: limit
+        type: integer
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/res.DataListResponse'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 获取标签列表
+      tags:
+      - 标签管理
+    post:
+      consumes:
+      - application/json
+      description: 创建一个新的标签，包含标题
+      parameters:
+      - description: 标签信息
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/tag_api.TagRequest'
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 创建成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 添加标签
+      tags:
+      - 标签管理
+  /api/tags/{id}:
+    put:
+      consumes:
+      - application/json
+      description: 更新标签
+      parameters:
+      - description: 更新的标签
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/tag_api.TagRequest'
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "404":
+          description: 标签不存在
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 更新标签
+      tags:
+      - 标签管理
   /api/users:
+    delete:
+      consumes:
+      - application/json
+      description: 批量删除用户
+      parameters:
+      - description: 用户id列表
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/models.RemoveRequest'
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误（如id格式错误、列表为空）
+          schema:
+            $ref: '#/definitions/res.Response'
+        "404":
+          description: 部分用户id不存在
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 批量删除用户
+      tags:
+      - 用户管理
     get:
       description: 获取用户列表
       parameters:
@@ -889,6 +1298,118 @@ paths:
           schema:
             $ref: '#/definitions/res.Response'
       summary: 用户列表
+      tags:
+      - 用户管理
+    post:
+      consumes:
+      - application/json
+      description: 创建用户 输入 昵称 用户名 密码 权限
+      parameters:
+      - description: 创建信息
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/user_service.UserCreateRequest'
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 创建成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 创建用户
+      tags:
+      - 用户管理
+  /api/users_pwd:
+    put:
+      consumes:
+      - application/json
+      description: 更新密码
+      parameters:
+      - description: 要更新的密码 和 旧密码（必填）
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/user_api.UserPwdUpdateRequest'
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "404":
+          description: 不存在
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 更新密码
+      tags:
+      - 用户管理
+  /api/users_role:
+    put:
+      consumes:
+      - application/json
+      description: 更新权限
+      parameters:
+      - description: 要更新的权限和用户id（必填）
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/user_api.UserTypeUpdateRequest'
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误（如ID格式错误）
+          schema:
+            $ref: '#/definitions/res.Response'
+        "404":
+          description: 不存在
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 更新权限
       tags:
       - 用户管理
 swagger: "2.0"
