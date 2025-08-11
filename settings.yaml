@@ -81,4 +81,7 @@ upload:
   size: 2
   path: uploads/file
 
+es:
+  username: elastic
+  password: 123456
 

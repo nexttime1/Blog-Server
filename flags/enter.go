@@ -11,17 +11,17 @@ type Options struct {
 	DB      bool
 	Version bool
 	User    string
+	Es      string
 }
 
 var FileOption = new(Options)
-
-var Signate = false
 
 func Parse() {
 	flag.StringVar(&FileOption.File, "f", "settings.yaml", "配置文件")
 	flag.BoolVar(&FileOption.DB, "db", false, "数据库迁移")
 	flag.BoolVar(&FileOption.Version, "v", false, "版本")
 	flag.StringVar(&FileOption.User, "u", "", "创建用户")
+	flag.StringVar(&FileOption.Es, "es", "", "操作Es")
 	flag.Parse()
 }
 
@@ -38,5 +38,8 @@ func Run() {
 	//那就是写错了
 	//flag.Usage()
 	//}
+	if FileOption.Es == "create" {
+
+	}
 
 }

@@ -19,6 +19,7 @@ func main() {
 	core.InitLogrus()
 	global.DB = core.InitDB()
 	global.Redis = core.InitRedis()
+	global.Es = core.InitEs()
 	flags.Run()
 	router.Run()
 }

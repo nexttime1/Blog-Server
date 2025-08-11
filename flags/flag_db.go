@@ -7,7 +7,7 @@ import (
 )
 
 func FlagDB() {
-	global.DB.SetupJoinTable(&models.UserModel{}, "CollectsModels", &models.UserCollectModel{})
+	//global.DB.SetupJoinTable(&models.UserModel{}, "CollectsModels", &models.UserCollectModel{})
 	global.DB.SetupJoinTable(&models.MenuModel{}, "Banners", &models.MenuBannerModel{})
 	err := global.DB.AutoMigrate(
 		//&models_new.UserModel{},
@@ -29,7 +29,7 @@ func FlagDB() {
 		&models.AdvertModel{},
 		&models.UserModel{},
 		&models.CommentModel{},
-		&models.ArticleModel{},
+		//&models.ArticleModel{},  es上
 		&models.MenuModel{},
 		&models.MenuBannerModel{},
 		&models.FadeBackModel{},

@@ -14,4 +14,5 @@ type Config struct {
 	Ai       Ai       `yaml:"ai"`
 	SiteInfo SiteInfo `yaml:"site_info"`
 	Upload   Upload   `yaml:"upload"`
+	Es       Es       `yaml:"es"`
 }
