@@ -39,7 +39,8 @@ func Run() {
 	//flag.Usage()
 	//}
 	if FileOption.Es == "create" {
-
+		FlagES()
+		os.Exit(0)
 	}
 
 }

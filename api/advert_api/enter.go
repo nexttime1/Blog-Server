@@ -89,7 +89,6 @@ func (AdvertApi) AdvertAddView(c *gin.Context) {
 // @Summary 获取广告列表
 // @Description 分页查询广告列表，支持根据标题、链接等条件筛选
 // @Tags 广告管理
-// @Accept json
 // @Produce json
 // @Param title query string false "标题筛选（模糊匹配）"
 // @Param href query string false "链接筛选（模糊匹配）"

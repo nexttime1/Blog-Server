@@ -4,6 +4,7 @@ import (
 	"Blog_server/global"
 	"fmt"
 	"github.com/olivere/elastic/v7"
+	"github.com/sirupsen/logrus"
 )
 
 func InitEs() *elastic.Client {
@@ -16,6 +17,6 @@ func InitEs() *elastic.Client {
 		fmt.Println(err)
 		return nil
 	}
-	fmt.Println(client)
+	logrus.Infof("ES 连接成功")
 	return client
 }

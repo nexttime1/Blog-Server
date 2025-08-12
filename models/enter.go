@@ -11,7 +11,7 @@ type Model struct {
 }
 
 type IDRequest struct {
-	ID string `json:"id" form:"id" uri:"id"`
+	ID string `json:"id" form:"id" uri:"id"` ////form Query  url /:id
 }
 type RemoveRequest struct {
 	IDList []int `json:"IDList"`

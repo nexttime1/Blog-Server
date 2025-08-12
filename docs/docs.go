@@ -18,42 +18,15 @@ const docTemplate = `{
     "paths": {
         "/api/adverts": {
             "get": {
-                "description": "分页查询广告列表，支持根据标题、链接等条件筛选",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "分页查询文章列表，支持根据标题条件筛选",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "广告管理"
+                    "文章管理"
                 ],
-                "summary": "获取广告列表",
+                "summary": "获取文章列表",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "标题筛选（模糊匹配）",
-                        "name": "title",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "链接筛选（模糊匹配）",
-                        "name": "href",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "图片筛选（模糊匹配）",
-                        "name": "images",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "是否展示（true/false）",
-                        "name": "is_show",
-                        "in": "query"
-                    },
                     {
                         "type": "integer",
                         "description": "页码，默认1",
@@ -268,6 +241,58 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "广告不存在",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/articles": {
+            "post": {
+                "description": "创建一个新的文章，包含文章标题 文章内容等",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "文章管理"
+                ],
+                "summary": "添加文章",
+                "parameters": [
+                    {
+                        "description": "文章信息",
+                        "name": "data",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/article_service.ArticleAddRequest"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "文章发布成功",
+                        "name": "token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "操作成功",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
                         "schema": {
                             "$ref": "#/definitions/res.Response"
                         }
@@ -1746,6 +1771,50 @@ const docTemplate = `{
                 },
                 "title": {
                     "description": "显示的标题",
+                    "type": "string"
+                }
+            }
+        },
+        "article_service.ArticleAddRequest": {
+            "type": "object",
+            "required": [
+                "content",
+                "title"
+            ],
+            "properties": {
+                "abstract": {
+                    "description": "文章简介",
+                    "type": "string"
+                },
+                "banner_id": {
+                    "description": "文章封面id",
+                    "type": "integer"
+                },
+                "category": {
+                    "description": "文章分类",
+                    "type": "string"
+                },
+                "content": {
+                    "description": "文章内容",
+                    "type": "string"
+                },
+                "link": {
+                    "description": "原文链接",
+                    "type": "string"
+                },
+                "source": {
+                    "description": "文章来源",
+                    "type": "string"
+                },
+                "tags": {
+                    "description": "文章标签",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "title": {
+                    "description": "文章标题",
                     "type": "string"
                 }
             }
