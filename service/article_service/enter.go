@@ -1,14 +1,18 @@
 package article_service
 
 import (
+	"Blog_server/common"
 	"Blog_server/global"
 	"Blog_server/models"
 	"Blog_server/models/enum"
 	"Blog_server/utils/jwts"
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	md "github.com/JohannesKaufmann/html-to-markdown"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/olivere/elastic/v7"
 	"github.com/russross/blackfriday"
 	"math/rand"
 	"strings"
@@ -24,6 +28,42 @@ type ArticleAddRequest struct {
 	Link     string     `json:"link"`                                          // 原文链接
 	BannerID uint       `json:"banner_id"`                                     // 文章封面id
 	Tags     enum.Array `json:"tags"`                                          // 文章标签
+}
+
+type CalendarResponse struct {
+	Date  string `json:"date"`
+	Count int    `json:"count"`
+}
+
+type BucketsType struct {
+	Buckets []struct {
+		KeyAsString string `json:"key_as_string"` // 时间字符串（按我们查询的format格式化）
+		Key         int64  `json:"key"`           // 时间戳（毫秒级，对应上面的时间）
+		DocCount    int    `json:"doc_count"`
+	} `json:"buckets"`
+}
+
+type TagsResponse struct {
+	Tag           string   `json:"tag"`
+	Count         int      `json:"count"`
+	ArticleIDList []string `json:"article_id_list"`
+}
+
+type TagsType struct {
+	DocCountErrorUpperBound int `json:"doc_count_error_upper_bound"`
+	SumOtherDocCount        int `json:"sum_other_doc_count"`
+	Buckets                 []struct {
+		Key      string `json:"key"`
+		DocCount int    `json:"doc_count"`
+		Articles struct {
+			DocCountErrorUpperBound int `json:"doc_count_error_upper_bound"`
+			SumOtherDocCount        int `json:"sum_other_doc_count"`
+			Buckets                 []struct {
+				Key      string `json:"key"`
+				DocCount int    `json:"doc_count"`
+			} `json:"buckets"`
+		} `json:"articles"`
+	} `json:"buckets"`
 }
 
 func ArticleCreateService(cr ArticleAddRequest, claims *jwts.MyClaims) (err error) {
@@ -107,4 +147,106 @@ func ArticleCreateService(cr ArticleAddRequest, claims *jwts.MyClaims) (err erro
 		return fmt.Errorf("创建文章失败 %s", err.Error())
 	}
 	return nil
+}
+
+func CalendarService() ([]CalendarResponse, error) {
+	// 时间聚合
+	agg := elastic.NewDateHistogramAggregation().Field("created_at").CalendarInterval("day")
+
+	//一年前的
+	now := time.Now()
+	AYearsAgo := now.AddDate(-1, 0, 0)
+	format := "2006-01-02 15:04:05"
+	// 构建查询条件：只查询"created_at"在[一年前, 现在]范围内的文章
+	query := elastic.NewRangeQuery("created_at").
+		Gte(AYearsAgo.Format(format)). // 大于等于：一年前的时间（格式化为上面定义的字符串）
+		Lte(now.Format(format)) // 小于等于：当前时间（格式化后）
+
+	// 调用Elasticsearch客户端执行查询
+	result, err := global.Es.
+		Search(models.ArticleModel{}.Index()). // 指定查询的索引（从文章模型中获取索引名）
+		Query(query). // 设置查询条件（上面定义的范围查询）
+		Aggregation("calendar", agg). // 添加聚合条件，命名为"calendar"（后续用于获取结果）
+		Size(0). // 不返回实际文档数据（只需要聚合结果，提高效率）
+		Do(context.Background()) // 执行查询，传入上下文（用于控制超时等）
+
+	if err != nil {
+		return nil, fmt.Errorf("查询错误 %s", err)
+	}
+	var data BucketsType
+	err = json.Unmarshal(result.Aggregations["calendar"], &data) // 反序列化聚合结果
+	if err != nil {
+		return nil, fmt.Errorf("json解析失败 %s", err)
+	}
+	var calendarResponse = make([]CalendarResponse, 0)
+	var DateCount = map[string]int{}
+
+	// 遍历聚合结果的每个"桶"（即每天的统计），存入DateCount映射
+	for _, bucket := range data.Buckets {
+		// 将桶中的时间字符串（key_as_string）解析为time类型
+		Time, _ := time.Parse(format, bucket.KeyAsString)
+		// 格式化日期为"2024-08-13"形式，作为DateCount的键，值为该天的文章数量（doc_count）
+		DateCount[Time.Format("2006-01-02")] = bucket.DocCount
+	}
+
+	days := int(now.Sub(AYearsAgo).Hours() / 24)
+	for i := 1; i <= days; i++ {
+		day := AYearsAgo.AddDate(0, 0, i).Format("2006-01-02")
+		// 不管有没有 没有就是0
+		count, _ := DateCount[day]
+		calendarResponse = append(calendarResponse, CalendarResponse{
+			Date:  day,
+			Count: count,
+		})
+	}
+	return calendarResponse, nil
+}
+
+func ArticleTagsService(cr common.PageInfo) ([]TagsResponse, int, error) {
+	from := cr.GetOffset()
+	limit := cr.GetLimit()
+
+	result, err := global.Es.
+		Search(models.ArticleModel{}.Index()).
+		Aggregation("tags", elastic.NewCardinalityAggregation().Field("tags")). //NewValueCountAggregation 不去重  NewCardinalityAggregatio去重
+		Size(0).
+		Do(context.Background())
+	if err != nil {
+		return []TagsResponse{}, 0, fmt.Errorf("查询count失败 %s", err.Error())
+	}
+	cTag, _ := result.Aggregations.Cardinality("tags")
+	count := int64(*cTag.Value)
+
+	agg := elastic.NewTermsAggregation().Field("tags")
+	agg.SubAggregation("articles", elastic.NewTermsAggregation().Field("keyword"))
+	agg.SubAggregation("page", elastic.NewBucketSortAggregation().From(from).Size(limit))
+
+	query := elastic.NewBoolQuery() //空的 也就是查全部
+	result, err = global.Es.Search(models.ArticleModel{}.Index()).
+		Query(query).
+		Aggregation("tags", agg).
+		Size(0).
+		Do(context.Background())
+	if err != nil {
+		return []TagsResponse{}, 0, fmt.Errorf("查询tag失败 %s", err.Error())
+	}
+	var tagType TagsType                                      // 定义变量接收解析后的聚合结果
+	_ = json.Unmarshal(result.Aggregations["tags"], &tagType) // 把ES返回的聚合结果（JSON）解析到tagType
+
+	var response = make([]TagsResponse, 0)
+
+	for _, bucket := range tagType.Buckets {
+		var articleList []string
+		for _, s := range bucket.Articles.Buckets {
+			articleList = append(articleList, s.Key)
+		}
+
+		response = append(response, TagsResponse{
+			Tag:           bucket.Key,
+			Count:         bucket.DocCount,
+			ArticleIDList: articleList,
+		})
+	}
+	return response, int(count), nil
+
 }
