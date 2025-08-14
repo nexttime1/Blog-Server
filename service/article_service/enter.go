@@ -6,6 +6,7 @@ import (
 	"Blog_server/models"
 	"Blog_server/models/enum"
 	"Blog_server/utils/jwts"
+	"Blog_server/utils/struct_to_map"
 	"context"
 	"encoding/json"
 	"errors"
@@ -14,6 +15,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/olivere/elastic/v7"
 	"github.com/russross/blackfriday"
+	"github.com/sirupsen/logrus"
 	"math/rand"
 	"strings"
 	"time"
@@ -21,13 +23,13 @@ import (
 
 type ArticleAddRequest struct {
 	Title    string     `json:"title" binding:"required" msg:"文章标题必填"`   // 文章标题
-	Abstract string     `json:"abstract"`                                // 文章简介
+	Abstract string     `json:"abstract"`                                      // 文章简介
 	Content  string     `json:"content" binding:"required" msg:"文章内容必填"` // 文章内容
-	Category string     `json:"category"`                                // 文章分类
-	Source   string     `json:"source"`                                  // 文章来源
-	Link     string     `json:"link"`                                    // 原文链接
-	BannerID uint       `json:"banner_id"`                               // 文章封面id
-	Tags     enum.Array `json:"tags"`                                    // 文章标签
+	Category string     `json:"category"`                                      // 文章分类
+	Source   string     `json:"source"`                                        // 文章来源
+	Link     string     `json:"link"`                                          // 原文链接
+	BannerID uint       `json:"banner_id"`                                     // 文章封面id
+	Tags     enum.Array `json:"tags"`                                          // 文章标签
 }
 
 type CalendarResponse struct {
@@ -47,6 +49,7 @@ type TagsResponse struct {
 	Tag           string   `json:"tag"`
 	Count         int      `json:"count"`
 	ArticleIDList []string `json:"article_id_list"`
+	CreateAt      string   `json:"create_at"`
 }
 
 type TagsType struct {
@@ -64,6 +67,18 @@ type TagsType struct {
 			} `json:"buckets"`
 		} `json:"articles"`
 	} `json:"buckets"`
+}
+
+type ArticleUpdateRequest struct {
+	Title    string   `json:"title"  structs:"title"`        // 文章标题
+	Abstract string   `json:"abstract" structs:"abstract"`   // 文章简介
+	Content  string   `json:"content"  structs:"content"`    // 文章内容
+	Category string   `json:"category" structs:"category"`   // 文章分类
+	Source   string   `json:"source" structs:"source"`       // 文章来源
+	Link     string   `json:"link" structs:"link"`           // 原文链接
+	BannerID uint     `json:"banner_id" structs:"banner_id"` // 文章封面id
+	Tags     []string `json:"tags" structs:"tags"`           // 文章标签
+	ID       string   `json:"id" binding:"required" structs:"id"`
 }
 
 func ArticleCreateService(cr ArticleAddRequest, claims *jwts.MyClaims) (err error) {
@@ -160,15 +175,15 @@ func CalendarService() ([]CalendarResponse, error) {
 	// 构建查询条件：只查询"created_at"在[一年前, 现在]范围内的文章
 	query := elastic.NewRangeQuery("created_at").
 		Gte(AYearsAgo.Format(format)). // 大于等于：一年前的时间（格式化为上面定义的字符串）
-		Lte(now.Format(format))        // 小于等于：当前时间（格式化后）
+		Lte(now.Format(format)) // 小于等于：当前时间（格式化后）
 
 	// 调用Elasticsearch客户端执行查询
 	result, err := global.Es.
 		Search(models.ArticleModel{}.Index()). // 指定查询的索引（从文章模型中获取索引名）
-		Query(query).                          // 设置查询条件（上面定义的范围查询）
-		Aggregation("calendar", agg).          // 添加聚合条件，命名为"calendar"（后续用于获取结果）
-		Size(0).                               // 不返回实际文档数据（只需要聚合结果，提高效率）
-		Do(context.Background())               // 执行查询，传入上下文（用于控制超时等）
+		Query(query). // 设置查询条件（上面定义的范围查询）
+		Aggregation("calendar", agg). // 添加聚合条件，命名为"calendar"（后续用于获取结果）
+		Size(0). // 不返回实际文档数据（只需要聚合结果，提高效率）
+		Do(context.Background()) // 执行查询，传入上下文（用于控制超时等）
 
 	if err != nil {
 		return nil, fmt.Errorf("查询错误 %s", err)
@@ -202,7 +217,7 @@ func CalendarService() ([]CalendarResponse, error) {
 	return calendarResponse, nil
 }
 
-func ArticleTagsService(cr common.PageInfo) ([]TagsResponse, int, error) {
+func ArticleTagsService(cr common.PageInfo) ([]*TagsResponse, int, error) {
 	from := cr.GetOffset()
 	limit := cr.GetLimit()
 
@@ -212,7 +227,7 @@ func ArticleTagsService(cr common.PageInfo) ([]TagsResponse, int, error) {
 		Size(0).
 		Do(context.Background())
 	if err != nil {
-		return []TagsResponse{}, 0, fmt.Errorf("查询count失败 %s", err.Error())
+		return []*TagsResponse{}, 0, fmt.Errorf("查询count失败 %s", err.Error())
 	}
 	cTag, _ := result.Aggregations.Cardinality("tags")
 	count := int64(*cTag.Value)
@@ -228,25 +243,67 @@ func ArticleTagsService(cr common.PageInfo) ([]TagsResponse, int, error) {
 		Size(0).
 		Do(context.Background())
 	if err != nil {
-		return []TagsResponse{}, 0, fmt.Errorf("查询tag失败 %s", err.Error())
+		return []*TagsResponse{}, 0, fmt.Errorf("查询tag失败 %s", err.Error())
 	}
 	var tagType TagsType                                      // 定义变量接收解析后的聚合结果
 	_ = json.Unmarshal(result.Aggregations["tags"], &tagType) // 把ES返回的聚合结果（JSON）解析到tagType
 
-	var response = make([]TagsResponse, 0)
-
+	var response = make([]*TagsResponse, 0)
+	var TagTitleList = make([]string, 0)
 	for _, bucket := range tagType.Buckets {
 		var articleList []string
 		for _, s := range bucket.Articles.Buckets {
 			articleList = append(articleList, s.Key)
 		}
-
-		response = append(response, TagsResponse{
+		TagTitleList = append(TagTitleList, bucket.Key)
+		response = append(response, &TagsResponse{
 			Tag:           bucket.Key,
 			Count:         bucket.DocCount,
 			ArticleIDList: articleList,
 		})
 	}
+	//在 mysql 中查 tag表 找到他们的 create 日期
+	var TagModels []models.TagModel
+	global.DB.Where("title in ?", TagTitleList).Find(&TagModels)
+	var tagDate = make(map[string]string, 0)
+	for _, model := range TagModels {
+		tagDate[model.Title] = model.CreatedAt.Format("2006-01-02 15:04:05")
+	}
+
+	//找不到为空就行
+	for _, tagsResponse := range response {
+		tagsResponse.CreateAt = tagDate[tagsResponse.Tag]
+	}
+
 	return response, int(count), nil
 
+}
+
+func ArticleUpdateView(cr ArticleUpdateRequest) error {
+	toMap := struct_to_map.StructToMap(&cr)
+	now := time.Now().Format("2006-01-02 15:04:05")
+	toMap["updated_at"] = now
+
+	_, ok := toMap["title"]
+	if ok {
+		toMap["keyword"] = cr.Title
+	}
+	_, ok = toMap["banner_id"]
+	if ok {
+		var bannerIdUrl string
+		err := global.DB.Model(models.BannerModel{}).Where("id = ?", toMap["banner_id"]).Select("path").Scan(&bannerIdUrl).Error
+		if err != nil {
+			logrus.Errorf("图片id查询错误 %s", err.Error())
+			return fmt.Errorf("图片id查询错误 %s", err.Error())
+		}
+		toMap["banner_url"] = bannerIdUrl
+	}
+
+	fmt.Println(toMap)
+	_, err := global.Es.Update().Index(models.ArticleModel{}.Index()).Id(cr.ID).Doc(toMap).
+		Do(context.Background())
+	if err != nil {
+		return fmt.Errorf("更新失败 %s", err.Error())
+	}
+	return nil
 }

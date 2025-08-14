@@ -4,20 +4,36 @@ import (
 	"Blog_server/common"
 	"Blog_server/common/Es_option"
 	"Blog_server/common/res"
+	"Blog_server/global"
 	"Blog_server/models"
 	"Blog_server/service/article_service"
 	"Blog_server/utils/jwts"
+	"context"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/liu-cn/json-filter/filter"
+	"github.com/olivere/elastic/v7"
+	"github.com/sirupsen/logrus"
 )
 
 type ArticleApi struct {
 }
+
+type ArticleListQuest struct {
+	common.PageInfo
+	Tags  string   `form:"tags"`
+	Likes []string `form:"likes"`
+}
+
 type EsIdQuest struct {
 	ID string `json:"id" form:"id" uri:"id"` //form Query  url /:id
 }
 type EsTitleQuest struct {
 	Title string `json:"title" form:"title"`
+}
+
+type IDListRequest struct {
+	IDList []string `json:"id_list"`
 }
 
 // ArticleCreateView 添加文章
@@ -65,13 +81,16 @@ func (ArticleApi) ArticleCreateView(c *gin.Context) {
 // @Failure 500 {object} res.Response "服务器内部错误"
 // @Router /api/articles [get]
 func (ArticleApi) ArticleListView(c *gin.Context) {
-	var cr common.PageInfo
+	var cr ArticleListQuest
 	err := c.ShouldBindQuery(&cr)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
-	modelList, count, err := Es_option.EsArticleListQuery(cr)
+	modelList, count, err := Es_option.EsArticleListQuery(cr.Tags, common.Options{
+		PageInfo: cr.PageInfo,
+		Likes:    cr.Likes,
+	})
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
@@ -182,4 +201,50 @@ func (ArticleApi) ArticleTagListView(c *gin.Context) {
 		return
 	}
 	res.OkWithList(c, modelList, count)
+}
+
+func (ArticleApi) ArticleUpdateView(c *gin.Context) {
+	var cr article_service.ArticleUpdateRequest
+	err := c.ShouldBindJSON(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	//id 是否存在
+	var article models.ArticleModel
+	err = article.ExistById(cr.ID)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+
+	err = article_service.ArticleUpdateView(cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	res.OkWithMessage(c, "更新成功")
+
+}
+
+func (ArticleApi) ArticleDeleteView(c *gin.Context) {
+	var cr IDListRequest
+	err := c.ShouldBindJSON(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+
+	bulkService := global.Es.Bulk().Index(models.ArticleModel{}.Index()).Refresh("true")
+	for _, id := range cr.IDList {
+		req := elastic.NewBulkDeleteRequest().Id(id)
+		bulkService.Add(req)
+	}
+	result, err := bulkService.Do(context.Background())
+	if err != nil {
+		logrus.Errorf("删除失败 %s", err)
+		res.FailWithMsg(c, "删除失败")
+		return
+	}
+	res.OkWithMessage(c, fmt.Sprintf("成功删除 %d 篇文章", len(result.Succeeded())))
 }

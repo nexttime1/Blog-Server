@@ -4,6 +4,8 @@ import (
 	"Blog_server/global"
 	"Blog_server/models/enum"
 	"context"
+	"encoding/json"
+	"fmt"
 	"github.com/olivere/elastic/v7"
 	"github.com/sirupsen/logrus"
 )
@@ -201,4 +203,13 @@ func (a ArticleModel) ISExistData() bool {
 		return true
 	}
 	return false
+}
+
+func (a *ArticleModel) ExistById(id string) (err error) {
+	res, err := global.Es.Get().Index(a.Index()).Id(id).Do(context.Background())
+	if err != nil {
+		return fmt.Errorf("文章不存在 %s", err)
+	}
+	err = json.Unmarshal(res.Source, a)
+	return err
 }

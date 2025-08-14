@@ -25,8 +25,8 @@ type UserApi struct {
 }
 
 type UserTypeUpdateRequest struct {
-	Role     enum.RoleType `json:"role" binding:"required,oneof=1 2 3 4" gorm:"column:nickname;omitempty"`
-	NickName string        `json:"nick_name"` // 防止用户昵称非法，管理员有能力修改
+	Role     enum.RoleType `json:"role" binding:"required,oneof=1 2 3 4" gorm:"omitempty"`
+	NickName string        `json:"nick_name"` // 防止用户昵称非法
 	UserID   uint          `json:"user_id" binding:"required"`
 }
 
