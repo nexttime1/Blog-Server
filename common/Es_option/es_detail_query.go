@@ -3,6 +3,7 @@ package Es_option
 import (
 	"Blog_server/global"
 	"Blog_server/models"
+	"Blog_server/service/redis_service/redis_look"
 	"context"
 	"encoding/json"
 	"errors"
@@ -26,6 +27,7 @@ func EsArticleDetailByIdQuery(id string) (models.ArticleModel, error) {
 	}
 	//json 后的 id 不是 es的id
 	model.ID = res.Id
+	redis_look.Look(res.Id)
 	return model, nil
 }
 
@@ -48,6 +50,7 @@ func EsArticleDetailByTitleQuery(title string) (models.ArticleModel, error) {
 		return model, fmt.Errorf("json 转struct 失败 %s", err.Error())
 	}
 	model.ID = hit.Id
+	redis_look.Look(hit.Id)
 	return model, nil
 }
 

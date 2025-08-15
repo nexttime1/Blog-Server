@@ -25,9 +25,6 @@ type ArticleListQuest struct {
 	Likes []string `form:"likes"`
 }
 
-type EsIdQuest struct {
-	ID string `json:"id" form:"id" uri:"id"` //form Query  url /:id
-}
 type EsTitleQuest struct {
 	Title string `json:"title" form:"title"`
 }
@@ -43,7 +40,7 @@ type IDListRequest struct {
 // @Accept json
 // @Produce json
 // @Param data body article_service.ArticleAddRequest false "文章信息"
-// @Param token header string true "文章发布成功"
+// @Param token header string true "token"
 // @Success 200 {object} res.Response "操作成功"
 // @Failure 400 {object} res.Response "请求参数错误"
 // @Failure 500 {object} res.Response "服务器内部错误"
@@ -110,15 +107,21 @@ func (ArticleApi) ArticleListView(c *gin.Context) {
 // @Description 文章细节查看 by id
 // @Tags 文章管理
 // @Produce json
-// @Param id path int true "id"
+// @Param data body models.EsIdQuest true "查看文章的id"
 // @Param token header string true "用户认证令牌"
 // @Success 200 {object} res.Response{}
 // @Failure 400 {object} res.Response "请求参数错误"
 // @Failure 500 {object} res.Response "服务器内部错误"
-// @Router /api/articles/:id [get]
+// @Router /api/articles/{id} [get]
 func (ArticleApi) ArticleDetailByIdView(c *gin.Context) {
-	var cr EsIdQuest
-	cr.ID = c.Param("id")
+	var cr models.EsIdQuest
+	err := c.ShouldBindUri(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	fmt.Println(cr.ID)
+
 	model, err := Es_option.EsArticleDetailByIdQuery(cr.ID)
 	if err != nil {
 		res.FailWithErr(c, err)
@@ -203,6 +206,19 @@ func (ArticleApi) ArticleTagListView(c *gin.Context) {
 	res.OkWithList(c, modelList, count)
 }
 
+// ArticleUpdateView 文章更新
+// @Summary 文章更新
+// @Description 文章更新
+// @Tags 文章管理
+// @Accept json
+// @Produce json
+// @Param data body article_service.ArticleUpdateRequest false "更新的文章信息（可选字段，文章标题 文章简介 文章内容 文章分类 文章来源 原文链接 文章封面id 文章标签等，不传则不更新）"
+// @Param token header string true "token"
+// @Success 200 {object} res.Response "更新成功"
+// @Failure 400 {object} res.Response "请求参数错误"
+// @Failure 404 {object} res.Response "文章不存在"
+// @Failure 500 {object} res.Response "服务器内部错误"
+// @Router /api/articles [put]
 func (ArticleApi) ArticleUpdateView(c *gin.Context) {
 	var cr article_service.ArticleUpdateRequest
 	err := c.ShouldBindJSON(&cr)
@@ -218,7 +234,7 @@ func (ArticleApi) ArticleUpdateView(c *gin.Context) {
 		return
 	}
 
-	err = article_service.ArticleUpdateView(cr)
+	err = article_service.ArticleUpdateService(cr)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
@@ -227,6 +243,19 @@ func (ArticleApi) ArticleUpdateView(c *gin.Context) {
 
 }
 
+// ArticleDeleteView 文章批量删除
+// @Summary 文章批量删除
+// @Description 文章批量删除
+// @Tags 文章管理
+// @Accept json
+// @Produce json
+// @Param data body IDListRequest false "传入要删除的id列表"
+// @Param token header string true "token"
+// @Success 200 {object} res.Response "批量删除成功"
+// @Failure 400 {object} res.Response "请求参数错误"
+// @Failure 404 {object} res.Response "id不存在"
+// @Failure 500 {object} res.Response "服务器内部错误"
+// @Router /api/articles [delete]
 func (ArticleApi) ArticleDeleteView(c *gin.Context) {
 	var cr IDListRequest
 	err := c.ShouldBindJSON(&cr)

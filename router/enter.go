@@ -18,6 +18,7 @@ func Run() {
 	//路由分组
 	nr := r.Group("/api")
 	nr.Use(middleware.LogMiddleware)
+	DiggRouter(nr)
 	ArticleRouter(nr)
 	MessageRouter(nr)
 	TagRouter(nr)

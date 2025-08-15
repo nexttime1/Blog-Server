@@ -16,3 +16,6 @@ type IDRequest struct {
 type RemoveRequest struct {
 	IDList []int `json:"IDList"`
 }
+type EsIdQuest struct {
+	ID string `json:"id" form:"id" uri:"id"` //form Query  url /:id
+}

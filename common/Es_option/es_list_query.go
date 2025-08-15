@@ -4,6 +4,8 @@ import (
 	"Blog_server/common"
 	"Blog_server/global"
 	"Blog_server/models"
+	"Blog_server/service/redis_service/redis_digg"
+	"Blog_server/service/redis_service/redis_look"
 	"context"
 	"encoding/json"
 	"errors"
@@ -61,7 +63,9 @@ func EsArticleListQuery(tags string, options common.Options) ([]models.ArticleMo
 	}
 	count := res.Hits.TotalHits.Value
 	var modelList []models.ArticleModel
-
+	DiggList := redis_digg.GetDiggingInfo()
+	LookList := redis_look.GetLookInfo()
+	fmt.Println(DiggList)
 	for _, hit := range res.Hits.Hits {
 		var model models.ArticleModel
 		data, err := hit.Source.MarshalJSON()
@@ -74,6 +78,9 @@ func EsArticleListQuery(tags string, options common.Options) ([]models.ArticleMo
 			logrus.Error(err)
 			continue
 		}
+		//非更新  只是显示
+		model.DiggCount = DiggList[model.ID] + model.DiggCount
+		model.LookCount = LookList[model.ID] + model.LookCount
 		title, ok := hit.Highlight["title"]
 		if ok {
 			model.Title = title[0]
