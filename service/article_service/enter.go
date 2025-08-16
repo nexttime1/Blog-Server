@@ -300,10 +300,17 @@ func ArticleUpdateService(cr ArticleUpdateRequest) error {
 	}
 
 	fmt.Println(toMap)
-	_, err := global.Es.Update().Index(models.ArticleModel{}.Index()).Id(cr.ID).Doc(toMap).
+	err := ArticleUpdate(cr.ID, toMap)
+	return err
+
+}
+
+func ArticleUpdate(id string, toMap map[string]interface{}) error {
+	_, err := global.Es.Update().Index(models.ArticleModel{}.Index()).Id(id).Doc(toMap).
 		Do(context.Background())
 	if err != nil {
 		return fmt.Errorf("更新失败 %s", err.Error())
 	}
 	return nil
+
 }

@@ -176,7 +176,7 @@ func (a ArticleModel) RemoveIndex() error {
 }
 
 // Create 添加的方法  往里面添加数据
-func (a ArticleModel) Create() (err error) {
+func (a *ArticleModel) Create() (err error) {
 	indexResponse, err := global.Es.Index().
 		Index(a.Index()).
 		BodyJson(a).Do(context.Background())
@@ -185,6 +185,16 @@ func (a ArticleModel) Create() (err error) {
 		return err
 	}
 	a.ID = indexResponse.Id
+	toMap := map[string]interface{}{
+		"id": indexResponse.Id,
+	}
+	_, err = global.Es.Update().Index(a.Index()).Id(indexResponse.Id).Doc(toMap).
+		Do(context.Background())
+	if err != nil {
+		logrus.Error(err.Error())
+		return fmt.Errorf("创建文章数据失败  特指 id")
+
+	}
 	return nil
 }
 

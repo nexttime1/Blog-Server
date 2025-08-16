@@ -3,6 +3,7 @@ package api
 import (
 	"Blog_server/api/advert_api"
 	"Blog_server/api/article_api"
+	"Blog_server/api/collect_api"
 	"Blog_server/api/digg_api"
 	"Blog_server/api/image_api"
 	"Blog_server/api/log_api"
@@ -26,6 +27,7 @@ type Api struct {
 	MessageApi message_api.MessageApi
 	ArticleApi article_api.ArticleApi
 	DiggApi    digg_api.DiggApi
+	CollectApi collect_api.CollectApi
 }
 
 var App = Api{}
