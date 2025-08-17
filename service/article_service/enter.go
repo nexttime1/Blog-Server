@@ -2,6 +2,7 @@ package article_service
 
 import (
 	"Blog_server/common"
+	"Blog_server/common/res"
 	"Blog_server/global"
 	"Blog_server/models"
 	"Blog_server/models/enum"
@@ -161,6 +162,8 @@ func ArticleCreateService(cr ArticleAddRequest, claims *jwts.MyClaims) (err erro
 	if err != nil {
 		return fmt.Errorf("创建文章失败 %s", err.Error())
 	}
+	res.AsyncArticleByFullText(article.ID, article.Title, article.Content)
+
 	return nil
 }
 
@@ -283,7 +286,6 @@ func ArticleUpdateService(cr ArticleUpdateRequest) error {
 	toMap := struct_to_map.StructToMap(&cr)
 	now := time.Now().Format("2006-01-02 15:04:05")
 	toMap["updated_at"] = now
-
 	_, ok := toMap["title"]
 	if ok {
 		toMap["keyword"] = cr.Title
@@ -301,6 +303,7 @@ func ArticleUpdateService(cr ArticleUpdateRequest) error {
 
 	fmt.Println(toMap)
 	err := ArticleUpdate(cr.ID, toMap)
+
 	return err
 
 }

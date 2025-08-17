@@ -6,7 +6,11 @@ import (
 )
 
 func FlagES() {
-	err := models.ArticleModel{}.CreateIndex()
+	//err := models.ArticleModel{}.CreateIndex()
+	//if err != nil {
+	//	logrus.Error(err)
+	//}
+	err := models.FullTextModel{}.CreateIndex()
 	if err != nil {
 		logrus.Error(err)
 	}

@@ -7,6 +7,7 @@ import (
 	"Blog_server/global"
 	"Blog_server/models"
 	"Blog_server/service/article_service"
+	"Blog_server/service/redis_service/redis_look"
 	"Blog_server/utils/jwts"
 	"context"
 	"fmt"
@@ -127,6 +128,7 @@ func (ArticleApi) ArticleDetailByIdView(c *gin.Context) {
 		res.FailWithErr(c, err)
 		return
 	}
+	redis_look.Look(model.ID)
 	res.OkWithData(c, model)
 
 }
@@ -154,7 +156,7 @@ func (ArticleApi) ArticleDetailByTitleView(c *gin.Context) {
 		res.FailWithErr(c, err)
 		return
 	}
-
+	redis_look.Look(model.ID)
 	res.OkWithData(c, model)
 
 }
@@ -233,12 +235,29 @@ func (ArticleApi) ArticleUpdateView(c *gin.Context) {
 		res.FailWithErr(c, err)
 		return
 	}
+	OldModel, err := Es_option.EsArticleDetailByIdQuery(cr.ID)
+	if err != nil {
+		logrus.Errorf("这也能错？")
+		return
+	}
 
 	err = article_service.ArticleUpdateService(cr)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
+
+	NewModel, err := Es_option.EsArticleDetailByIdQuery(cr.ID)
+	if err != nil {
+		logrus.Errorf("这也能错?")
+		return
+	}
+	if OldModel.Title != NewModel.Title || OldModel.Content != NewModel.Content {
+		res.AsyncArticleDeleteByArticleID(NewModel.ID)
+		res.AsyncArticleByFullText(NewModel.ID, NewModel.Title, NewModel.Content)
+
+	}
+
 	res.OkWithMessage(c, "更新成功")
 
 }
@@ -275,5 +294,21 @@ func (ArticleApi) ArticleDeleteView(c *gin.Context) {
 		res.FailWithMsg(c, "删除失败")
 		return
 	}
+
+	// 删除全文搜索
+	for _, id := range cr.IDList {
+		res.AsyncArticleDeleteByArticleID(id)
+	}
+
+	//万一 有人收藏了这个文章
+	var ArticleUserModelList []models.UserCollectModel
+	global.DB.Where("article_id in ? ", cr.IDList).Find(&ArticleUserModelList)
+	err = global.DB.Delete(&ArticleUserModelList).Error
+	if err != nil {
+		logrus.Errorf("文章收藏表删除失败 %s", err)
+		res.FailWithMsg(c, fmt.Sprintf("文章收藏表删除失败 %s", err))
+		return
+	}
+
 	res.OkWithMessage(c, fmt.Sprintf("成功删除 %d 篇文章", len(result.Succeeded())))
 }
