@@ -10,6 +10,7 @@ import (
 	"Blog_server/service/redis_service/redis_look"
 	"Blog_server/utils/jwts"
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/liu-cn/json-filter/filter"
@@ -311,4 +312,50 @@ func (ArticleApi) ArticleDeleteView(c *gin.Context) {
 	}
 
 	res.OkWithMessage(c, fmt.Sprintf("成功删除 %d 篇文章", len(result.Succeeded())))
+}
+
+func (ArticleApi) ArticleFullSearchView(c *gin.Context) {
+	var cr common.PageInfo
+	err := c.ShouldBindQuery(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	query := elastic.NewBoolQuery()
+	if cr.Key != "" {
+		query.Must(elastic.NewTermsQuery(cr.Key, "title", "body"))
+	}
+	global.Es.Search(models.FullTextModel{}.Index()).
+		Query(query).
+		Size(1000)
+
+	from := cr.GetOffset()
+	limit := cr.GetLimit()
+	result, err := global.Es.Search(models.FullTextModel{}.Index()).Query(query).
+		Highlight(elastic.NewHighlight().Field("body")).
+		From(from).Size(limit).Do(context.Background())
+	if err != nil {
+		logrus.Errorf("查询错误 %s", err)
+		res.FailWithMsg(c, fmt.Sprintf("查询错误 %s", err))
+		return
+	}
+	count := result.Hits.TotalHits.Value
+
+	var modelList []models.FullTextModel
+	for _, hit := range result.Hits.Hits {
+		var model models.FullTextModel
+		err = json.Unmarshal(hit.Source, &model)
+		if err != nil {
+			logrus.Error(err)
+			continue
+		}
+		body, ok := hit.Highlight["body"]
+		if ok {
+			model.Body = body[0]
+		}
+
+		model.ID = hit.Id
+		modelList = append(modelList, model)
+	}
+	res.OkWithList(c, modelList, int(count))
 }
