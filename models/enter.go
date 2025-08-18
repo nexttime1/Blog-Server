@@ -5,8 +5,8 @@ import (
 )
 
 type Model struct {
-	ID        uint      `gorm:"primarykey" json:"id"`
-	CreatedAt time.Time `json:"createdAt"`
+	ID        uint      `gorm:"primarykey" json:"id,select($any)"`
+	CreatedAt time.Time `json:"createdAt,select($any)"`
 	UpdatedAt time.Time `json:"UpdatedAt"`
 }
 
