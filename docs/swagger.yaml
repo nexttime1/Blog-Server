@@ -34,6 +34,13 @@ definitions:
         description: 显示的标题
         type: string
     type: object
+  article_api.IDListRequest:
+    properties:
+      id_list:
+        items:
+          type: string
+        type: array
+    type: object
   article_service.ArticleAddRequest:
     properties:
       abstract:
@@ -65,6 +72,39 @@ definitions:
     required:
     - content
     - title
+    type: object
+  article_service.ArticleUpdateRequest:
+    properties:
+      abstract:
+        description: 文章简介
+        type: string
+      banner_id:
+        description: 文章封面id
+        type: integer
+      category:
+        description: 文章分类
+        type: string
+      content:
+        description: 文章内容
+        type: string
+      id:
+        type: string
+      link:
+        description: 原文链接
+        type: string
+      source:
+        description: 文章来源
+        type: string
+      tags:
+        description: 文章标签
+        items:
+          type: string
+        type: array
+      title:
+        description: 文章标题
+        type: string
+    required:
+    - id
     type: object
   enum.ImageType:
     enum:
@@ -246,6 +286,21 @@ definitions:
         description: 图片路径
         type: string
     type: object
+  models.EsIdListQuest:
+    properties:
+      id_list:
+        items:
+          type: string
+        type: array
+    required:
+    - id_list
+    type: object
+  models.EsIdQuest:
+    properties:
+      id:
+        description: form Query  url /:id
+        type: string
+    type: object
   models.RemoveRequest:
     properties:
       IDList:
@@ -301,7 +356,7 @@ definitions:
   user_api.UserTypeUpdateRequest:
     properties:
       nick_name:
-        description: 防止用户昵称非法，管理员有能力修改
+        description: 防止用户昵称非法
         type: string
       role:
         allOf:
@@ -527,6 +582,43 @@ paths:
       tags:
       - 广告管理
   /api/articles:
+    delete:
+      consumes:
+      - application/json
+      description: 文章批量删除
+      parameters:
+      - description: 传入要删除的id列表
+        in: body
+        name: data
+        schema:
+          $ref: '#/definitions/article_api.IDListRequest'
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 批量删除成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "404":
+          description: id不存在
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 文章批量删除
+      tags:
+      - 文章管理
     get:
       description: 分页查询文章列表，支持根据标题条件筛选
       parameters:
@@ -576,7 +668,7 @@ paths:
         name: data
         schema:
           $ref: '#/definitions/article_service.ArticleAddRequest'
-      - description: 文章发布成功
+      - description: token
         in: header
         name: token
         required: true
@@ -599,15 +691,53 @@ paths:
       summary: 添加文章
       tags:
       - 文章管理
-  /api/articles/:id:
+    put:
+      consumes:
+      - application/json
+      description: 文章更新
+      parameters:
+      - description: 更新的文章信息（可选字段，文章标题 文章简介 文章内容 文章分类 文章来源 原文链接 文章封面id 文章标签等，不传则不更新）
+        in: body
+        name: data
+        schema:
+          $ref: '#/definitions/article_service.ArticleUpdateRequest'
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "404":
+          description: 文章不存在
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 文章更新
+      tags:
+      - 文章管理
+  /api/articles/{id}:
     get:
       description: 文章细节查看 by id
       parameters:
-      - description: id
-        in: path
-        name: id
+      - description: 查看文章的id
+        in: body
+        name: data
         required: true
-        type: integer
+        schema:
+          $ref: '#/definitions/models.EsIdQuest'
       - description: 用户认证令牌
         in: header
         name: token
@@ -658,6 +788,113 @@ paths:
       summary: 获取文章日历
       tags:
       - 文章管理
+  /api/articles/collects:
+    delete:
+      consumes:
+      - application/json
+      description: 批量删除收藏的文章
+      parameters:
+      - description: 批量删除文章的id列表
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/models.EsIdListQuest'
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 批量删除收藏的文章
+      tags:
+      - 文章管理
+    get:
+      description: 分页查询个人收藏表
+      parameters:
+      - description: 页码，默认1
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数，默认10
+        in: query
+        name: limit
+        type: integer
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/res.DataListResponse'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 查看个人收藏表
+      tags:
+      - 文章管理
+    post:
+      consumes:
+      - application/json
+      description: 添加或取消收藏
+      parameters:
+      - description: 文章id
+        in: body
+        name: data
+        schema:
+          $ref: '#/definitions/models.EsIdQuest'
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 操作成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 添加或取消收藏
+      tags:
+      - 文章管理
   /api/articles/tags:
     get:
       description: 分页查询文章标签列表
@@ -698,6 +935,50 @@ paths:
       summary: 文章标签列表
       tags:
       - 文章管理
+  /api/articles/text:
+    get:
+      description: 分页查询全文搜索，key进行模糊匹配
+      parameters:
+      - description: 页码，默认1
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数，默认10
+        in: query
+        name: limit
+        type: integer
+      - description: 模糊查询
+        in: query
+        name: key
+        type: string
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/res.DataListResponse'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 全文搜索
+      tags:
+      - 文章管理
   /api/articles_detail_title:
     get:
       description: 文章细节查看 by title
@@ -730,6 +1011,40 @@ paths:
       summary: 文章细节查看 by title
       tags:
       - 文章管理
+  /api/digg/article:
+    post:
+      consumes:
+      - application/json
+      description: 点赞文章
+      parameters:
+      - description: 文章id
+        in: body
+        name: data
+        schema:
+          $ref: '#/definitions/models.EsIdQuest'
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 操作成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 点赞文章
+      tags:
+      - 文章点赞管理
   /api/email_login:
     post:
       consumes:

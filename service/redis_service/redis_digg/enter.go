@@ -3,6 +3,7 @@ package redis_digg
 import (
 	"Blog_server/global"
 	"Blog_server/models"
+	"Blog_server/service/redis_service/redis_comment"
 	"Blog_server/service/redis_service/redis_look"
 	"context"
 	"encoding/json"
@@ -54,6 +55,7 @@ func SyncEsArticle() error {
 	}
 	DiggMap := GetDiggingInfo()
 	LookMap := redis_look.GetLookInfo()
+	CommentMap := redis_comment.GetCommentInfo()
 	for _, hit := range result.Hits.Hits {
 		var article models.ArticleModel
 		_ = json.Unmarshal(hit.Source, &article)
@@ -69,6 +71,12 @@ func SyncEsArticle() error {
 		if lookCount != 0 {
 			MapEnd["look_count"] = newLookCount
 		}
+		commentCount := CommentMap[article.ID]
+		newCommentCount := article.LookCount + commentCount
+		if commentCount != 0 {
+			MapEnd["comment_count"] = newCommentCount
+		}
+
 		if len(MapEnd) == 0 {
 			continue
 		}

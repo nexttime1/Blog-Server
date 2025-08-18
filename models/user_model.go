@@ -8,17 +8,17 @@ import (
 type UserModel struct {
 	Model
 	Username       string            `gorm:"size:32" json:"username"`
-	Nickname       string            `gorm:"size:32" json:"nickname"`
+	Nickname       string            `gorm:"size:32" json:"nickname,select(c)"`
 	Password       string            `gorm:"size:64" json:"-"`
-	Avatar         string            `gorm:"size:256" json:"avatar"` //头像
+	Avatar         string            `gorm:"size:256" json:"avatar,select(c)"` //头像
 	Abstract       string            `gorm:"size:256" json:"abstract"`
 	RegisterSource enum.RegisterType `json:"registerSource"`
 	CodeAge        string            `json:"codeAge"`
 	Email          string            `gorm:"size:256" json:"email"`
 	Tel            string            `gorm:"size:18" json:"tel"`
-	Addr           string            `gorm:"size:64" json:"addr"`
+	Addr           string            `gorm:"size:64" json:"addr,select(c)"`
 	Token          string            `gorm:"size:64" json:"token"` //第三方登陆的唯一id
-	IP             string            `gorm:"size:32" json:"ip"`
+	IP             string            `gorm:"size:32" json:"ip,select(c)"`
 	Role           enum.RoleType     `json:"role"` // 1 为管理员  2 为 普通用户
 
 }

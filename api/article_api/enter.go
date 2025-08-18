@@ -314,6 +314,19 @@ func (ArticleApi) ArticleDeleteView(c *gin.Context) {
 	res.OkWithMessage(c, fmt.Sprintf("成功删除 %d 篇文章", len(result.Succeeded())))
 }
 
+// ArticleFullSearchView 全文搜索
+// @Summary 全文搜索
+// @Description 分页查询全文搜索，key进行模糊匹配
+// @Tags 文章管理
+// @Produce json
+// @Param page query int false "页码，默认1" mininum(1)
+// @Param limit query int false "每页条数，默认10" mininum(1) maxinum(100)
+// @Param key query string false "模糊查询"
+// @Param token header string true "用户认证令牌"
+// @Success 200 {object} res.Response{data=res.DataListResponse}
+// @Failure 400 {object} res.Response "请求参数错误"
+// @Failure 500 {object} res.Response "服务器内部错误"
+// @Router /api/articles/text [get]
 func (ArticleApi) ArticleFullSearchView(c *gin.Context) {
 	var cr common.PageInfo
 	err := c.ShouldBindQuery(&cr)
@@ -323,7 +336,7 @@ func (ArticleApi) ArticleFullSearchView(c *gin.Context) {
 	}
 	query := elastic.NewBoolQuery()
 	if cr.Key != "" {
-		query.Must(elastic.NewTermsQuery(cr.Key, "title", "body"))
+		query.Must(elastic.NewMultiMatchQuery(cr.Key, "title", "body"))
 	}
 	global.Es.Search(models.FullTextModel{}.Index()).
 		Query(query).

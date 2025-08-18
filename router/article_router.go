@@ -14,6 +14,7 @@ func ArticleRouter(c *gin.RouterGroup) {
 	c.GET("articles_detail_title", app.ArticleDetailByTitleView)
 	c.GET("articles/calendar", app.ArticleCalendarView)
 	c.GET("articles/tags", app.ArticleTagListView)
+	c.GET("articles/text", app.ArticleFullSearchView)
 	c.PUT("articles", app.ArticleUpdateView)
 	c.DELETE("articles", app.ArticleDeleteView)
 }
