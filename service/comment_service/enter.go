@@ -3,7 +3,7 @@ package comment_service
 import (
 	"Blog_server/global"
 	"Blog_server/models"
-	"Blog_server/service/redis_service/redis_comment"
+	"Blog_server/service/redis_service/redis_count"
 	"Blog_server/utils/jwts"
 	"fmt"
 	"github.com/sirupsen/logrus"
@@ -59,6 +59,6 @@ func CommentAddService(cr CommentAddRequest, claim *jwts.MyClaims) error {
 		return fmt.Errorf("创建评论失败")
 	}
 	//文章评论 +1
-	redis_comment.Comment(cr.ArticleID)
+	redis_count.NewComment().Set(cr.ArticleID)
 	return nil
 }

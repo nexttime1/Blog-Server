@@ -3,7 +3,7 @@ package digg_api
 import (
 	"Blog_server/common/res"
 	"Blog_server/models"
-	"Blog_server/service/redis_service/redis_digg"
+	"Blog_server/service/redis_service/redis_count"
 	"github.com/gin-gonic/gin"
 )
 
@@ -29,7 +29,7 @@ func (DiggApi) DiggArticleView(c *gin.Context) {
 		res.FailWithErr(c, err)
 		return
 	}
-	redis_digg.Digging(cr.ID)
+	redis_count.NewDigg().Set(cr.ID)
 	res.OkWithMessage(c, "文章点赞成功")
 
 }

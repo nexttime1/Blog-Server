@@ -7,7 +7,7 @@ import (
 	"Blog_server/global"
 	"Blog_server/models"
 	"Blog_server/service/article_service"
-	"Blog_server/service/redis_service/redis_look"
+	"Blog_server/service/redis_service/redis_count"
 	"Blog_server/utils/jwts"
 	"context"
 	"encoding/json"
@@ -129,7 +129,7 @@ func (ArticleApi) ArticleDetailByIdView(c *gin.Context) {
 		res.FailWithErr(c, err)
 		return
 	}
-	redis_look.Look(model.ID)
+	redis_count.NewLook().Set(model.ID)
 	res.OkWithData(c, model)
 
 }
@@ -157,7 +157,7 @@ func (ArticleApi) ArticleDetailByTitleView(c *gin.Context) {
 		res.FailWithErr(c, err)
 		return
 	}
-	redis_look.Look(model.ID)
+	redis_count.NewLook().Set(model.ID)
 	res.OkWithData(c, model)
 
 }

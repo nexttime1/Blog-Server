@@ -1,10 +1,8 @@
-package redis_digg
+package redis_count
 
 import (
 	"Blog_server/global"
 	"Blog_server/models"
-	"Blog_server/service/redis_service/redis_comment"
-	"Blog_server/service/redis_service/redis_look"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -13,37 +11,81 @@ import (
 	"strconv"
 )
 
-const DiggPrefix = "digg"
+const (
+	CommentPrefix     = "article_comment"
+	DiggPrefix        = "article_digg"
+	LookPrefix        = "article_look"
+	CommentDiggPrefix = "comment_digg"
+	UserDiggPrefix    = "user_digg"
+)
 
-func Digging(id string) {
-	num, err := global.Redis.HGet(DiggPrefix, id).Int()
-	fmt.Errorf("%s", err)
-	//没有的话  num = 0
-	num++
-	global.Redis.HSet(DiggPrefix, id, num)
-
+type CountDB struct {
+	Index string
 }
 
-func GetDigging(id string) int {
-	num, _ := global.Redis.HGet(DiggPrefix, id).Int()
+func NewDigg() CountDB {
+	return CountDB{
+		Index: DiggPrefix,
+	}
+}
+func NewLook() CountDB {
+	return CountDB{
+		Index: LookPrefix,
+	}
+}
+func NewComment() CountDB {
+	return CountDB{
+		Index: CommentPrefix,
+	}
+}
+
+func NewCommentDigg() CountDB {
+	return CountDB{
+		Index: CommentDiggPrefix,
+	}
+}
+
+func NewUserDigg() CountDB {
+	return CountDB{
+		Index: UserDiggPrefix,
+	}
+}
+
+func (c CountDB) Set(id string) {
+	num, err := global.Redis.HGet(c.Index, id).Int()
+	logrus.Errorf("查找错误 %s", err)
+	num++
+	global.Redis.HSet(c.Index, id, num)
+}
+
+func (c CountDB) Get(id string) int {
+	num, err := global.Redis.HGet(c.Index, id).Int()
+	logrus.Errorf("查找错误 %s", err)
 	return num
 }
 
-func GetDiggingInfo() map[string]int {
-	var DiggInfo = make(map[string]int)
-	data := global.Redis.HGetAll(DiggPrefix).Val()
+func (c CountDB) Sub(id string) {
+	num, err := global.Redis.HGet(c.Index, id).Int()
+	logrus.Errorf("查找错误 %s", err)
+	num--
+	global.Redis.HSet(c.Index, id, num)
+}
+
+func (c CountDB) GetInfo() map[string]int {
+	var getInfo = make(map[string]int)
+	data := global.Redis.HGetAll(c.Index).Val()
 	for id, val := range data {
 		num, _ := strconv.Atoi(val)
-		DiggInfo[id] = num
+		getInfo[id] = num
 	}
-	return DiggInfo
+	return getInfo
 }
 
-func DiggClear() {
-	global.Redis.Del(DiggPrefix)
+func (c CountDB) Clear() {
+	global.Redis.Del(c.Index)
 }
 
-func SyncEsArticle() error {
+func (c CountDB) Update() error {
 	var MapEnd = make(map[string]int)
 	result, err := global.Es.Search(models.ArticleModel{}.Index()).
 		Query(elastic.NewMatchAllQuery()).
@@ -53,9 +95,9 @@ func SyncEsArticle() error {
 		logrus.Errorf("查询失败 %s", err)
 		return fmt.Errorf("查询失败 %s", err)
 	}
-	DiggMap := GetDiggingInfo()
-	LookMap := redis_look.GetLookInfo()
-	CommentMap := redis_comment.GetCommentInfo()
+	DiggMap := NewDigg().GetInfo()
+	LookMap := NewLook().GetInfo()
+	CommentMap := NewComment().GetInfo()
 	for _, hit := range result.Hits.Hits {
 		var article models.ArticleModel
 		_ = json.Unmarshal(hit.Source, &article)
@@ -91,7 +133,8 @@ func SyncEsArticle() error {
 		}
 	}
 	logrus.Infof("更新成功")
-	DiggClear() //清除缓存
-	redis_look.LookClear()
+	NewDigg().Clear()    //清除缓存
+	NewLook().Clear()    //清除缓存
+	NewComment().Clear() //清除缓存
 	return nil
 }
