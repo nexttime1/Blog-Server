@@ -6,6 +6,7 @@ import (
 	"Blog_server/models"
 	"Blog_server/service/comment_service"
 	"Blog_server/service/redis_service/redis_count"
+	"Blog_server/service/redis_service/redis_user"
 	"Blog_server/utils/jwts"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -99,19 +100,37 @@ func (CommentApi) CommentDiggView(c *gin.Context) {
 		res.FailWithMsg(c, fmt.Sprintf("评论不存在 %s", err))
 	}
 	//判断该用户点没点赞
-	num := redis_count.NewUserDigg().Get(fmt.Sprintf("%d", claim.UserID))
-	if num == 0 {
-		// 说明这次是点赞
-		redis_count.NewUserDigg().Set(fmt.Sprintf("%d", claim.UserID)) // 变成1
+	list := redis_user.NewUserDigg().Get(fmt.Sprintf("%d", claim.UserID))
+
+	if !redis_user.Exist(list, commentModel.ArticleID) {
+		// 说明这次是点赞  不存在
+		redis_user.NewUserDigg().Add(fmt.Sprintf("%d", claim.UserID), commentModel.ArticleID) // 在列表中增加
 		//评论点赞数 + 1
 		redis_count.NewCommentDigg().Set(fmt.Sprintf("%d", commentModel.ID))
 		res.OkWithMessage(c, "评论点赞成功")
 		return
 	}
 	// 这次 用户取消点赞
-	redis_count.NewUserDigg().Sub(fmt.Sprintf("%d", claim.UserID)) // 变成0
+	redis_user.NewUserDigg().Del(fmt.Sprintf("%d", claim.UserID), commentModel.ArticleID) //  在列表中减去
 	//评论点赞数 - 1
-	redis_count.NewCommentDigg().Sub(fmt.Sprintf("%d", commentModel.ID))
+	redis_count.NewCommentDigg().SetNum(fmt.Sprintf("%d", commentModel.ID), -1)
 	res.OkWithMessage(c, "取消点赞成功")
 
+}
+
+func (CommentApi) CommentDeleteView(c *gin.Context) {
+	_, exists := c.Get("claims")
+	if !exists {
+		return
+	}
+	var cr comment_service.CommentDeleteRequest
+	err := c.ShouldBindUri(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+	}
+	count, err := comment_service.CommentDeleteService(cr)
+	if err != nil {
+		res.FailWithMsg(c, fmt.Sprintf("%s", err))
+	}
+	res.OkWithData(c, fmt.Sprintf("共删除%d条评论 ", count))
 }

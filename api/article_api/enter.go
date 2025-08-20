@@ -310,6 +310,15 @@ func (ArticleApi) ArticleDeleteView(c *gin.Context) {
 		res.FailWithMsg(c, fmt.Sprintf("文章收藏表删除失败 %s", err))
 		return
 	}
+	// 删除所有的评论
+	var CommentModelList []models.CommentModel
+	global.DB.Where("article_id in ?", cr.IDList).Find(&CommentModelList)
+	err = global.DB.Delete(&CommentModelList).Error
+	if err != nil {
+		logrus.Errorf("评论删除失败 %s", err)
+		res.FailWithMsg(c, fmt.Sprintf("评论删除失败 %s", err))
+		return
+	}
 
 	res.OkWithMessage(c, fmt.Sprintf("成功删除 %d 篇文章", len(result.Succeeded())))
 }

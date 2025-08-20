@@ -1,0 +1,71 @@
+package new_service
+
+import (
+	"Blog_server/service/redis_service/redis_news"
+	"Blog_server/utils/request"
+	"Blog_server/utils/struct_to_map"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"github.com/sirupsen/logrus"
+	"io"
+	"time"
+)
+
+type Params struct {
+	ID   string `json:"id"`
+	Size int    `json:"size"`
+}
+
+type Header struct {
+	Signaturekey string `form:"signaturekey" structs:"signaturekey"`
+	Version      string `form:"version" structs:"version"`
+	UserAgent    string `form:"User-Agent" structs:"User-Agent"`
+}
+
+type NewData struct {
+	Index    string `json:"index"`
+	Title    string `json:"title"`
+	HotValue string `json:"hotValue"`
+	Link     string `json:"link"`
+}
+
+type NewResponse struct {
+	Code int       `json:"code"`
+	Data []NewData `json:"data"`
+	Msg  string    `json:"msg"`
+}
+
+func NewListService(cr Params, headers Header, newAPI string, timeout time.Duration) ([]NewData, error) {
+	toMap := struct_to_map.StructToMap(headers)
+	if cr.Size == 0 {
+		cr.Size = 1
+	}
+	key := fmt.Sprintf("%s-%d", cr.ID, cr.Size)
+	data, _ := redis_news.GetNews(key)
+	if len(data) != 0 {
+		//缓存有
+		return data, nil
+
+	}
+	httpResponse, err := request.Post(newAPI, cr, toMap, timeout)
+	if err != nil {
+		logrus.Errorf("post请求错误：%s", err)
+		return []NewData{}, err
+	}
+
+	var response NewResponse
+
+	byteData, err := io.ReadAll(httpResponse.Body)
+	err = json.Unmarshal(byteData, &response)
+	if err != nil {
+		logrus.Errorf("json解析：%s", err)
+		return []NewData{}, err
+	}
+	if response.Code != 200 {
+		logrus.Errorf("状态码错误：%d", response.Code)
+		return []NewData{}, errors.New(response.Msg)
+	}
+	redis_news.SetNew(key, response.Data)
+	return response.Data, nil
+}

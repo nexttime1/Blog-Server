@@ -10,6 +10,7 @@ import (
 	"Blog_server/api/log_api"
 	"Blog_server/api/menu_api"
 	"Blog_server/api/message_api"
+	"Blog_server/api/new_api"
 	"Blog_server/api/settings_api"
 	"Blog_server/api/site_api"
 	"Blog_server/api/tag_api"
@@ -30,6 +31,7 @@ type Api struct {
 	DiggApi    digg_api.DiggApi
 	CollectApi collect_api.CollectApi
 	CommentApi comment_api.CommentApi
+	NewApi     new_api.NewApi
 }
 
 var App = Api{}

@@ -16,7 +16,6 @@ const (
 	DiggPrefix        = "article_digg"
 	LookPrefix        = "article_look"
 	CommentDiggPrefix = "comment_digg"
-	UserDiggPrefix    = "user_digg"
 )
 
 type CountDB struct {
@@ -45,29 +44,32 @@ func NewCommentDigg() CountDB {
 	}
 }
 
-func NewUserDigg() CountDB {
-	return CountDB{
-		Index: UserDiggPrefix,
-	}
-}
-
 func (c CountDB) Set(id string) {
 	num, err := global.Redis.HGet(c.Index, id).Int()
-	logrus.Errorf("查找错误 %s", err)
+	if err != nil {
+		logrus.Errorf("查找错误 %s", err)
+	}
+
 	num++
 	global.Redis.HSet(c.Index, id, num)
 }
 
 func (c CountDB) Get(id string) int {
 	num, err := global.Redis.HGet(c.Index, id).Int()
-	logrus.Errorf("查找错误 %s", err)
+	if err != nil {
+		logrus.Errorf("查找错误 %s", err)
+	}
+
 	return num
 }
 
-func (c CountDB) Sub(id string) {
-	num, err := global.Redis.HGet(c.Index, id).Int()
-	logrus.Errorf("查找错误 %s", err)
-	num--
+func (c CountDB) SetNum(id string, NewNum int) {
+	OldNum, err := global.Redis.HGet(c.Index, id).Int()
+	if err != nil {
+		logrus.Errorf("查找错误 %s", err)
+	}
+
+	num := OldNum + NewNum
 	global.Redis.HSet(c.Index, id, num)
 }
 
