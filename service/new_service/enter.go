@@ -23,20 +23,13 @@ type Header struct {
 	UserAgent    string `form:"User-Agent" structs:"User-Agent"`
 }
 
-type NewData struct {
-	Index    string `json:"index"`
-	Title    string `json:"title"`
-	HotValue string `json:"hotValue"`
-	Link     string `json:"link"`
-}
-
 type NewResponse struct {
-	Code int       `json:"code"`
-	Data []NewData `json:"data"`
-	Msg  string    `json:"msg"`
+	Code int                  `json:"code"`
+	Data []redis_news.NewData `json:"data"`
+	Msg  string               `json:"msg"`
 }
 
-func NewListService(cr Params, headers Header, newAPI string, timeout time.Duration) ([]NewData, error) {
+func NewListService(cr Params, headers Header, newAPI string, timeout time.Duration) ([]redis_news.NewData, error) {
 	toMap := struct_to_map.StructToMap(headers)
 	if cr.Size == 0 {
 		cr.Size = 1
@@ -51,7 +44,7 @@ func NewListService(cr Params, headers Header, newAPI string, timeout time.Durat
 	httpResponse, err := request.Post(newAPI, cr, toMap, timeout)
 	if err != nil {
 		logrus.Errorf("post请求错误：%s", err)
-		return []NewData{}, err
+		return []redis_news.NewData{}, err
 	}
 
 	var response NewResponse
@@ -60,11 +53,11 @@ func NewListService(cr Params, headers Header, newAPI string, timeout time.Durat
 	err = json.Unmarshal(byteData, &response)
 	if err != nil {
 		logrus.Errorf("json解析：%s", err)
-		return []NewData{}, err
+		return []redis_news.NewData{}, err
 	}
 	if response.Code != 200 {
 		logrus.Errorf("状态码错误：%d", response.Code)
-		return []NewData{}, errors.New(response.Msg)
+		return []redis_news.NewData{}, errors.New(response.Msg)
 	}
 	redis_news.SetNew(key, response.Data)
 	return response.Data, nil

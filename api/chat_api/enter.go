@@ -2,6 +2,7 @@ package chat_api
 
 import (
 	"Blog_server/common/res"
+	"Blog_server/models/enum"
 	"encoding/json"
 	"fmt"
 	"github.com/DanPlayer/randomname"
@@ -16,14 +17,12 @@ import (
 type ChatApi struct {
 }
 
-type MsgType int
-
 const (
-	TextMsg    MsgType = 1
-	ImageMsg   MsgType = 2
-	SystemMsg  MsgType = 3
-	InRoomMsg  MsgType = 4
-	OutRoomMsg MsgType = 5
+	TextMsg    enum.MsgType = 1
+	ImageMsg   enum.MsgType = 2
+	SystemMsg  enum.MsgType = 3
+	InRoomMsg  enum.MsgType = 4
+	OutRoomMsg enum.MsgType = 5
 )
 
 type ChatUser struct {
@@ -32,15 +31,15 @@ type ChatUser struct {
 	Avatar   string `json:"avatar"`
 }
 type GroupRequest struct {
-	Content string  `json:"content"`  // 聊天的内容
-	MsgType MsgType `json:"msg_type"` // 聊天类型
+	Content string       `json:"content"`  // 聊天的内容
+	MsgType enum.MsgType `json:"msg_type"` // 聊天类型
 }
 type GroupResponse struct {
-	Content  string    `json:"content"`   // 聊天的内容
-	MsgType  MsgType   `json:"msg_type"`  // 聊天类型
-	NickName string    `json:"nick_name"` // 前端自己生成
-	Avatar   string    `json:"avatar"`    // 头像
-	Date     time.Time `json:"date"`      // 消息的时间
+	Content  string       `json:"content"`   // 聊天的内容
+	MsgType  enum.MsgType `json:"msg_type"`  // 聊天类型
+	NickName string       `json:"nick_name"` // 前端自己生成
+	Avatar   string       `json:"avatar"`    // 头像
+	Date     time.Time    `json:"date"`      // 消息的时间
 }
 
 var ConnGroupMap = make(map[string]ChatUser)
@@ -112,6 +111,10 @@ func (ChatApi) ChatGroupView(c *gin.Context) {
 		switch request.MsgType {
 		case TextMsg:
 			if strings.TrimSpace(request.Content) == "" {
+				SendMsg(addr, GroupResponse{
+					MsgType:  SystemMsg,
+					NickName: User.NickName,
+				})
 				continue
 			}
 			// 将接收到的消息字节数组转换为字符串并发送给人
@@ -147,5 +150,12 @@ func SendGroupMsg(response GroupResponse) {
 		// 服务器 向客户端发送消息
 		User.Conn.WriteMessage(websocket.TextMessage, byteData)
 	}
+
+}
+
+func SendMsg(addr string, response GroupResponse) {
+	byteData, _ := json.Marshal(response)
+	user := ConnGroupMap[addr]
+	user.Conn.WriteMessage(websocket.TextMessage, byteData)
 
 }

@@ -2,7 +2,6 @@ package redis_news
 
 import (
 	"Blog_server/global"
-	"Blog_server/service/new_service"
 	"encoding/json"
 	"fmt"
 	"github.com/sirupsen/logrus"
@@ -11,7 +10,14 @@ import (
 
 const NewPrefix = "news_index"
 
-func SetNew(key string, NewData []new_service.NewData) {
+type NewData struct {
+	Index    string `json:"index"`
+	Title    string `json:"title"`
+	HotValue string `json:"hotValue"`
+	Link     string `json:"link"`
+}
+
+func SetNew(key string, NewData []NewData) {
 	byteData, _ := json.Marshal(NewData)
 	err := global.Redis.Set(fmt.Sprintf("%s_%s", NewPrefix, key), byteData, 1*time.Hour).Err()
 	if err != nil {
@@ -19,7 +25,7 @@ func SetNew(key string, NewData []new_service.NewData) {
 	}
 }
 
-func GetNews(key string) (newData []new_service.NewData, err error) {
+func GetNews(key string) (newData []NewData, err error) {
 	res := global.Redis.Get(fmt.Sprintf("%s_%s", NewPrefix, key)).Val()
 	err = json.Unmarshal([]byte(res), &newData)
 	return
