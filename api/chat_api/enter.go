@@ -1,13 +1,18 @@
 package chat_api
 
 import (
+	"Blog_server/common"
 	"Blog_server/common/res"
+	"Blog_server/core"
+	"Blog_server/global"
+	"Blog_server/models"
 	"Blog_server/models/enum"
 	"encoding/json"
 	"fmt"
 	"github.com/DanPlayer/randomname"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/liu-cn/json-filter/filter"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
@@ -18,11 +23,13 @@ type ChatApi struct {
 }
 
 const (
-	TextMsg    enum.MsgType = 1
-	ImageMsg   enum.MsgType = 2
-	SystemMsg  enum.MsgType = 3
-	InRoomMsg  enum.MsgType = 4
-	OutRoomMsg enum.MsgType = 5
+	InRoomMsg  enum.MsgType = 1
+	TextMsg    enum.MsgType = 2
+	ImageMsg   enum.MsgType = 3
+	voiceMsg   enum.MsgType = 4
+	videoMsg   enum.MsgType = 5
+	SystemMsg  enum.MsgType = 6
+	OutRoomMsg enum.MsgType = 7
 )
 
 type ChatUser struct {
@@ -35,11 +42,12 @@ type GroupRequest struct {
 	MsgType enum.MsgType `json:"msg_type"` // 聊天类型
 }
 type GroupResponse struct {
-	Content  string       `json:"content"`   // 聊天的内容
-	MsgType  enum.MsgType `json:"msg_type"`  // 聊天类型
-	NickName string       `json:"nick_name"` // 前端自己生成
-	Avatar   string       `json:"avatar"`    // 头像
-	Date     time.Time    `json:"date"`      // 消息的时间
+	Content     string       `json:"content"`      // 聊天的内容
+	MsgType     enum.MsgType `json:"msg_type"`     // 聊天类型
+	NickName    string       `json:"nick_name"`    // 前端自己生成
+	Avatar      string       `json:"avatar"`       // 头像
+	OnlineCount int          `json:"online_count"` //在线人数
+	Date        time.Time    `json:"date"`         // 消息的时间
 }
 
 var ConnGroupMap = make(map[string]ChatUser)
@@ -95,12 +103,13 @@ func (ChatApi) ChatGroupView(c *gin.Context) {
 		// 如果读取错误（如客户端断开连接），退出循环
 		if err != nil {
 			// 用户断开聊天（日志说明）
-			SendGroupMsg(GroupResponse{
-				MsgType:  OutRoomMsg,
-				NickName: User.NickName,
-				Avatar:   User.Avatar,
-				Content:  fmt.Sprintf("%s 离开聊天室", addr),
-				Date:     time.Now(),
+			SendGroupMsg(conn, GroupResponse{
+				MsgType:     OutRoomMsg,
+				NickName:    User.NickName,
+				Avatar:      User.Avatar,
+				Content:     fmt.Sprintf("%s 离开聊天室", addr),
+				OnlineCount: len(ConnGroupMap) - 1,
+				Date:        time.Now(),
 			})
 
 			break
@@ -112,23 +121,40 @@ func (ChatApi) ChatGroupView(c *gin.Context) {
 		case TextMsg:
 			if strings.TrimSpace(request.Content) == "" {
 				SendMsg(addr, GroupResponse{
-					MsgType:  SystemMsg,
-					NickName: User.NickName,
+					Avatar:      User.Avatar,
+					MsgType:     SystemMsg,
+					Content:     "消息不能为空",
+					NickName:    User.NickName,
+					OnlineCount: len(ConnGroupMap),
+					Date:        time.Now(),
 				})
 				continue
 			}
 			// 将接收到的消息字节数组转换为字符串并发送给人
-			SendGroupMsg(GroupResponse{
-				Content:  request.Content,
-				MsgType:  TextMsg,
-				NickName: User.NickName,
-				Avatar:   User.Avatar,
-				Date:     time.Now(),
+			SendGroupMsg(conn, GroupResponse{
+				Content:     request.Content,
+				MsgType:     TextMsg,
+				NickName:    User.NickName,
+				Avatar:      User.Avatar,
+				OnlineCount: len(ConnGroupMap),
+				Date:        time.Now(),
 			})
 		case InRoomMsg:
-			SendGroupMsg(GroupResponse{
-				Content: fmt.Sprintf("%s 进入聊天室", User.NickName),
-				Date:    time.Now(),
+			SendGroupMsg(conn, GroupResponse{
+				NickName:    User.NickName,
+				Avatar:      User.Avatar,
+				Content:     fmt.Sprintf("%s 进入聊天室", User.NickName),
+				OnlineCount: len(ConnGroupMap),
+				Date:        time.Now(),
+			})
+		default:
+			SendMsg(addr, GroupResponse{
+				Content:     "格式错误",
+				MsgType:     SystemMsg,
+				NickName:    User.NickName,
+				Avatar:      User.Avatar,
+				OnlineCount: len(ConnGroupMap),
+				Date:        time.Now(),
 			})
 		}
 
@@ -142,10 +168,22 @@ func (ChatApi) ChatGroupView(c *gin.Context) {
 	// 延迟关闭 WebSocket 连接（在函数退出前执行）
 	// 注意：由于上面的 for 循环退出后函数会结束，因此 defer 会在此处执行
 	defer conn.Close()
+	delete(ConnGroupMap, addr)
 }
 
-func SendGroupMsg(response GroupResponse) {
+func SendGroupMsg(conn *websocket.Conn, response GroupResponse) {
 	byteData, _ := json.Marshal(response)
+	addr := conn.RemoteAddr().String()
+	ip, address := GetIpAndAddr(addr)
+	global.DB.Create(&models.ChatModel{
+		NickName: response.NickName,
+		Avatar:   response.Avatar,
+		Content:  response.Content,
+		IP:       ip,
+		Addr:     address,
+		IsGroup:  false,
+		MsgType:  response.MsgType,
+	})
 	for _, User := range ConnGroupMap {
 		// 服务器 向客户端发送消息
 		User.Conn.WriteMessage(websocket.TextMessage, byteData)
@@ -156,6 +194,47 @@ func SendGroupMsg(response GroupResponse) {
 func SendMsg(addr string, response GroupResponse) {
 	byteData, _ := json.Marshal(response)
 	user := ConnGroupMap[addr]
+	ip, address := GetIpAndAddr(addr)
 	user.Conn.WriteMessage(websocket.TextMessage, byteData)
+	global.DB.Create(&models.ChatModel{
+		NickName: response.NickName,
+		Avatar:   response.Avatar,
+		Content:  response.Content,
+		IP:       ip,
+		Addr:     address,
+		IsGroup:  false,
+		MsgType:  response.MsgType,
+	})
+
+}
+
+func GetIpAndAddr(addr string) (string, string) {
+	addrList := strings.Split(addr, ":")
+	address := core.GetIpAddr(addrList[0])
+	return addrList[0], address
+}
+
+func (ChatApi) ChatListView(c *gin.Context) {
+	var cr common.PageInfo
+	err := c.ShouldBindQuery(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	list, count, err := common.ListQuery(models.ChatModel{
+		IsGroup: true,
+	}, common.Options{
+		PageInfo:     cr,
+		DefaultOrder: "created_at desc", //默认
+	})
+
+	data := filter.Omit("list", list)
+	_list, _ := data.(filter.Filter)
+	if string(_list.MustMarshalJSON()) == "{}" {
+		list := make([]models.AdvertModel, 0)
+		res.OkWithList(c, list, 0)
+
+	}
+	res.OkWithList(c, data, count)
 
 }

@@ -23,6 +23,18 @@ type CommentDiggRequest struct {
 	ID int `form:"id" uri:"id"`
 }
 
+// CommentAddView 添加评论
+// @Summary 添加评论
+// @Description 创建一个新的评论，包含文章，内容和父评论Id
+// @Tags 评论管理
+// @Accept json
+// @Produce json
+// @Param data body comment_service.CommentAddRequest true "评论信息"
+// @Param token header string true "用户认证令牌"
+// @Success 200 {object} res.Response "创建评论成功"
+// @Failure 400 {object} res.Response "请求参数错误"
+// @Failure 500 {object} res.Response "服务器内部错误"
+// @Router /api/comments [post]
 func (CommentApi) CommentAddView(c *gin.Context) {
 	_claim, exists := c.Get("claims")
 	if !exists {
@@ -45,6 +57,17 @@ func (CommentApi) CommentAddView(c *gin.Context) {
 	res.OkWithMessage(c, "创建评论成功")
 }
 
+// CommentListView 评论列表
+// @Summary 评论列表
+// @Description 获取某个文章的评论列表
+// @Tags 评论管理
+// @Produce json
+// @Param article_id query string true "输入文章ID"
+// @Param token header string true "用户认证令牌"
+// @Success 200 {object} res.Response{data=res.DataListResponse}
+// @Failure 400 {object} res.Response "请求参数错误"
+// @Failure 500 {object} res.Response "服务器内部错误"
+// @Router /api/comments [get]
 func (CommentApi) CommentListView(c *gin.Context) {
 	var cr CommentRequest
 	err := c.ShouldBindQuery(&cr)
@@ -81,6 +104,17 @@ func Recursion(model *models.CommentModel, subCommentModels *[]*models.CommentMo
 
 }
 
+// CommentDiggView 用户点赞评论
+// @Summary 用户点赞评论
+// @Description 用户点赞评论
+// @Tags 评论管理
+// @Produce json
+// @Param id path int true "id"
+// @Param token header string true "用户认证令牌"
+// @Success 200 {object} res.Response{}
+// @Failure 400 {object} res.Response "请求参数错误"
+// @Failure 500 {object} res.Response "服务器内部错误"
+// @Router /api/comments/{id} [get]
 func (CommentApi) CommentDiggView(c *gin.Context) {
 	_claim, exists := c.Get("claims")
 	if !exists {
@@ -118,6 +152,18 @@ func (CommentApi) CommentDiggView(c *gin.Context) {
 
 }
 
+// CommentDeleteView 评论删除
+// @Summary 删除评论
+// @Description 删除评论
+// @Tags 评论管理
+// @Produce json
+// @Param id path string true "输入删除的评论id"
+// @Param token header string true "token"
+// @Success 200 {object} res.Response "删除成功"
+// @Failure 400 {object} res.Response "请求参数错误"
+// @Failure 404 {object} res.Response "评论id不存在"
+// @Failure 500 {object} res.Response "服务器内部错误"
+// @Router /api/comments/{id} [delete]
 func (CommentApi) CommentDeleteView(c *gin.Context) {
 	_, exists := c.Get("claims")
 	if !exists {
