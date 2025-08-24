@@ -1,5 +1,5 @@
 system:
-  ip:
+  ip: 0.0.0.0
   port: 8080
   env: dev
   gin_mode: release

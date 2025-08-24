@@ -9,6 +9,7 @@ import (
 	"Blog_server/models/enum"
 	"Blog_server/plugins/email"
 	"Blog_server/plugins/qq"
+	"Blog_server/service/log_service"
 	"Blog_server/service/redis_service/redis_jwt"
 	"Blog_server/service/user_service"
 	"Blog_server/utils/jwts"
@@ -60,12 +61,28 @@ func (u UserApi) UserEmailLogin(c *gin.Context) {
 		res.FailWithErr(c, err)
 		return
 	}
-	token, msg, err := user_service.UserEmailLoginService(request)
+	model, token, msg, err := user_service.UserEmailLoginService(request)
 	if err != nil {
 		logrus.Errorf("UserEmailLogin %s  err:  %s", msg, err)
+		//记录登录失败的日志
+		log_service.NewLoginFail(c, enum.EmailLoginType, msg, request.Username, request.Password)
 		res.FailWithMsg(c, msg)
 		return
 	}
+	//记录登录日志
+	log_service.NewLoginSuccess(c, enum.EmailLoginType, model)
+
+	//记录用户登录数据
+	global.DB.Create(&models.LoginDataModel{
+		UserID:    model.ID,
+		IP:        c.ClientIP(),
+		NickName:  model.Nickname,
+		Token:     token,
+		Device:    "",
+		Addr:      core.GetIpAddr(c.ClientIP()),
+		LoginType: enum.EmailLoginType,
+	})
+
 	res.OkWithData(c, token)
 }
 
@@ -367,6 +384,8 @@ func (u UserApi) UserQQLogin(c *gin.Context) {
 		err = global.DB.Create(&model).Error
 		if err != nil {
 			res.FailWithMsg(c, fmt.Sprintf("注册用户失败 %v", err))
+			//失败日志
+			log_service.NewLoginFail(c, enum.QQLoginType, fmt.Sprintf("注册用户失败 %v", err), model.Username, model.Password)
 			return
 		}
 	}
@@ -378,8 +397,23 @@ func (u UserApi) UserQQLogin(c *gin.Context) {
 	})
 	if err != nil {
 		res.FailWithMsg(c, fmt.Sprintf("token 申请失败 %v", err))
+		//失败日志
+		log_service.NewLoginFail(c, enum.QQLoginType, fmt.Sprintf("token 申请失败 %v", err), model.Username, model.Password)
 		return
 	}
+	// 登录成功日志
+	log_service.NewLoginSuccess(c, enum.QQLoginType, model)
+
+	//记录用户登录数据
+	global.DB.Create(&models.LoginDataModel{
+		UserID:    model.ID,
+		IP:        c.ClientIP(),
+		NickName:  model.Nickname,
+		Token:     token,
+		Device:    "",
+		Addr:      core.GetIpAddr(c.ClientIP()),
+		LoginType: enum.QQLoginType,
+	})
 	res.OkWithData(c, token)
 }
 

@@ -106,6 +106,19 @@ definitions:
     required:
     - id
     type: object
+  comment_service.CommentAddRequest:
+    properties:
+      article_id:
+        type: string
+      content:
+        type: string
+      parent_comment_id:
+        description: 父评论id
+        type: integer
+    required:
+    - article_id
+    - content
+    type: object
   enum.ImageType:
     enum:
     - 1
@@ -186,9 +199,11 @@ definitions:
         items:
           $ref: '#/definitions/menu_api.Banners'
         type: array
-      createdAt:
+      created_at:
+        description: 创建时间
         type: string
       id:
+        description: 主键ID
         type: integer
       path:
         type: string
@@ -270,12 +285,14 @@ definitions:
     properties:
       UpdatedAt:
         type: string
-      createdAt:
+      created_at:
+        description: 创建时间
         type: string
       hash:
         description: 图片的hash值，用于判断重复图片
         type: string
       id:
+        description: 主键ID
         type: integer
       image_type:
         $ref: '#/definitions/enum.ImageType'
@@ -1011,6 +1028,190 @@ paths:
       summary: 文章细节查看 by title
       tags:
       - 文章管理
+  /api/comments:
+    get:
+      description: 获取某个文章的评论列表
+      parameters:
+      - description: 输入文章ID
+        in: query
+        name: article_id
+        required: true
+        type: string
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/res.DataListResponse'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 评论列表
+      tags:
+      - 评论管理
+    post:
+      consumes:
+      - application/json
+      description: 创建一个新的评论，包含文章，内容和父评论Id
+      parameters:
+      - description: 评论信息
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/comment_service.CommentAddRequest'
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 创建评论成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 添加评论
+      tags:
+      - 评论管理
+  /api/comments/{id}:
+    delete:
+      description: 删除评论
+      parameters:
+      - description: 输入删除的评论id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "404":
+          description: 评论id不存在
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 删除评论
+      tags:
+      - 评论管理
+    get:
+      description: 用户点赞评论
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 用户点赞评论
+      tags:
+      - 评论管理
+  /api/data_login:
+    get:
+      description: 七天之内登录情况，注册情况
+      parameters:
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 七天内情况
+      tags:
+      - 数据统计
+  /api/data_sum:
+    get:
+      description: 统计各字段
+      parameters:
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 统计各字段
+      tags:
+      - 数据统计
   /api/digg/article:
     post:
       consumes:

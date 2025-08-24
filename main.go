@@ -6,6 +6,8 @@ import (
 	"Blog_server/flags"
 	"Blog_server/global"
 	"Blog_server/router"
+	"Blog_server/service/cron_service"
+	"Blog_server/utils/net_ip"
 )
 
 // @title Blog_Server API文档
@@ -21,5 +23,7 @@ func main() {
 	global.Redis = core.InitRedis()
 	global.Es = core.InitEs()
 	flags.Run()
+	net_ip.PrintSystem()
+	cron_service.CronInit()
 	router.Run()
 }

@@ -6,6 +6,7 @@ import (
 	"Blog_server/api/chat_api"
 	"Blog_server/api/collect_api"
 	"Blog_server/api/comment_api"
+	"Blog_server/api/date_api"
 	"Blog_server/api/digg_api"
 	"Blog_server/api/image_api"
 	"Blog_server/api/log_api"
@@ -34,6 +35,7 @@ type Api struct {
 	CommentApi comment_api.CommentApi
 	NewApi     new_api.NewApi
 	ChatApi    chat_api.ChatApi
+	DateApi    date_api.DateApi
 }
 
 var App = Api{}

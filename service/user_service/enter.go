@@ -30,8 +30,7 @@ type UserCreateRequest struct {
 	Role     enum.RoleType `json:"role" binding:"required" msg:"请选择权限"`        // 权限  1 管理员  2 普通用户  3 游客
 }
 
-func UserEmailLoginService(mr EmailLoginRequest) (token string, msg string, err error) {
-	var userModel models.UserModel
+func UserEmailLoginService(mr EmailLoginRequest) (userModel models.UserModel, token string, msg string, err error) {
 	msg = "登录成功"
 	token = ""
 	err = global.DB.Where("username = ?", mr.Username).Take(&userModel).Error

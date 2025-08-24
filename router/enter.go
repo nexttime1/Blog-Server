@@ -18,6 +18,7 @@ func Run() {
 	//路由分组
 	nr := r.Group("/api")
 	nr.Use(middleware.LogMiddleware)
+	DateRouter(nr)
 	ChatRouter(nr)
 	NewRouter(nr)
 	CommentRouter(nr)

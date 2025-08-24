@@ -181,7 +181,7 @@ func SendGroupMsg(conn *websocket.Conn, response GroupResponse) {
 		Content:  response.Content,
 		IP:       ip,
 		Addr:     address,
-		IsGroup:  false,
+		IsGroup:  true,
 		MsgType:  response.MsgType,
 	})
 	for _, User := range ConnGroupMap {

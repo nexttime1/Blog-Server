@@ -87,21 +87,21 @@ func (c CountDB) Clear() {
 	global.Redis.Del(c.Index)
 }
 
-func (c CountDB) Update() error {
-	var MapEnd = make(map[string]int)
+func Update() {
+
 	result, err := global.Es.Search(models.ArticleModel{}.Index()).
 		Query(elastic.NewMatchAllQuery()).
-		Size(1000).
+		Size(10000).
 		Do(context.Background())
 	if err != nil {
 		logrus.Errorf("查询失败 %s", err)
-		return fmt.Errorf("查询失败 %s", err)
 	}
 	DiggMap := NewDigg().GetInfo()
 	LookMap := NewLook().GetInfo()
 	CommentMap := NewComment().GetInfo()
 	for _, hit := range result.Hits.Hits {
 		var article models.ArticleModel
+		var MapEnd = make(map[string]int)
 		_ = json.Unmarshal(hit.Source, &article)
 		// 将redis 存的值 放进去
 		diggCount := DiggMap[article.ID]
@@ -116,12 +116,13 @@ func (c CountDB) Update() error {
 			MapEnd["look_count"] = newLookCount
 		}
 		commentCount := CommentMap[article.ID]
-		newCommentCount := article.LookCount + commentCount
+		newCommentCount := article.CommentCount + commentCount
 		if commentCount != 0 {
 			MapEnd["comment_count"] = newCommentCount
 		}
 
 		if len(MapEnd) == 0 {
+			logrus.Infof("%s 无变化", article.Title)
 			continue
 		}
 		//需要更新
@@ -133,10 +134,27 @@ func (c CountDB) Update() error {
 		if err != nil {
 			logrus.Errorf("es id为 %s 更新失败", hit.Id, err)
 		}
+		logrus.Infof("%s 更新成功", article.Title)
 	}
-	logrus.Infof("更新成功")
+
 	NewDigg().Clear()    //清除缓存
 	NewLook().Clear()    //清除缓存
 	NewComment().Clear() //清除缓存
-	return nil
+}
+
+func UpdateToDB() {
+	infoList := NewCommentDigg().GetInfo()
+	var modelList []models.CommentModel
+	global.DB.Find(&modelList)
+	for _, model := range modelList {
+		RedisCount := infoList[fmt.Sprintf("%d", model.ID)]
+		if RedisCount == 0 {
+			logrus.Infof("%s 不需要更新评论点赞", model.Content[:10])
+			continue
+		}
+		global.DB.Model(&model).Update("digg_count", model.DiggCount+RedisCount)
+		logrus.Infof("%s  该评论更新点赞成功", model.Content[:10])
+
+	}
+	NewCommentDigg().Clear()
 }

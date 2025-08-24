@@ -4,7 +4,7 @@ import (
 	"Blog_server/core"
 	"Blog_server/global"
 	"Blog_server/models"
-	enum2 "Blog_server/models/enum"
+	"Blog_server/models/enum"
 	"Blog_server/utils/jwts"
 	"bytes"
 	"encoding/json"
@@ -20,7 +20,7 @@ import (
 
 type ActionLog struct {
 	c                  *gin.Context
-	level              enum2.LevelType
+	level              enum.LevelType
 	title              string
 	content            string
 	requestBody        []byte
@@ -36,6 +36,7 @@ type ActionLog struct {
 }
 
 func (ac *ActionLog) SetError(label string, err error) {
+	//展示错误详情（包括堆栈信息）的场景，方便问题排查。
 	msg := e.WithStack(err)
 	logrus.Errorf("%s  %s", label, err.Error())
 	ac.itemList = append(ac.itemList, fmt.Sprintf("<div class=\"log_error\"><div class=\"line\"><div class=\"label\">%s</div><div class=\"value\">%s</div><div class=\"type\">%T</div></div><div class=\"stack\">%+v</div></div>\n",
@@ -64,7 +65,7 @@ func (ac *ActionLog) SetImage(src string) {
 	ac.itemList = append(ac.itemList, fmt.Sprintf("<div class=\"log_image\"><img src=\"%s\" alt=\"\" ></div>", src))
 }
 
-func (ac *ActionLog) setItem(label string, value any, levelType enum2.LevelType) {
+func (ac *ActionLog) setItem(label string, value any, levelType enum.LevelType) {
 	var v string
 	t := reflect.TypeOf(value)
 	switch t.Kind() {
@@ -80,17 +81,17 @@ func (ac *ActionLog) setItem(label string, value any, levelType enum2.LevelType)
 }
 
 func (ac *ActionLog) SetItem(label string, value any) {
-	ac.setItem(label, value, enum2.LogInfoLevel)
+	ac.setItem(label, value, enum.LogInfoLevel)
 }
 
 func (ac *ActionLog) SetItemInfo(label string, value any) {
-	ac.setItem(label, value, enum2.LogInfoLevel)
+	ac.setItem(label, value, enum.LogInfoLevel)
 }
 func (ac *ActionLog) SetItemWarn(label string, value any) {
-	ac.setItem(label, value, enum2.LogWainLevel)
+	ac.setItem(label, value, enum.LogWainLevel)
 }
 func (ac *ActionLog) SetItemError(label string, value any) {
-	ac.setItem(label, value, enum2.LogErrLevel)
+	ac.setItem(label, value, enum.LogErrLevel)
 
 }
 
@@ -106,7 +107,7 @@ func (ac *ActionLog) SetTitle(title string) {
 	ac.title = title
 }
 
-func (ac *ActionLog) SetLevel(level enum2.LevelType) {
+func (ac *ActionLog) SetLevel(level enum.LevelType) {
 	ac.level = level
 }
 
@@ -217,7 +218,7 @@ func (ac *ActionLog) Save() uint {
 	}
 
 	log := models.LogModel{
-		LogType: enum2.ActionLogType,
+		LogType: enum.ActionLogType,
 		Title:   ac.title,
 		Content: strings.Join(newItemList, "\n"), //按照换行去合并
 		Level:   ac.level,

@@ -6,7 +6,6 @@ import (
 	"Blog_server/global"
 	"Blog_server/models"
 	enum2 "Blog_server/models/enum"
-	"Blog_server/models_new"
 	"Blog_server/service/log_service"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -67,13 +66,13 @@ func (LogApi) LogListNew(c *gin.Context) {
 }
 
 func (LogApi) LogReadView(c *gin.Context) {
-	var cr models_new.IDRequest
+	var cr models.IDRequest
 	err := c.ShouldBindUri(&cr)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
-	var log models_new.LogModel
+	var log models.LogModel
 	err = global.DB.Take(&log, cr.ID).Error
 	if err != nil {
 		res.FailWithMsg(c, "不存在的日志")
