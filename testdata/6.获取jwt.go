@@ -7,11 +7,13 @@ import (
 	"Blog_server/models/enum"
 	"Blog_server/utils/jwts"
 	"fmt"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
 
 	flags.Parse() //绑定命令行参数
+
 	global.Config = core.ReadConf()
 	core.InitLogrus()
 	token, err := jwts.GetToken(jwts.Claims{
@@ -27,6 +29,7 @@ func main() {
 	username, err := jwts.ParseToken("dafartaeqwe1")
 	if err != nil {
 		fmt.Println(err)
+		logrus.Errorf("%s", err)
 		return
 	}
 	fmt.Println(username)
