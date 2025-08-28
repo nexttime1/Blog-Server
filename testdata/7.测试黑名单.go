@@ -27,7 +27,7 @@ func main() {
 		fmt.Print(err)
 		return
 	}
-	fmt.Println(token)
+	//fmt.Println(token)
 
 	//设置黑名单
 	redis_jwt.TokenBlack(token, redis_jwt.UserBlackType)
