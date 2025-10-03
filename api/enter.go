@@ -13,6 +13,7 @@ import (
 	"Blog_server/api/menu_api"
 	"Blog_server/api/message_api"
 	"Blog_server/api/new_api"
+	"Blog_server/api/role_api"
 	"Blog_server/api/settings_api"
 	"Blog_server/api/site_api"
 	"Blog_server/api/tag_api"
@@ -36,6 +37,7 @@ type Api struct {
 	NewApi     new_api.NewApi
 	ChatApi    chat_api.ChatApi
 	DateApi    date_api.DateApi
+	RoleApi    role_api.RoleApi
 }
 
 var App = Api{}

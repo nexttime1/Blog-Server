@@ -7,8 +7,8 @@ import (
 
 type UserModel struct {
 	Model
-	Username       string             `gorm:"size:32" json:"username"`
-	Nickname       string             `gorm:"size:32" json:"nickname"`
+	Username       string             `gorm:"size:32" json:"user_name"`
+	Nickname       string             `gorm:"size:32" json:"nick_name"`
 	Password       string             `gorm:"size:64" json:"-"`
 	Avatar         string             `gorm:"size:256" json:"avatar"` //头像
 	Abstract       string             `gorm:"size:256" json:"abstract"`
