@@ -18,6 +18,7 @@ func UserRouter(r *gin.RouterGroup) {
 	r.GET("users", middleware.AuthMiddleware, app.UserInfoView)
 	r.PUT("users_role", middleware.AdminMiddleware, app.UserUpdateView)
 	r.PUT("users_pwd", middleware.AuthMiddleware, app.UserPasswordView)
+	r.GET("user_info", middleware.AuthMiddleware, app.UserPersonInfoView)
 	r.DELETE("users", middleware.AdminMiddleware, app.UserDeleteView)
 	r.POST("user_bind_email", middleware.AdminMiddleware, app.UserBindEmailView)
 	r.POST("users", middleware.AdminMiddleware, app.UserCreateView)

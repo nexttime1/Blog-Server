@@ -8,7 +8,7 @@ import (
 type AdvertRequest struct { //json
 	Title  string `json:"title" binding:"required" structs:"title"`   // 显示的标题
 	Href   string `json:"href" binding:"required,url" structs:"href"` // 跳转链接
-	Images string `json:"images" binding:"required,url" structs:"-"`  // 图片
+	Images string `json:"images" binding:"required,uri" structs:"-"`  // 图片
 	IsShow bool   `json:"is_show" structs:"is_show"`                  // 是否展示
 }
 

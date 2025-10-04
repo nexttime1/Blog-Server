@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/liu-cn/json-filter/filter"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -415,6 +416,29 @@ func (u UserApi) UserQQLogin(c *gin.Context) {
 		LoginType: enum.QQLoginType,
 	})
 	res.OkWithData(c, token)
+}
+
+// UserPersonInfoView 用户个人信息
+// @Tags 用户管理
+// @Summary 用户个人信息
+// @Description 用户个人信息
+// @Router /api/user_info [get]
+// @Param token header string  true  "token"
+// @Produce json
+// @Success 200 {object} res.Response{data=models.UserModel}
+func (UserApi) UserPersonInfoView(c *gin.Context) {
+	_claims, exists := c.Get("claims")
+	if !exists {
+		return
+	}
+	claims := _claims.(*jwts.MyClaims)
+	var userInfo models.UserModel
+	err := global.DB.Where("id = ?", claims.UserID).Take(&userInfo).Error
+	if err != nil {
+		res.FailWithMsg(c, "用户不存在")
+	}
+	res.OkWithData(c, filter.Select("info", userInfo))
+
 }
 
 // UserCreateView 创建用户
