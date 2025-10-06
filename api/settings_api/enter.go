@@ -2,10 +2,14 @@ package settings_api
 
 import (
 	"Blog_server/common/res"
+	"Blog_server/conf"
 	"Blog_server/global"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
+	"os"
 )
 
 type SettingApi struct {
@@ -31,14 +35,127 @@ func (SettingApi) SettingInfoView(c *gin.Context) {
 	case "site":
 		res.OkWithData(c, global.Config.SiteInfo)
 	case "qq":
-		res.OkWithData(c, global.Config.QQ)
+		qq := global.Config.QQ
+		qq.Key = "******"
+		res.OkWithData(c, qq)
 	case "email":
-		res.OkWithData(c, global.Config.Email)
+		email := global.Config.Email
+		email.Password = "******"
+		res.OkWithData(c, email)
 	case "qiniu":
-		res.OkWithData(c, global.Config.QiNiu)
+		qiniu := global.Config.QiNiu
+		qiniu.AccessKey = "******"
+		res.OkWithData(c, qiniu)
+
+	case "jwt":
+		jwt := global.Config.Jwt
+		jwt.Secret = "******"
+		res.OkWithData(c, jwt)
 	default:
 		res.FailWithErr(c, errors.New("配置信息未找到"))
 	}
 	return
+
+}
+
+func (SettingApi) SettingInfoUpdateView(c *gin.Context) {
+	var s SettingsResponse
+	err := c.ShouldBindUri(&s)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	switch s.Name {
+	case "site":
+		var siteData conf.SiteInfo
+		err := c.ShouldBindJSON(&siteData)
+		if err != nil {
+			logrus.Error("接收参数错误", err)
+			res.FailWithErr(c, err)
+			return
+		}
+		global.Config.SiteInfo = siteData
+	case "email":
+		var emailData conf.Email
+		err := c.ShouldBindJSON(&emailData)
+		if err != nil {
+			logrus.Error("接收参数错误", err)
+			res.FailWithErr(c, err)
+			return
+		}
+		password := global.Config.Email.Password
+		global.Config.Email = emailData
+		if emailData.Password == "******" {
+			global.Config.Email.Password = password
+		}
+
+	case "qiniu":
+		var QiNiuData conf.QiNiu
+		err := c.ShouldBindJSON(&QiNiuData)
+		if err != nil {
+			logrus.Error("接收参数错误", err)
+			res.FailWithErr(c, err)
+			return
+		}
+		AccessKey := global.Config.QiNiu.AccessKey
+		global.Config.QiNiu = QiNiuData
+		if QiNiuData.AccessKey == "******" {
+			global.Config.QiNiu.AccessKey = AccessKey
+		}
+
+	case "jwt":
+		var jwtData conf.Jwt
+		err := c.ShouldBindJSON(&jwtData)
+		if err != nil {
+			logrus.Error("接收参数错误", err)
+			res.FailWithErr(c, err)
+			return
+		}
+		secret := global.Config.Jwt.Secret
+		global.Config.Jwt = jwtData
+		if jwtData.Secret == "******" {
+			global.Config.Jwt.Secret = secret
+		}
+
+	case "qq":
+		var QQData conf.QQ
+		err := c.ShouldBindJSON(&QQData)
+		if err != nil {
+			logrus.Error("接收参数错误", err)
+			res.FailWithErr(c, err)
+			return
+		}
+		Key := global.Config.QQ.Key
+		global.Config.QQ = QQData
+		if QQData.Key == "******" {
+			global.Config.QQ.Key = Key
+		}
+
+	default:
+		res.FailWithErr(c, errors.New("配置信息未找到"))
+	}
+
+	// 3. 把更新后的 global.Config 完整写入 yaml 文件（永久保存）
+	filePath := "D:\\1111kaoyan111111111111111111111111111111\\go_project\\Blog-Server\\settings.yaml"
+	if err := saveConfigToYaml(filePath, global.Config); err != nil { // 假设 ConfigPath 是 yaml 路径
+		res.FailWithErr(c, errors.New("配置保存失败："+err.Error()))
+		return
+	}
+
+	res.OkWithMessage(c, "配置更新成功")
+}
+
+// 保存配置到 yaml 的工具函数（确保序列化正确）
+func saveConfigToYaml(filePath string, config *conf.Config) error {
+	// 用 yaml 包序列化（注意导入正确的包，如 gopkg.in/yaml.v3）
+	yamlData, err := yaml.Marshal(config)
+	if err != nil {
+		return fmt.Errorf("序列化配置失败：%w", err)
+	}
+	// 写入文件（权限 0644，确保目录可写）
+	if err := os.WriteFile(filePath, yamlData, 0644); err != nil {
+		return fmt.Errorf("写入配置文件失败：%w", err)
+	}
+	return nil
 
 }
