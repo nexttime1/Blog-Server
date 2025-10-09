@@ -20,8 +20,14 @@ type SortField struct {
 }
 
 func EsArticleListQuery(tags string, options common.Options) ([]models.ArticleModel, int, error) {
-
-	query := elastic.NewBoolQuery() //查全部
+	var query *elastic.BoolQuery
+	if options.Query != nil {
+		// 外部已传入查询条件，以此为基础扩展
+		query = options.Query
+	} else {
+		// 外部未传，创建新的空查询（默认查全部）
+		query = elastic.NewBoolQuery()
+	}
 	if options.PageInfo.Key != "" { //Must  必须全部满足  NewTermQuery 精确匹配查询  模糊查询需使用 NewWildcardQuery、NewFuzzyQuery
 		//NewMultiMatchQuery 只要一个匹配就行
 		query.Must(elastic.NewMultiMatchQuery(options.PageInfo.Key, options.Likes...))

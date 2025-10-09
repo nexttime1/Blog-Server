@@ -3,6 +3,7 @@ package common
 import (
 	"Blog_server/global"
 	"fmt"
+	"github.com/olivere/elastic/v7"
 	"gorm.io/gorm"
 )
 
@@ -19,7 +20,8 @@ type Options struct {
 	Preload      []string
 	Where        *gorm.DB
 	Debug        bool
-	DefaultOrder string //内层   order
+	Query        *elastic.BoolQuery // ES布尔查询条件
+	DefaultOrder string             //内层   order
 }
 
 func (p PageInfo) GetLimit() int {

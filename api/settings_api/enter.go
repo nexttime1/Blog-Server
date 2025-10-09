@@ -19,6 +19,7 @@ type SettingsResponse struct {
 	Name string `uri:"name"`
 }
 
+
 func (SettingApi) SettingInfoView(c *gin.Context) {
 	fmt.Println("SettingInfoView")
 	var s SettingsResponse

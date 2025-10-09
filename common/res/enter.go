@@ -20,6 +20,7 @@ const (
 	FailValidCode    Code = 1001
 	FailServiceCode  Code = 1002 //服务异常
 	FailArgumentCode Code = 1003
+	ArgumentError    Code = 1004
 )
 
 func (c Code) Message() string {

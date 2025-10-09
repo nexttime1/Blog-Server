@@ -67,7 +67,7 @@ func (LogApi) LogListNew(c *gin.Context) {
 
 func (LogApi) LogReadView(c *gin.Context) {
 	var cr models.IDRequest
-	err := c.ShouldBindUri(&cr)
+	err := c.ShouldBindQuery(&cr)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return

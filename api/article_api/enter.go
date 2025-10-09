@@ -35,6 +35,60 @@ type IDListRequest struct {
 	IDList []string `json:"id_list"`
 }
 
+type ArticleSearchRequest struct {
+	common.PageInfo
+	Tag    string `json:"tag" form:"tag"`
+	IsUser bool   `json:"is_user" form:"is_user"` // 根据这个参数判断是否显示我收藏的文章列表
+}
+
+// ArticleListView 文章列表
+// @Tags 文章管理
+// @Summary 文章列表
+// @Description 文章列表
+// @Param data query ArticleSearchRequest   false  "表示多个参数"
+// @Param token header string  false  "token"
+// @Router /api/articles [get]
+// @Produce json
+// @Success 200 {object} res.Response{data=res.ListResponse[models.ArticleModel]}
+func (ArticleApi) ArticleListView(c *gin.Context) {
+	_claims, exists := c.Get("claims")
+	claims := _claims.(*jwts.MyClaims)
+	if !exists {
+		return
+	}
+	var cr ArticleSearchRequest
+	if err := c.ShouldBindQuery(&cr); err != nil {
+		res.FailWithCode(c, res.ArgumentError)
+		return
+	}
+	boolSearch := elastic.NewBoolQuery()
+
+	if cr.IsUser {
+		boolSearch.Must(elastic.NewTermsQuery("user_id", claims.UserID))
+	}
+
+	list, count, err := Es_option.EsArticleListQuery(cr.Tag, common.Options{
+		PageInfo: cr.PageInfo,
+		Likes:    []string{"title", "content", "category"},
+		Query:    boolSearch,
+	})
+	if err != nil {
+		logrus.Error(err)
+		res.OkWithMessage(c, "查询失败")
+		return
+	}
+
+	// json-filter空值问题
+	data := filter.Omit("list", list)
+	_list, _ := data.(filter.Filter)
+	if string(_list.MustMarshalJSON()) == "{}" {
+		list = make([]models.ArticleModel, 0)
+		res.OkWithList(c, list, count)
+		return
+	}
+	res.OkWithList(c, data, count)
+}
+
 // ArticleCreateView 添加文章
 // @Summary 添加文章
 // @Description 创建一个新的文章，包含文章标题 文章内容等
@@ -65,43 +119,6 @@ func (ArticleApi) ArticleCreateView(c *gin.Context) {
 		return
 	}
 	res.OkWithMessage(c, "文章发布成功")
-}
-
-// ArticleListView 文章列表
-// @Summary 获取文章列表
-// @Description 分页查询文章列表，支持根据标题条件筛选
-// @Tags 文章管理
-// @Produce json
-// @Param page query int false "页码，默认1" mininum(1)
-// @Param limit query int false "每页条数，默认10" mininum(1) maxinum(100)
-// @Param token header string true "用户认证令牌"
-// @Success 200 {object} res.Response{data=res.DataListResponse}
-// @Failure 400 {object} res.Response "请求参数错误"
-// @Failure 500 {object} res.Response "服务器内部错误"
-// @Router /api/articles [get]
-func (ArticleApi) ArticleListView(c *gin.Context) {
-	var cr ArticleListQuest
-	err := c.ShouldBindQuery(&cr)
-	if err != nil {
-		res.FailWithErr(c, err)
-		return
-	}
-	modelList, count, err := Es_option.EsArticleListQuery(cr.Tags, common.Options{
-		PageInfo: cr.PageInfo,
-		Likes:    cr.Likes,
-	})
-	if err != nil {
-		res.FailWithErr(c, err)
-		return
-	}
-	data := filter.Omit("list", modelList)
-	_list, _ := data.(filter.Filter)
-	if string(_list.MustMarshalJSON()) == "{}" {
-		list := make([]models.AdvertModel, 0)
-		res.OkWithList(c, list, 0)
-	}
-
-	res.OkWithList(c, modelList, count)
 }
 
 // ArticleDetailByIdView 文章细节查看 by id
