@@ -10,5 +10,6 @@ func MessageRouter(c *gin.RouterGroup) {
 	c.POST("messages", app.MessageAddView)
 	c.GET("messages", app.MessageListAllView)
 	c.GET("messages_record", app.MessageRecordView)
+	c.GET("message_users/record/me", app.MessageUserRecordByMeView)
 
 }
