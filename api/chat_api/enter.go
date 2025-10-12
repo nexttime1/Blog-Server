@@ -238,3 +238,41 @@ func (ChatApi) ChatListView(c *gin.Context) {
 	res.OkWithList(c, data, count)
 
 }
+
+type ChatRemoveRequest struct {
+	IdList []int `json:"id_list" binding:"required"`
+}
+
+// ChatRemoveView
+// @Summary 删除聊天记录
+// @Description 根据ID列表批量删除聊天记录
+// @Tags 聊天相关接口
+// @Accept json
+// @Produce json
+// @Param data body ChatRemoveRequest true "删除聊天记录的ID列表"
+// @Success 200 {object} res.Response{msg=string} "删除成功"
+// @Failure 400 {object} res.Response{msg=string} "请求参数错误"
+// @Failure 500 {object} res.Response{msg=string} "服务器内部错误"
+// @Security ApiKeyAuth
+// @Router /api/chat_groups_records [delete]
+func (ChatApi) ChatRemoveView(c *gin.Context) {
+	_, exists := c.Get("claims")
+	if !exists {
+		return
+	}
+	var cr ChatRemoveRequest
+	err := c.ShouldBindJSON(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	var chatModels []models.ChatModel
+	count := global.DB.Where("id IN ?", cr.IdList).Find(&chatModels).RowsAffected
+	if count == 0 {
+		res.FailWithMsg(c, "该记录不存在")
+		return
+	}
+	global.DB.Delete(&chatModels)
+	res.OkWithMessage(c, fmt.Sprintf("删除成功, 共删除 %d 个数据", int(count)))
+
+}

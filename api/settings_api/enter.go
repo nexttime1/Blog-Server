@@ -19,7 +19,6 @@ type SettingsResponse struct {
 	Name string `uri:"name"`
 }
 
-
 func (SettingApi) SettingInfoView(c *gin.Context) {
 	fmt.Println("SettingInfoView")
 	var s SettingsResponse
@@ -52,6 +51,8 @@ func (SettingApi) SettingInfoView(c *gin.Context) {
 		jwt := global.Config.Jwt
 		jwt.Secret = "******"
 		res.OkWithData(c, jwt)
+	case "chat_group":
+		res.OkWithData(c, global.Config.ChatGroup)
 	default:
 		res.FailWithErr(c, errors.New("配置信息未找到"))
 	}
@@ -72,7 +73,7 @@ func (SettingApi) SettingInfoUpdateView(c *gin.Context) {
 		err := c.ShouldBindJSON(&siteData)
 		if err != nil {
 			logrus.Error("接收参数错误", err)
-			res.FailWithErr(c, err)
+			res.FailWithCode(c, res.ArgumentError)
 			return
 		}
 		global.Config.SiteInfo = siteData
@@ -81,7 +82,7 @@ func (SettingApi) SettingInfoUpdateView(c *gin.Context) {
 		err := c.ShouldBindJSON(&emailData)
 		if err != nil {
 			logrus.Error("接收参数错误", err)
-			res.FailWithErr(c, err)
+			res.FailWithCode(c, res.ArgumentError)
 			return
 		}
 		password := global.Config.Email.Password
@@ -95,7 +96,7 @@ func (SettingApi) SettingInfoUpdateView(c *gin.Context) {
 		err := c.ShouldBindJSON(&QiNiuData)
 		if err != nil {
 			logrus.Error("接收参数错误", err)
-			res.FailWithErr(c, err)
+			res.FailWithCode(c, res.ArgumentError)
 			return
 		}
 		AccessKey := global.Config.QiNiu.AccessKey
@@ -109,7 +110,7 @@ func (SettingApi) SettingInfoUpdateView(c *gin.Context) {
 		err := c.ShouldBindJSON(&jwtData)
 		if err != nil {
 			logrus.Error("接收参数错误", err)
-			res.FailWithErr(c, err)
+			res.FailWithCode(c, res.ArgumentError)
 			return
 		}
 		secret := global.Config.Jwt.Secret
@@ -123,7 +124,7 @@ func (SettingApi) SettingInfoUpdateView(c *gin.Context) {
 		err := c.ShouldBindJSON(&QQData)
 		if err != nil {
 			logrus.Error("接收参数错误", err)
-			res.FailWithErr(c, err)
+			res.FailWithCode(c, res.ArgumentError)
 			return
 		}
 		Key := global.Config.QQ.Key
@@ -131,7 +132,14 @@ func (SettingApi) SettingInfoUpdateView(c *gin.Context) {
 		if QQData.Key == "******" {
 			global.Config.QQ.Key = Key
 		}
-
+	case "chat_group":
+		var info conf.ChatGroup
+		err = c.ShouldBindJSON(&info)
+		if err != nil {
+			res.FailWithCode(c, res.ArgumentError)
+			return
+		}
+		global.Config.ChatGroup = info
 	default:
 		res.FailWithErr(c, errors.New("配置信息未找到"))
 	}

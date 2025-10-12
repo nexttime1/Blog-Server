@@ -10,4 +10,5 @@ func ChatRouter(c *gin.RouterGroup) {
 
 	c.GET("chat_group", app.ChatGroupView)
 	c.GET("chat_groups_record", app.ChatListView)
+	c.DELETE("chat_groups_records", app.ChatRemoveView)
 }
