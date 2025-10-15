@@ -10,12 +10,7 @@ import (
 
 const NewPrefix = "news_index"
 
-type NewData struct {
-	Index    string `json:"index"`
-	Title    string `json:"title"`
-	HotValue string `json:"hotValue"`
-	Link     string `json:"link"`
-}
+type NewData = any
 
 func SetNew(key string, NewData []NewData) {
 	byteData, _ := json.Marshal(NewData)
