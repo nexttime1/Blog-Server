@@ -87,7 +87,7 @@ func (u UserApi) UserEmailLogin(c *gin.Context) {
 	res.OkWithData(c, token)
 }
 
-// UserInfoView 用户列表
+// UserListInfoView 用户列表
 // @Summary 用户列表
 // @Description 获取用户列表
 // @Tags 用户管理
@@ -99,7 +99,7 @@ func (u UserApi) UserEmailLogin(c *gin.Context) {
 // @Failure 400 {object} res.Response "请求参数错误"
 // @Failure 500 {object} res.Response "服务器内部错误"
 // @Router /api/users [get]
-func (u UserApi) UserInfoView(c *gin.Context) {
+func (u UserApi) UserListInfoView(c *gin.Context) {
 	_, exist := c.Get("claims")
 	if !exist {
 		// 有问题 AuthMiddleware 已经res 返回了 这里不需要返回
@@ -503,4 +503,44 @@ func (UserApi) UserUpdateInfoView(c *gin.Context) {
 
 	res.OkWithMessage(c, "修改个人信息成功")
 
+}
+
+// UserInfoView 用户信息
+// @Tags 用户管理
+// @Summary 用户信息
+// @Description 用户信息
+// @Router /api/user_info [get]
+// @Param token header string  true  "token"
+// @Produce json
+// @Success 200 {object} res.Response{data=models.UserModel}
+func (UserApi) UserInfoView(c *gin.Context) {
+
+	_claims, _ := c.Get("claims")
+	claims := _claims.(*jwts.MyClaims)
+
+	var userInfo models.UserModel
+	err := global.DB.Take(&userInfo, claims.UserID).Error
+	if err != nil {
+		res.FailWithMsg(c, "用户不存在")
+		return
+	}
+	res.OkWithData(c, filter.Select("info", userInfo))
+
+}
+
+// QQLoginLinkView 获取qq登录的跳转链接
+// @Tags 用户管理
+// @Summary 获取qq登录的跳转链接
+// @Description 获取qq登录的跳转链接,data就是qq的跳转地址
+// @Router /api/qq_login_path [get]
+// @Produce json
+// @Success 200 {object} res.Response{}
+func (UserApi) QQLoginLinkView(c *gin.Context) {
+	path := global.Config.QQ.GetPath()
+	if path == "" {
+		res.FailWithMsg(c, "未配置qq登录地址")
+		return
+	}
+	res.OkWithData(c, path)
+	return
 }

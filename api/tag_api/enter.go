@@ -5,8 +5,11 @@ import (
 	"Blog_server/common/res"
 	"Blog_server/global"
 	"Blog_server/models"
+	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/olivere/elastic/v7"
 	"github.com/sirupsen/logrus"
 )
 
@@ -80,7 +83,7 @@ func (TagApi) TagListView(c *gin.Context) {
 		return
 	}
 	var mr TagListRequest
-	
+
 	err := c.ShouldBindQuery(&mr)
 	if err != nil {
 		res.FailWithErr(c, err)
@@ -170,5 +173,56 @@ func (TagApi) TagDeleteView(c *gin.Context) {
 	modelList = common.BatchRemove(modelList, mr)
 	count := len(modelList)
 	res.OkWithMessage(c, fmt.Sprintf("删除成功 共删除%d个标签", count))
+
+}
+
+type TagResponse struct {
+	Label string `json:"label"`
+	Value string `json:"value"`
+}
+
+// TagNameListView 标签名称列表
+// @Tags 标签管理
+// @Summary 标签名称列表
+// @Description 标签名称列表
+// @Router /api/tag_names [get]
+// @Produce json
+// @Success 200 {object} res.Response{data=[]TagResponse}
+func (TagApi) TagNameListView(c *gin.Context) {
+	type T struct {
+		DocCountErrorUpperBound int `json:"doc_count_error_upper_bound"`
+		SumOtherDocCount        int `json:"sum_other_doc_count"`
+		Buckets                 []struct {
+			Key      string `json:"key"`
+			DocCount int    `json:"doc_count"`
+		} `json:"buckets"`
+	}
+	query := elastic.NewBoolQuery() //会匹配索引中所有文档
+
+	// 创建一个terms聚合：按"tags"字段分组，统计每个标签的出现次数
+	agg := elastic.NewTermsAggregation().Field("tags")
+	result, err := global.Es.
+		Search(models.ArticleModel{}.Index()).
+		Query(query).
+		Aggregation("tags", agg).
+		Size(0).
+		Do(context.Background())
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+	byteData := result.Aggregations["tags"]
+	var tagType T
+	json.Unmarshal(byteData, &tagType)
+
+	var tagList = make([]TagResponse, 0)
+	for _, bucket := range tagType.Buckets {
+		tagList = append(tagList, TagResponse{
+			Label: bucket.Key,
+			Value: bucket.Key,
+		})
+	}
+
+	res.OkWithData(c, tagList)
 
 }

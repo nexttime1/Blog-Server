@@ -12,5 +12,6 @@ func TagRouter(c *gin.RouterGroup) {
 	c.POST("tags", middleware.AuthMiddleware, app.TagAddView)
 	c.PUT("tags/:id", middleware.AuthMiddleware, app.TagUpdateView)
 	c.DELETE("tags", middleware.AuthMiddleware, app.TagDeleteView)
+	c.GET("tag_names", app.TagNameListView)
 
 }

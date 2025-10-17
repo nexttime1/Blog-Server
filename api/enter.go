@@ -9,6 +9,7 @@ import (
 	"Blog_server/api/date_api"
 	"Blog_server/api/digg_api"
 	"Blog_server/api/feedback_api"
+	"Blog_server/api/gaode_api"
 	"Blog_server/api/image_api"
 	"Blog_server/api/log_api"
 	"Blog_server/api/menu_api"
@@ -40,6 +41,7 @@ type Api struct {
 	DateApi     date_api.DateApi
 	RoleApi     role_api.RoleApi
 	FeedBackApi feedback_api.FeedBackApi
+	GaodeApi    gaode_api.GaodeApi
 }
 
 var App = Api{}

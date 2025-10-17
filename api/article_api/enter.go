@@ -398,3 +398,83 @@ func (ArticleApi) ArticleFullSearchView(c *gin.Context) {
 	}
 	res.OkWithList(c, modelList, int(count))
 }
+
+type CategoryResponse struct {
+	Label string `json:"label"`
+	Value string `json:"value"`
+}
+
+// ArticleCategoryListView 文章分类列表
+// @Tags 文章管理
+// @Summary 文章分类列表
+// @Description 文章分类列表
+// @Router /api/categorys [get]
+// @Produce json
+// @Success 200 {object} res.Response{data=[]CategoryResponse}
+func (ArticleApi) ArticleCategoryListView(c *gin.Context) {
+	type T struct {
+		DocCountErrorUpperBound int `json:"doc_count_error_upper_bound"`
+		SumOtherDocCount        int `json:"sum_other_doc_count"`
+		Buckets                 []struct {
+			Key      string `json:"key"`
+			DocCount int    `json:"doc_count"`
+		} `json:"buckets"`
+	}
+
+	agg := elastic.NewTermsAggregation().Field("category")
+	result, err := global.Es.
+		Search(models.ArticleModel{}.Index()).
+		Query(elastic.NewBoolQuery()).
+		Aggregation("categorys", agg).
+		Size(0).
+		Do(context.Background())
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+	byteData := result.Aggregations["categorys"]
+	var categoryType T
+	_ = json.Unmarshal(byteData, &categoryType)
+	var categoryList = make([]CategoryResponse, 0)
+	for _, i2 := range categoryType.Buckets {
+		categoryList = append(categoryList, CategoryResponse{
+			Label: i2.Key,
+			Value: i2.Key,
+		})
+	}
+	res.OkWithData(c, categoryList)
+
+}
+
+// ArticleContentByIDView 获取文章正文
+// @Tags 文章管理
+// @Summary 获取文章正文
+// @Description 获取文章正文
+// @Param id path int  true  "id"
+// @Router /api/articles/content/{id} [get]
+// @Produce json
+// @Success 200 {object} res.Response{}
+func (ArticleApi) ArticleContentByIDView(c *gin.Context) {
+	var cr models.EsIdQuest
+	err := c.ShouldBindUri(&cr)
+	if err != nil {
+		res.FailWithCode(c, res.ArgumentError)
+		return
+	}
+	redis_count.NewLook().Set(cr.ID)
+
+	result, err := global.Es.Get().
+		Index(models.ArticleModel{}.Index()).
+		Id(cr.ID).
+		Do(context.Background())
+	if err != nil {
+		res.FailWithMsg(c, "查询失败")
+		return
+	}
+	var model models.ArticleModel
+	err = json.Unmarshal(result.Source, &model)
+	if err != nil {
+		return
+	}
+	res.OkWithData(c, model.Content)
+}
