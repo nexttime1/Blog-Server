@@ -472,3 +472,35 @@ func (u UserApi) UserCreateView(c *gin.Context) {
 
 	res.OkWithMessage(c, fmt.Sprintf("创建%s用户成功", mr.UserName))
 }
+
+// UserUpdateInfoView 修改当前登录人的昵称，签名，链接
+// @Tags 用户管理
+// @Summary 修改当前登录人的昵称，签名，链接
+// @Description 修改当前登录人的昵称，签名，链接
+// @Router /api/user_info [put]
+// @Param token header string  true  "token"
+// @Param data body user_service.UserUpdateInfoRequest  true  "昵称，签名，链接"
+// @Produce json
+// @Success 200 {object} res.Response{}
+func (UserApi) UserUpdateInfoView(c *gin.Context) {
+	_Claim, exists := c.Get("claims")
+	if !exists {
+		return
+	}
+	claims := _Claim.(*jwts.MyClaims)
+
+	var cr user_service.UserUpdateInfoRequest
+	err := c.ShouldBindJSON(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	err = user_service.UserInfoPutService(cr, claims)
+	if err != nil {
+		res.FailWithMsg(c, err.Error())
+		return
+	}
+
+	res.OkWithMessage(c, "修改个人信息成功")
+
+}

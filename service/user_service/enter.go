@@ -8,6 +8,7 @@ import (
 	"Blog_server/utils/desensitization"
 	"Blog_server/utils/jwts"
 	"Blog_server/utils/pwd"
+	"Blog_server/utils/struct_to_map"
 	"errors"
 	"fmt"
 	"github.com/sirupsen/logrus"
@@ -24,10 +25,10 @@ type UserInfoRequest struct {
 }
 
 type UserCreateRequest struct {
-	NickName string        `json:"nick_name" binding:"required" msg:"请输入昵称"`  // 昵称
+	NickName string        `json:"nick_name" binding:"required" msg:"请输入昵称"`   // 昵称
 	UserName string        `json:"user_name" binding:"required" msg:"请输入用户名"` // 用户名
-	Password string        `json:"password" binding:"required" msg:"请输入密码"`   // 密码
-	Role     enum.RoleType `json:"role" binding:"required" msg:"请选择权限"`       // 权限  1 管理员  2 普通用户  3 游客
+	Password string        `json:"password" binding:"required" msg:"请输入密码"`    // 密码
+	Role     enum.RoleType `json:"role" binding:"required" msg:"请选择权限"`        // 权限  1 管理员  2 普通用户  3 游客
 }
 
 func UserEmailLoginService(mr EmailLoginRequest) (userModel models.UserModel, token string, msg string, err error) {
@@ -115,4 +116,35 @@ func UserCreateService(UserName, NickName, Password string, Role enum.RoleType, 
 	}
 	logrus.Infof("创建%s用户成功", UserName)
 	return nil
+}
+
+type UserUpdateInfoRequest struct {
+	NickName string `json:"nick_name" structs:"nick_name"`
+	Sign     string `json:"sign" structs:"sign"`
+	Link     string `json:"link" structs:"link"`
+	Avatar   string `json:"avatar" structs:"avatar"`
+}
+
+func UserInfoPutService(cr UserUpdateInfoRequest, claim *jwts.MyClaims) error {
+	toMap := struct_to_map.StructToMap(cr)
+	var User models.UserModel
+	err := global.DB.Where("id = ?", claim.UserID).Take(&User).Error
+
+	if err != nil {
+		logrus.Errorf("用户不存在")
+		return errors.New(fmt.Sprintf("用户不存在  %s", err.Error()))
+	}
+
+	_, ok := toMap["avatar"]
+	if ok && User.RegisterSource != enum.SignEmail {
+		delete(toMap, "avatar")
+	}
+	err = global.DB.Model(&User).Updates(toMap).Error
+	if err != nil {
+		logrus.Errorf("用户修改错误 %s", err.Error())
+		return errors.New("修改用户信息失败")
+	}
+
+	return nil
+
 }

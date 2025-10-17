@@ -5,7 +5,7 @@ import (
 	"Blog_server/common/res"
 	"Blog_server/global"
 	"Blog_server/models"
-	enum2 "Blog_server/models/enum"
+	"Blog_server/models/enum"
 	"Blog_server/service/log_service"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -16,12 +16,12 @@ type LogApi struct {
 
 type LogListView struct {
 	common.PageInfo
-	LogType     enum2.LogType   `form:"logType"` //日志类型 1 2 3
-	Level       enum2.LevelType `form:"level"`   //日志级别  1 2 3
-	UserID      uint            `form:"userID"`  //用户id   可以没有  没登录  设置为0
-	IP          string          `form:"ip"`
-	LoginStatus bool            `form:"loginStatus"` //登录状态
-	ServiceName string          `form:"serviceName"`
+	LogType     enum.LogType   `form:"logType"` //日志类型 1 2 3
+	Level       enum.LevelType `form:"level"`   //日志级别  1 2 3
+	UserID      uint           `form:"userID"`  //用户id   可以没有  没登录  设置为0
+	IP          string         `form:"ip"`
+	LoginStatus bool           `form:"loginStatus"` //登录状态
+	ServiceName string         `form:"serviceName"`
 }
 
 type LogListResponse struct {
