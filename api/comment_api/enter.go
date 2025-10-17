@@ -1,6 +1,7 @@
 package comment_api
 
 import (
+	"Blog_server/common"
 	"Blog_server/common/res"
 	"Blog_server/global"
 	"Blog_server/models"
@@ -8,9 +9,12 @@ import (
 	"Blog_server/service/redis_service/redis_count"
 	"Blog_server/service/redis_service/redis_user"
 	"Blog_server/utils/jwts"
+	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/goccy/go-json"
 	"github.com/liu-cn/json-filter/filter"
+	"github.com/olivere/elastic/v7"
 	"github.com/sirupsen/logrus"
 )
 
@@ -67,10 +71,10 @@ func (CommentApi) CommentAddView(c *gin.Context) {
 // @Success 200 {object} res.Response{data=res.DataListResponse}
 // @Failure 400 {object} res.Response "请求参数错误"
 // @Failure 500 {object} res.Response "服务器内部错误"
-// @Router /api/comments [get]
+// @Router /api/comments/{id} [get]
 func (CommentApi) CommentListView(c *gin.Context) {
 	var cr CommentRequest
-	err := c.ShouldBindQuery(&cr)
+	err := c.ShouldBindUri(&cr)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
@@ -114,7 +118,7 @@ func Recursion(model *models.CommentModel, subCommentModels *[]*models.CommentMo
 // @Success 200 {object} res.Response{}
 // @Failure 400 {object} res.Response "请求参数错误"
 // @Failure 500 {object} res.Response "服务器内部错误"
-// @Router /api/comments/{id} [get]
+// @Router /api/comments/digg/{id} [get]
 func (CommentApi) CommentDiggView(c *gin.Context) {
 	_claim, exists := c.Get("claims")
 	if !exists {
@@ -127,7 +131,7 @@ func (CommentApi) CommentDiggView(c *gin.Context) {
 		res.FailWithErr(c, err)
 		return
 	}
-	//查看评论存不存咋
+	//查看评论存不存在
 	var commentModel models.CommentModel
 	err = global.DB.Where("id = ?", cr.ID).Take(&commentModel).Error
 	if err != nil {
@@ -179,4 +183,85 @@ func (CommentApi) CommentDeleteView(c *gin.Context) {
 		res.FailWithMsg(c, fmt.Sprintf("%s", err))
 	}
 	res.OkWithData(c, fmt.Sprintf("共删除%d条评论 ", count))
+}
+
+type CommentByArticleListRequest struct {
+	common.PageInfo
+	Title string `json:"title" form:"title"`
+}
+
+type CommentByArticleListResponse struct {
+	Title string `json:"title"`
+	ID    string `json:"id"`
+	Count int    `json:"count"`
+}
+
+// CommentByArticleListView 有评论的文章列表
+// @Tags 评论管理
+// @Summary 有评论的文章列表
+// @Description 有评论的文章列表
+// @Param id path string  true  "id"
+// @Param data query CommentByArticleListRequest  true  "参数"
+// @Router /api/comments/articles [get]
+// @Produce json
+// @Success 200 {object} res.Response{data=res.DataListResponse[list = CommentByArticleListResponse]}
+func (CommentApi) CommentByArticleListView(c *gin.Context) {
+	var cr CommentByArticleListRequest
+	err := c.ShouldBindQuery(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	var count int64
+
+	global.DB.Model(models.CommentModel{}).
+		Group("article_id").Count(&count)
+
+	type T struct {
+		ArticleID string
+		Count     int
+	}
+	offset := (cr.Page - 1) * cr.Limit
+
+	var _list []T
+	global.DB.Model(models.CommentModel{}).
+		Group("article_id").Order("count desc").Limit(cr.Limit).Offset(offset).Select("article_id", "count(id) as count").Scan(&_list)
+
+	var articleIDMap = map[string]int{}
+	var articleIDList []interface{}
+	for _, t := range _list {
+		articleIDMap[t.ArticleID] = t.Count
+		articleIDList = append(articleIDList, t.ArticleID)
+	}
+
+	result, err := global.Es.
+		Search(models.ArticleModel{}.Index()).
+		Query(elastic.NewTermsQuery("_id", articleIDList...)).
+		Size(10000).
+		Do(context.Background())
+	if err != nil {
+		res.FailWithMsg(c, "es查询错误")
+		return
+	}
+
+	var list = make([]CommentByArticleListResponse, 0)
+	for _, hit := range result.Hits.Hits {
+		var model models.ArticleModel
+		err = json.Unmarshal(hit.Source, &model)
+		if err != nil {
+			logrus.Error(err)
+			continue
+		}
+
+		model.ID = hit.Id
+
+		list = append(list, CommentByArticleListResponse{
+			Title: model.Title,
+			ID:    hit.Id,
+			Count: articleIDMap[hit.Id],
+		})
+	}
+	res.OkWithList(c, list, int(count))
+
+	return
 }

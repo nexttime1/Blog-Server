@@ -16,4 +16,5 @@ type Config struct {
 	Upload    Upload    `yaml:"upload"`
 	Es        Es        `yaml:"es"`
 	ChatGroup ChatGroup `yaml:"chat_group"`
+	Gaode     Gaode     `yaml:"gaode"`
 }
