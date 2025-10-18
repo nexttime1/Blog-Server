@@ -1,87 +1,150 @@
 system:
-  ip: 0.0.0.0
-  port: 8080
-  env: dev
-  gin_mode: release
-
+    ip: 0.0.0.0
+    port: 8080
+    gin_mode: release
+    env: dev
 log:
-  app: blog_server
-  dir: logs
-
+    app: blog_server
+    dir: logs
+db:
+    user: root
+    password: root
+    host: 127.0.0.1
+    port: 3306
+    db: blog
+    debug: false
+    source: mysql
+db1:
+    user: root
+    password: root
+    host: 127.0.0.1
+    port: 3306
+    db: blog
+    debug: false
+    source: mysql
 jwt:
-  expire: 3       #单位小时
-  secret: skw
-  issuer: xiaosong
+    expire: 3
+    secret: skw
+    issuer: xiaosong
 redis:
-  addr: 127.0.0.1:6379
-  password:
-  db: 0
-
-db:  #读库
-  user: root
-  password: root
-  host: 127.0.0.1
-  port: 3306
-  db: blog
-  debug: false
-  source: mysql
-
-db1:  #写库
-  user: root
-  password: root
-  host: 127.0.0.1
-  port: 3306
-  db: blog
-  debug: false
-  source: mysql
-
-site_info:
-  created_at: "2025-7-25"
-  bei_an:
-  title: 下次一定的个人博客
-  qq_image:
-  version: 1.0.0
-  email: 2083933996@qq.com
-  wechat_image:
-  name: 下次一定
-  job: 后端开发
-  addr: 山东青岛
-  slogan: golang
-  slogan_en: GOLANG
-  web:
-  bilibili_url:
-  gitee_url:
-  github_url:
-
-qq:
-  app_id: "1112383751"
-  key: VURxpNMnpwPKsJPo
-  redirect:
-
+    addr: 127.0.0.1:6379
+    password: ""
+    db: 0
+site:
+    site-info:
+        title: ""
+        logo: ""
+        beian: ""
+        mode: 0
+    project:
+        title: ""
+        icon: ""
+        webPath: ""
+    seo:
+        keywords: ""
+        description: ""
+    about:
+        siteDate: ""
+        qq: ""
+        weChat: ""
+        gitee: ""
+        bilibili: ""
+        github: ""
+    login:
+        qqLogin: ""
+        usernamePwdLogin: ""
+        emailLogin: ""
+        captcha: false
+    indexRight: {}
+    article:
+        noExamine: false
 email:
-  host: smtp.qq.com
-  port: 465
-  user: 2083933996@qq.com
-  password: ebwamormxkmqccje
-  default_from_email: "下次一定"
-  use_ssl: true
-  user_tls: true
-
+    host: smtp.qq.com
+    port: 465
+    user: 2083933996@qq.com
+    password: ebwamormxkmqccje
+    default_from_email: 下次一定
+    use_ssl: true
+    user_tls: true
+qq:
+    app_id: "1112383751"
+    key: VURxpNMnpwPKsJPo
+    redirect: ""
 qiniu:
-  enable: true
-  access_key: D3bqvd7CrziBb7S70D-0dQHReO-h0xwperqoVUbg
-  secret_key: sv2jm0MGuHM4bn8ca_6qjBTItOlxxjDm4bKq1fY8
-  bucket: xiaciyiding
-  cdn: http://t01tk5089.hn-bkt.clouddn.com/
-  zone: z2
-  prefix: "gvb"
-  size: 5
-
+    enable: true
+    access_key: D3bqvd7CrziBb7S70D-0dQHReO-h0xwperqoVUbg
+    secret_key: sv2jm0MGuHM4bn8ca_6qjBTItOlxxjDm4bKq1fY8
+    bucket: xiaciyiding
+    cdn: http://t01tk5089.hn-bkt.clouddn.com/
+    zone: z2
+    prefix: gvb
+    size: 5
+ai:
+    enable: false
+    secretKey: ""
+    nickname: ""
+    avatar: ""
+site_info:
+    created_at: "2025-7-25"
+    bei_an: ""
+    title: 下次一定的个人博客
+    qq_image: ""
+    version: 1.0.0
+    email: 2083933996@qq.com
+    wechat_image: ""
+    name: 下次一定
+    job: 后端开发
+    addr: 山东青岛
+    slogan: golang
+    slogan_en: GOLANG
+    web: ""
+    bilibili_url: ""
+    gitee_url: ""
+    github_url: ""
 upload:
-  size: 2
-  path: uploads/file
-
+    size: 2
+    path: uploads/file
 es:
-  username: elastic
-  password: 123456
-
+    username: elastic
+    password: "123456"
+chat_group:
+    isAnonymous: false
+    isShowTime: false
+    defaultLimit: 0
+    contentLength: 0
+    welcomeTitle: ""
+    isOnlinePeople: false
+    isSendImage: false
+    isSendFile: false
+    isMd: false
+gaode:
+    enable: true
+    key: ""
+big-model:
+    setting:
+        name: 生效大模型
+        enable: true
+        api-key: xxxxx
+        api-secret: xxxx-xx-xxxx
+        title: 下次一定.
+        prompt: 提示词
+    model-list:
+        - label: 通义千问
+          value: qwen
+          disable: false
+        - label: 文心一言
+          value: wenxin
+          disable: true
+        - label: 星火大模型
+          value: xinghuo
+          disable: true
+        - label: 天工大模型
+          value: tiangong
+          disable: true
+        - label: ChatGPT
+          value: ChatGPT
+          disable: true
+    session-setting:
+        chat-scope: 3
+        session-scope: 5
+        day-scope: 100_

@@ -3,6 +3,7 @@ package api
 import (
 	"Blog_server/api/advert_api"
 	"Blog_server/api/article_api"
+	"Blog_server/api/big_model_api"
 	"Blog_server/api/chat_api"
 	"Blog_server/api/collect_api"
 	"Blog_server/api/comment_api"
@@ -42,6 +43,7 @@ type Api struct {
 	RoleApi     role_api.RoleApi
 	FeedBackApi feedback_api.FeedBackApi
 	GaodeApi    gaode_api.GaodeApi
+	BigModelApi big_model_api.BigModelApi
 }
 
 var App = Api{}

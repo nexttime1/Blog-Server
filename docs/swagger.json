@@ -273,33 +273,52 @@
         },
         "/api/articles": {
             "get": {
-                "description": "分页查询文章列表，支持根据标题条件筛选",
+                "description": "文章列表",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "文章管理"
                 ],
-                "summary": "获取文章列表",
+                "summary": "文章列表",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "页码，默认1",
-                        "name": "page",
+                        "type": "boolean",
+                        "description": "根据这个参数判断是否显示我收藏的文章列表",
+                        "name": "is_user",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "key",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "每页条数，默认10",
                         "name": "limit",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "用户认证令牌",
+                        "description": "前端可以覆盖",
+                        "name": "order",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "tag",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "token",
                         "name": "token",
-                        "in": "header",
-                        "required": true
+                        "in": "header"
                     }
                 ],
                 "responses": {
@@ -319,18 +338,6 @@
                                     }
                                 }
                             ]
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/res.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/res.Response"
                         }
                     }
                 }
@@ -705,6 +712,35 @@
                 }
             }
         },
+        "/api/articles/content/{id}": {
+            "get": {
+                "description": "获取文章正文",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "文章管理"
+                ],
+                "summary": "获取文章正文",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/articles/tags": {
             "get": {
                 "description": "分页查询文章标签列表",
@@ -939,32 +975,16 @@
                 }
             }
         },
-        "/api/comments": {
+        "/api/categorys": {
             "get": {
-                "description": "获取某个文章的评论列表",
+                "description": "文章分类列表",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "评论管理"
+                    "文章管理"
                 ],
-                "summary": "评论列表",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "输入文章ID",
-                        "name": "article_id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "用户认证令牌",
-                        "name": "token",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
+                "summary": "文章分类列表",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -977,7 +997,61 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/res.DataListResponse"
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/article_api.CategoryResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/chat_groups_records": {
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "根据ID列表批量删除聊天记录",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "聊天相关接口"
+                ],
+                "summary": "删除聊天记录",
+                "parameters": [
+                    {
+                        "description": "删除聊天记录的ID列表",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/chat_api.ChatRemoveRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "删除成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "msg": {
+                                            "type": "string"
                                         }
                                     }
                                 }
@@ -987,17 +1061,43 @@
                     "400": {
                         "description": "请求参数错误",
                         "schema": {
-                            "$ref": "#/definitions/res.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "500": {
                         "description": "服务器内部错误",
                         "schema": {
-                            "$ref": "#/definitions/res.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
-            },
+            }
+        },
+        "/api/comments": {
             "post": {
                 "description": "创建一个新的评论，包含文章，内容和父评论Id",
                 "consumes": [
@@ -1050,7 +1150,74 @@
                 }
             }
         },
-        "/api/comments/{id}": {
+        "/api/comments/articles": {
+            "get": {
+                "description": "有评论的文章列表",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "评论管理"
+                ],
+                "summary": "有评论的文章列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "key",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "前端可以覆盖",
+                        "name": "order",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "title",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/res.DataListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/comments/digg/{id}": {
             "get": {
                 "description": "用户点赞评论",
                 "produces": [
@@ -1081,6 +1248,66 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/comments/{id}": {
+            "get": {
+                "description": "获取某个文章的评论列表",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "评论管理"
+                ],
+                "summary": "评论列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "输入文章ID",
+                        "name": "article_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "用户认证令牌",
+                        "name": "token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/res.DataListResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -1320,6 +1547,47 @@
                         "description": "服务器内部错误",
                         "schema": {
                             "$ref": "#/definitions/res.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/gaode/weather": {
+            "get": {
+                "description": "获取实时天气",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "第三方api管理"
+                ],
+                "summary": "获取实时天气",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "token",
+                        "name": "token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/gaode_api.WeatherInfoResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -1964,6 +2232,357 @@
                 }
             }
         },
+        "/api/message_users": {
+            "get": {
+                "description": "有消息的用户列表  不传这个nickname  查全部  也就是 页面中的 左中右  中的左",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "消息管理"
+                ],
+                "summary": "有消息的用户列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "token",
+                        "name": "token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "key",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "nickName",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "前端可以覆盖",
+                        "name": "order",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/res.DataListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "删除用户的消息记录",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "消息管理"
+                ],
+                "summary": "删除用户的消息记录",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "token",
+                        "name": "token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "查询参数",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.RemoveRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/message_users/me": {
+            "get": {
+                "description": "我与其他用户的聊天列表",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "消息管理"
+                ],
+                "summary": "我与其他用户的聊天列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "token",
+                        "name": "token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/res.DataListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/message_users/record": {
+            "get": {
+                "description": "两个用户之间的聊天记录",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "消息管理"
+                ],
+                "summary": "两个用户之间的聊天记录",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "token",
+                        "name": "token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "key",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "前端可以覆盖",
+                        "name": "order",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "revUserID",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "name": "sendUserID",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/res.DataListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/message_users/record/me": {
+            "get": {
+                "description": "获取当前登录用户与指定用户之间的聊天记录，支持分页和搜索",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "消息管理"
+                ],
+                "summary": "显示自己和指定用户的聊天记录",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "目标用户ID",
+                        "name": "userID",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "页码，默认1",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "每页条数，默认10",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "搜索关键词",
+                        "name": "key",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "排序方式，如id desc",
+                        "name": "order",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "用户认证令牌",
+                        "name": "token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/res.DataListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/message_users/user": {
+            "get": {
+                "description": "某个用户的聊天列表",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "消息管理"
+                ],
+                "summary": "某个用户的聊天列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "token",
+                        "name": "token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "name": "userID",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/res.DataListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/api/messages": {
             "get": {
                 "description": "显示全部消息",
@@ -2083,13 +2702,16 @@
                 "summary": "显示全部聊天记录",
                 "parameters": [
                     {
-                        "description": "输入要看谁的聊天记录",
-                        "name": "data",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/message_service.MessageRecordRequest"
-                        }
+                        "type": "integer",
+                        "description": "页码，默认1",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页条数，默认10",
+                        "name": "limit",
+                        "in": "query"
                     },
                     {
                         "type": "string",
@@ -2172,6 +2794,61 @@
                         "description": "服务器内部错误（如QQ接口调用失败、数据库错误等）",
                         "schema": {
                             "$ref": "#/definitions/res.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/qq_login_path": {
+            "get": {
+                "description": "获取qq登录的跳转链接,data就是qq的跳转地址",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户管理"
+                ],
+                "summary": "获取qq登录的跳转链接",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/tag_names": {
+            "get": {
+                "description": "标签名称列表",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "标签管理"
+                ],
+                "summary": "标签名称列表",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/tag_api.TagResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -2394,6 +3071,83 @@
                     },
                     "500": {
                         "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user_info": {
+            "get": {
+                "description": "用户信息",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户管理"
+                ],
+                "summary": "用户信息",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "token",
+                        "name": "token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.UserModel"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "修改当前登录人的昵称，签名，链接",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户管理"
+                ],
+                "summary": "修改当前登录人的昵称，签名，链接",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "token",
+                        "name": "token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "昵称，签名，链接",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user_service.UserUpdateInfoRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/res.Response"
                         }
@@ -2691,6 +3445,176 @@
                     }
                 }
             }
+        },
+        "/feedback": {
+            "get": {
+                "description": "分页查询所有用户提交的反馈记录，支持页码和每页条数参数",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "反馈管理"
+                ],
+                "summary": "分页获取反馈列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "用户认证令牌",
+                        "name": "token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "页码（默认1）",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页条数（默认10）",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/res.DataListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误（如页码/条数为负数）",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器错误（如数据库查询失败）",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "用户提交反馈内容，需包含邮箱和具体反馈信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "反馈管理"
+                ],
+                "summary": "提交反馈信息",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "用户认证令牌",
+                        "name": "token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "反馈信息（邮箱和内容）",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/feedback_api.FeedBackAddRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "提交成功",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误（如邮箱格式错误、内容为空等）",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器错误（如数据库存储失败）",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "根据反馈ID删除对应的反馈记录",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "反馈管理"
+                ],
+                "summary": "删除指定反馈",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "用户认证令牌",
+                        "name": "token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "反馈记录ID",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.IDRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "删除成功",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误（如ID为空或格式错误）",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器错误（如数据库删除失败）",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -2737,6 +3661,17 @@
                 },
                 "title": {
                     "description": "显示的标题",
+                    "type": "string"
+                }
+            }
+        },
+        "article_api.CategoryResponse": {
+            "type": "object",
+            "properties": {
+                "label": {
+                    "type": "string"
+                },
+                "value": {
                     "type": "string"
                 }
             }
@@ -2842,6 +3777,20 @@
                 }
             }
         },
+        "chat_api.ChatRemoveRequest": {
+            "type": "object",
+            "required": [
+                "id_list"
+            ],
+            "properties": {
+                "id_list": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
         "comment_service.CommentAddRequest": {
             "type": "object",
             "required": [
@@ -2872,6 +3821,19 @@
                 "QiNiuType"
             ]
         },
+        "enum.RegisterType": {
+            "type": "integer",
+            "enum": [
+                1,
+                2,
+                3
+            ],
+            "x-enum-varnames": [
+                "SignQQ",
+                "SignGitee",
+                "SignEmail"
+            ]
+        },
         "enum.RoleType": {
             "type": "integer",
             "enum": [
@@ -2886,6 +3848,55 @@
                 "VisitorRole",
                 "BlackRole"
             ]
+        },
+        "feedback_api.FeedBackAddRequest": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "gaode_api.WeatherInfoResponse": {
+            "type": "object",
+            "properties": {
+                "adcode": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "humidity": {
+                    "type": "string"
+                },
+                "humidity_float": {
+                    "type": "string"
+                },
+                "province": {
+                    "type": "string"
+                },
+                "reporttime": {
+                    "type": "string"
+                },
+                "temperature": {
+                    "type": "string"
+                },
+                "temperature_float": {
+                    "type": "string"
+                },
+                "weather": {
+                    "type": "string"
+                },
+                "winddirection": {
+                    "type": "string"
+                },
+                "windpower": {
+                    "type": "string"
+                }
+            }
         },
         "image_api.ImageNameListResponse": {
             "type": "object",
@@ -3085,17 +4096,6 @@
                 }
             }
         },
-        "message_service.MessageRecordRequest": {
-            "type": "object",
-            "required": [
-                "user_id"
-            ],
-            "properties": {
-                "user_id": {
-                    "type": "integer"
-                }
-            }
-        },
         "models.BannerModel": {
             "type": "object",
             "properties": {
@@ -3150,6 +4150,15 @@
                 }
             }
         },
+        "models.IDRequest": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "description": "//form Query  url /:id",
+                    "type": "string"
+                }
+            }
+        },
         "models.RemoveRequest": {
             "type": "object",
             "properties": {
@@ -3161,13 +4170,73 @@
                 }
             }
         },
+        "models.UserModel": {
+            "type": "object",
+            "properties": {
+                "UpdatedAt": {
+                    "type": "string"
+                },
+                "abstract": {
+                    "type": "string"
+                },
+                "addr": {
+                    "type": "string"
+                },
+                "avatar": {
+                    "description": "头像",
+                    "type": "string"
+                },
+                "codeAge": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "description": "创建时间",
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "description": "主键ID",
+                    "type": "integer"
+                },
+                "ip": {
+                    "type": "string"
+                },
+                "nickname": {
+                    "type": "string"
+                },
+                "registerSource": {
+                    "$ref": "#/definitions/enum.RegisterType"
+                },
+                "role": {
+                    "description": "1 为管理员  2 为 普通用户",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/enum.RoleType"
+                        }
+                    ]
+                },
+                "tel": {
+                    "type": "string"
+                },
+                "token": {
+                    "description": "第三方登陆的唯一id",
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
         "res.Code": {
             "type": "integer",
             "enum": [
                 0,
                 1001,
                 1002,
-                1003
+                1003,
+                1004
             ],
             "x-enum-comments": {
                 "FailServiceCode": "服务异常"
@@ -3176,7 +4245,8 @@
                 "SuccessCode",
                 "FailValidCode",
                 "FailServiceCode",
-                "FailArgumentCode"
+                "FailArgumentCode",
+                "ArgumentError"
             ]
         },
         "res.DataListResponse": {
@@ -3207,6 +4277,17 @@
             ],
             "properties": {
                 "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "tag_api.TagResponse": {
+            "type": "object",
+            "properties": {
+                "label": {
+                    "type": "string"
+                },
+                "value": {
                     "type": "string"
                 }
             }
@@ -3273,13 +4354,13 @@
         "user_service.UserCreateRequest": {
             "type": "object",
             "required": [
-                "nick_name",
+                "nickname",
                 "password",
                 "role",
-                "user_name"
+                "username"
             ],
             "properties": {
-                "nick_name": {
+                "nickname": {
                     "description": "昵称",
                     "type": "string"
                 },
@@ -3295,8 +4376,25 @@
                         }
                     ]
                 },
-                "user_name": {
+                "username": {
                     "description": "用户名",
+                    "type": "string"
+                }
+            }
+        },
+        "user_service.UserUpdateInfoRequest": {
+            "type": "object",
+            "properties": {
+                "avatar": {
+                    "type": "string"
+                },
+                "link": {
+                    "type": "string"
+                },
+                "nickname": {
+                    "type": "string"
+                },
+                "sign": {
                     "type": "string"
                 }
             }

@@ -116,7 +116,7 @@ func (MessageApi) MessageRecordView(c *gin.Context) {
 // @Param key query string false "搜索关键词"
 // @Param order query string false "排序方式，如id desc"
 // @Param token header string true "用户认证令牌"
-// @Success 200 {object} res.Response{data=common.PageResult{list=[]models.MessageModel}} "操作成功"
+// @Success 200 {object} res.Response{data=res.DataListResponse[list = []models.MessageModel]}
 // @Failure 400 {object} res.Response "请求参数错误"
 // @Failure 500 {object} res.Response "服务器内部错误"
 // @Router /api/message_users/record/me [get]
@@ -196,7 +196,7 @@ type MessageUserListResponse struct {
 // @Param token header string  true  "token"
 // @Param data query MessageUserListRequest   false  "查询参数"
 // @Produce json
-// @Success 200 {object} res.Response{data=res.ListResponse[MessageUserListResponse]}
+// @Success 200 {object} res.Response{data=res.DataListResponse[list = MessageUserListResponse[]]}
 func (MessageApi) MessageUserListView(c *gin.Context) {
 	var cr MessageUserListRequest
 	err := c.ShouldBindQuery(&cr)
@@ -258,7 +258,7 @@ func (MessageApi) MessageUserListView(c *gin.Context) {
 // @Router /api/message_users/me [get]
 // @Param token header string  true  "token"
 // @Produce json
-// @Success 200 {object} res.Response{data=res.ListResponse[MessageUserListResponse]}
+// @Success 200 {object} res.Response{data=res.DataListResponse[list = MessageUserListResponse[]]}
 func (m MessageApi) MessageUserListByMeView(c *gin.Context) {
 	_claim, exists := c.Get("claims")
 	if !exists {
@@ -281,7 +281,7 @@ type MessageUserListByUserRequest struct {
 // @Param token header string  true  "token"
 // @Param data query MessageUserListByUserRequest   false  "查询参数"
 // @Produce json
-// @Success 200 {object} res.Response{data=res.ListResponse[MessageUserListResponse]}
+// @Success 200 {object} res.Response{data=res.DataListResponse[list = MessageUserListResponse[]]}
 func (MessageApi) MessageUserListByUserView(c *gin.Context) {
 	var cr MessageUserListByUserRequest
 	err := c.ShouldBindQuery(&cr)
@@ -361,7 +361,7 @@ type MessageUserRecordRequest struct {
 // @Param token header string  true  "token"
 // @Param data query MessageUserRecordRequest   false  "查询参数"
 // @Produce json
-// @Success 200 {object} res.Response{data=res.ListResponse[models.MessageModel]}
+// @Success 200 {object} res.Response{data=res.DataListResponse[list = models.MessageModel[]]}
 func (MessageApi) MessageUserRecordView(c *gin.Context) {
 	var cr MessageUserRecordRequest
 	err := c.ShouldBindQuery(&cr)

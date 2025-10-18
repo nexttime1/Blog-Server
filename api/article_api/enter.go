@@ -49,7 +49,7 @@ type ArticleSearchRequest struct {
 // @Param token header string  false  "token"
 // @Router /api/articles [get]
 // @Produce json
-// @Success 200 {object} res.Response{data=res.ListResponse[models.ArticleModel]}
+// @Success 200 {object} res.Response{data=res.DataListResponse[list = models.ArticleModel]}
 func (ArticleApi) ArticleListView(c *gin.Context) {
 	_claims, exists := c.Get("claims")
 	claims := _claims.(*jwts.MyClaims)

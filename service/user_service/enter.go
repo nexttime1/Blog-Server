@@ -15,7 +15,7 @@ import (
 )
 
 type EmailLoginRequest struct {
-	Username string `json:"user_name" binding:"required"`
+	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
 
@@ -25,10 +25,10 @@ type UserInfoRequest struct {
 }
 
 type UserCreateRequest struct {
-	NickName string        `json:"nick_name" binding:"required" msg:"请输入昵称"`  // 昵称
-	UserName string        `json:"user_name" binding:"required" msg:"请输入用户名"` // 用户名
-	Password string        `json:"password" binding:"required" msg:"请输入密码"`   // 密码
-	Role     enum.RoleType `json:"role" binding:"required" msg:"请选择权限"`       // 权限  1 管理员  2 普通用户  3 游客
+	NickName string        `json:"nickname" binding:"required" msg:"请输入昵称"`  // 昵称
+	UserName string        `json:"username" binding:"required" msg:"请输入用户名"` // 用户名
+	Password string        `json:"password" binding:"required" msg:"请输入密码"`  // 密码
+	Role     enum.RoleType `json:"role" binding:"required" msg:"请选择权限"`      // 权限  1 管理员  2 普通用户  3 游客
 }
 
 func UserEmailLoginService(mr EmailLoginRequest) (userModel models.UserModel, token string, msg string, err error) {
@@ -65,7 +65,7 @@ func UserInfoService(UserInfo UserInfoRequest) ([]models.UserModel, int, error) 
 		Username: UserInfo.Username,
 	}, common.Options{
 		PageInfo: UserInfo.PageInfo,
-		Likes:    []string{"user_name", "nick_name"},
+		Likes:    []string{"username", "nickname"},
 	})
 	if err != nil {
 		return nil, 0, err
@@ -119,7 +119,7 @@ func UserCreateService(UserName, NickName, Password string, Role enum.RoleType, 
 }
 
 type UserUpdateInfoRequest struct {
-	NickName string `json:"nick_name" structs:"nick_name"`
+	NickName string `json:"nickname" structs:"nickname"`
 	Sign     string `json:"sign" structs:"sign"`
 	Link     string `json:"link" structs:"link"`
 	Avatar   string `json:"avatar" structs:"avatar"`

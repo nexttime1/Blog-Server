@@ -8,8 +8,9 @@ import (
 )
 
 var (
-	Config *conf.Config
-	DB     *gorm.DB
-	Redis  *redis.Client
-	Es     *elastic.Client
+	Config      *conf.Config
+	DB          *gorm.DB
+	Redis       *redis.Client
+	Es          *elastic.Client
+	SettingYaml = "D:\\1111kaoyan111111111111111111111111111111\\go_project\\Blog-Server\\settings.yaml"
 )

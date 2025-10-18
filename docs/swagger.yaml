@@ -34,6 +34,13 @@ definitions:
         description: 显示的标题
         type: string
     type: object
+  article_api.CategoryResponse:
+    properties:
+      label:
+        type: string
+      value:
+        type: string
+    type: object
   article_api.IDListRequest:
     properties:
       id_list:
@@ -106,6 +113,15 @@ definitions:
     required:
     - id
     type: object
+  chat_api.ChatRemoveRequest:
+    properties:
+      id_list:
+        items:
+          type: integer
+        type: array
+    required:
+    - id_list
+    type: object
   comment_service.CommentAddRequest:
     properties:
       article_id:
@@ -127,6 +143,16 @@ definitions:
     x-enum-varnames:
     - LocationType
     - QiNiuType
+  enum.RegisterType:
+    enum:
+    - 1
+    - 2
+    - 3
+    type: integer
+    x-enum-varnames:
+    - SignQQ
+    - SignGitee
+    - SignEmail
   enum.RoleType:
     enum:
     - 1
@@ -139,6 +165,38 @@ definitions:
     - UserRole
     - VisitorRole
     - BlackRole
+  feedback_api.FeedBackAddRequest:
+    properties:
+      content:
+        type: string
+      email:
+        type: string
+    type: object
+  gaode_api.WeatherInfoResponse:
+    properties:
+      adcode:
+        type: string
+      city:
+        type: string
+      humidity:
+        type: string
+      humidity_float:
+        type: string
+      province:
+        type: string
+      reporttime:
+        type: string
+      temperature:
+        type: string
+      temperature_float:
+        type: string
+      weather:
+        type: string
+      winddirection:
+        type: string
+      windpower:
+        type: string
+    type: object
   image_api.ImageNameListResponse:
     properties:
       id:
@@ -274,13 +332,6 @@ definitions:
         description: 发送人id
         type: integer
     type: object
-  message_service.MessageRecordRequest:
-    properties:
-      user_id:
-        type: integer
-    required:
-    - user_id
-    type: object
   models.BannerModel:
     properties:
       UpdatedAt:
@@ -318,6 +369,12 @@ definitions:
         description: form Query  url /:id
         type: string
     type: object
+  models.IDRequest:
+    properties:
+      id:
+        description: //form Query  url /:id
+        type: string
+    type: object
   models.RemoveRequest:
     properties:
       IDList:
@@ -325,12 +382,52 @@ definitions:
           type: integer
         type: array
     type: object
+  models.UserModel:
+    properties:
+      UpdatedAt:
+        type: string
+      abstract:
+        type: string
+      addr:
+        type: string
+      avatar:
+        description: 头像
+        type: string
+      codeAge:
+        type: string
+      created_at:
+        description: 创建时间
+        type: string
+      email:
+        type: string
+      id:
+        description: 主键ID
+        type: integer
+      ip:
+        type: string
+      nickname:
+        type: string
+      registerSource:
+        $ref: '#/definitions/enum.RegisterType'
+      role:
+        allOf:
+        - $ref: '#/definitions/enum.RoleType'
+        description: 1 为管理员  2 为 普通用户
+      tel:
+        type: string
+      token:
+        description: 第三方登陆的唯一id
+        type: string
+      username:
+        type: string
+    type: object
   res.Code:
     enum:
     - 0
     - 1001
     - 1002
     - 1003
+    - 1004
     type: integer
     x-enum-comments:
       FailServiceCode: 服务异常
@@ -339,6 +436,7 @@ definitions:
     - FailValidCode
     - FailServiceCode
     - FailArgumentCode
+    - ArgumentError
   res.DataListResponse:
     properties:
       count:
@@ -359,6 +457,13 @@ definitions:
         type: string
     required:
     - title
+    type: object
+  tag_api.TagResponse:
+    properties:
+      label:
+        type: string
+      value:
+        type: string
     type: object
   user_api.UserPwdUpdateRequest:
     properties:
@@ -401,7 +506,7 @@ definitions:
     type: object
   user_service.UserCreateRequest:
     properties:
-      nick_name:
+      nickname:
         description: 昵称
         type: string
       password:
@@ -411,14 +516,25 @@ definitions:
         allOf:
         - $ref: '#/definitions/enum.RoleType'
         description: 权限  1 管理员  2 普通用户  3 游客
-      user_name:
+      username:
         description: 用户名
         type: string
     required:
-    - nick_name
+    - nickname
     - password
     - role
-    - user_name
+    - username
+    type: object
+  user_service.UserUpdateInfoRequest:
+    properties:
+      avatar:
+        type: string
+      link:
+        type: string
+      nickname:
+        type: string
+      sign:
+        type: string
     type: object
 host: 127.0.0.01:8080
 info:
@@ -637,20 +753,31 @@ paths:
       tags:
       - 文章管理
     get:
-      description: 分页查询文章列表，支持根据标题条件筛选
+      description: 文章列表
       parameters:
-      - description: 页码，默认1
+      - description: 根据这个参数判断是否显示我收藏的文章列表
         in: query
-        name: page
-        type: integer
-      - description: 每页条数，默认10
-        in: query
+        name: is_user
+        type: boolean
+      - in: query
+        name: key
+        type: string
+      - in: query
         name: limit
         type: integer
-      - description: 用户认证令牌
+      - description: 前端可以覆盖
+        in: query
+        name: order
+        type: string
+      - in: query
+        name: page
+        type: integer
+      - in: query
+        name: tag
+        type: string
+      - description: token
         in: header
         name: token
-        required: true
         type: string
       produces:
       - application/json
@@ -664,15 +791,7 @@ paths:
                 data:
                   $ref: '#/definitions/res.DataListResponse'
               type: object
-        "400":
-          description: 请求参数错误
-          schema:
-            $ref: '#/definitions/res.Response'
-        "500":
-          description: 服务器内部错误
-          schema:
-            $ref: '#/definitions/res.Response'
-      summary: 获取文章列表
+      summary: 文章列表
       tags:
       - 文章管理
     post:
@@ -912,6 +1031,25 @@ paths:
       summary: 添加或取消收藏
       tags:
       - 文章管理
+  /api/articles/content/{id}:
+    get:
+      description: 获取文章正文
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 获取文章正文
+      tags:
+      - 文章管理
   /api/articles/tags:
     get:
       description: 分页查询文章标签列表
@@ -1028,20 +1166,9 @@ paths:
       summary: 文章细节查看 by title
       tags:
       - 文章管理
-  /api/comments:
+  /api/categorys:
     get:
-      description: 获取某个文章的评论列表
-      parameters:
-      - description: 输入文章ID
-        in: query
-        name: article_id
-        required: true
-        type: string
-      - description: 用户认证令牌
-        in: header
-        name: token
-        required: true
-        type: string
+      description: 文章分类列表
       produces:
       - application/json
       responses:
@@ -1052,19 +1179,61 @@ paths:
             - $ref: '#/definitions/res.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/res.DataListResponse'
+                  items:
+                    $ref: '#/definitions/article_api.CategoryResponse'
+                  type: array
+              type: object
+      summary: 文章分类列表
+      tags:
+      - 文章管理
+  /api/chat_groups_records:
+    delete:
+      consumes:
+      - application/json
+      description: 根据ID列表批量删除聊天记录
+      parameters:
+      - description: 删除聊天记录的ID列表
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/chat_api.ChatRemoveRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                msg:
+                  type: string
               type: object
         "400":
           description: 请求参数错误
           schema:
-            $ref: '#/definitions/res.Response'
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                msg:
+                  type: string
+              type: object
         "500":
           description: 服务器内部错误
           schema:
-            $ref: '#/definitions/res.Response'
-      summary: 评论列表
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                msg:
+                  type: string
+              type: object
+      security:
+      - ApiKeyAuth: []
+      summary: 删除聊天记录
       tags:
-      - 评论管理
+      - 聊天相关接口
+  /api/comments:
     post:
       consumes:
       - application/json
@@ -1135,6 +1304,83 @@ paths:
       summary: 删除评论
       tags:
       - 评论管理
+    get:
+      description: 获取某个文章的评论列表
+      parameters:
+      - description: 输入文章ID
+        in: query
+        name: article_id
+        required: true
+        type: string
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/res.DataListResponse'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 评论列表
+      tags:
+      - 评论管理
+  /api/comments/articles:
+    get:
+      description: 有评论的文章列表
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: string
+      - in: query
+        name: key
+        type: string
+      - in: query
+        name: limit
+        type: integer
+      - description: 前端可以覆盖
+        in: query
+        name: order
+        type: string
+      - in: query
+        name: page
+        type: integer
+      - in: query
+        name: title
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/res.DataListResponse'
+              type: object
+      summary: 有评论的文章列表
+      tags:
+      - 评论管理
+  /api/comments/digg/{id}:
     get:
       description: 用户点赞评论
       parameters:
@@ -1281,6 +1527,30 @@ paths:
       summary: 用户绑定邮箱
       tags:
       - 用户管理
+  /api/gaode/weather:
+    get:
+      description: 获取实时天气
+      parameters:
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/gaode_api.WeatherInfoResponse'
+              type: object
+      summary: 获取实时天气
+      tags:
+      - 第三方api管理
   /api/images:
     delete:
       consumes:
@@ -1688,6 +1958,222 @@ paths:
       summary: 获取菜单名称列表
       tags:
       - 菜单管理
+  /api/message_users:
+    delete:
+      description: 删除用户的消息记录
+      parameters:
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: 查询参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/models.RemoveRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 删除用户的消息记录
+      tags:
+      - 消息管理
+    get:
+      description: 有消息的用户列表  不传这个nickname  查全部  也就是 页面中的 左中右  中的左
+      parameters:
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
+      - in: query
+        name: key
+        type: string
+      - in: query
+        name: limit
+        type: integer
+      - in: query
+        name: nickName
+        type: string
+      - description: 前端可以覆盖
+        in: query
+        name: order
+        type: string
+      - in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/res.DataListResponse'
+              type: object
+      summary: 有消息的用户列表
+      tags:
+      - 消息管理
+  /api/message_users/me:
+    get:
+      description: 我与其他用户的聊天列表
+      parameters:
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/res.DataListResponse'
+              type: object
+      summary: 我与其他用户的聊天列表
+      tags:
+      - 消息管理
+  /api/message_users/record:
+    get:
+      description: 两个用户之间的聊天记录
+      parameters:
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
+      - in: query
+        name: key
+        type: string
+      - in: query
+        name: limit
+        type: integer
+      - description: 前端可以覆盖
+        in: query
+        name: order
+        type: string
+      - in: query
+        name: page
+        type: integer
+      - in: query
+        name: revUserID
+        required: true
+        type: integer
+      - in: query
+        name: sendUserID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/res.DataListResponse'
+              type: object
+      summary: 两个用户之间的聊天记录
+      tags:
+      - 消息管理
+  /api/message_users/record/me:
+    get:
+      description: 获取当前登录用户与指定用户之间的聊天记录，支持分页和搜索
+      parameters:
+      - description: 目标用户ID
+        in: query
+        name: userID
+        required: true
+        type: string
+      - default: 1
+        description: 页码，默认1
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页条数，默认10
+        in: query
+        name: limit
+        type: integer
+      - description: 搜索关键词
+        in: query
+        name: key
+        type: string
+      - description: 排序方式，如id desc
+        in: query
+        name: order
+        type: string
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/res.DataListResponse'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 显示自己和指定用户的聊天记录
+      tags:
+      - 消息管理
+  /api/message_users/user:
+    get:
+      description: 某个用户的聊天列表
+      parameters:
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
+      - in: query
+        name: userID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/res.DataListResponse'
+              type: object
+      summary: 某个用户的聊天列表
+      tags:
+      - 消息管理
   /api/messages:
     get:
       description: 显示全部消息
@@ -1763,12 +2249,14 @@ paths:
       - application/json
       description: 显示全部聊天记录
       parameters:
-      - description: 输入要看谁的聊天记录
-        in: body
-        name: data
-        required: true
-        schema:
-          $ref: '#/definitions/message_service.MessageRecordRequest'
+      - description: 页码，默认1
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数，默认10
+        in: query
+        name: limit
+        type: integer
       - description: 用户认证令牌
         in: header
         name: token
@@ -1826,6 +2314,39 @@ paths:
       summary: 用户QQ登录
       tags:
       - 用户管理
+  /api/qq_login_path:
+    get:
+      description: 获取qq登录的跳转链接,data就是qq的跳转地址
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 获取qq登录的跳转链接
+      tags:
+      - 用户管理
+  /api/tag_names:
+    get:
+      description: 标签名称列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/tag_api.TagResponse'
+                  type: array
+              type: object
+      summary: 标签名称列表
+      tags:
+      - 标签管理
   /api/tags:
     delete:
       consumes:
@@ -1972,6 +2493,54 @@ paths:
       summary: 更新标签
       tags:
       - 标签管理
+  /api/user_info:
+    get:
+      description: 用户信息
+      parameters:
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.UserModel'
+              type: object
+      summary: 用户信息
+      tags:
+      - 用户管理
+    put:
+      description: 修改当前登录人的昵称，签名，链接
+      parameters:
+      - description: token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: 昵称，签名，链接
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/user_service.UserUpdateInfoRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 修改当前登录人的昵称，签名，链接
+      tags:
+      - 用户管理
   /api/users:
     delete:
       consumes:
@@ -2162,4 +2731,114 @@ paths:
       summary: 更新权限
       tags:
       - 用户管理
+  /feedback:
+    delete:
+      consumes:
+      - application/json
+      description: 根据反馈ID删除对应的反馈记录
+      parameters:
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: 反馈记录ID
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/models.IDRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误（如ID为空或格式错误）
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器错误（如数据库删除失败）
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 删除指定反馈
+      tags:
+      - 反馈管理
+    get:
+      consumes:
+      - application/json
+      description: 分页查询所有用户提交的反馈记录，支持页码和每页条数参数
+      parameters:
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: 页码（默认1）
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数（默认10）
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/res.DataListResponse'
+              type: object
+        "400":
+          description: 请求参数错误（如页码/条数为负数）
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器错误（如数据库查询失败）
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 分页获取反馈列表
+      tags:
+      - 反馈管理
+    post:
+      consumes:
+      - application/json
+      description: 用户提交反馈内容，需包含邮箱和具体反馈信息
+      parameters:
+      - description: 用户认证令牌
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: 反馈信息（邮箱和内容）
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/feedback_api.FeedBackAddRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 提交成功
+          schema:
+            $ref: '#/definitions/res.Response'
+        "400":
+          description: 请求参数错误（如邮箱格式错误、内容为空等）
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务器错误（如数据库存储失败）
+          schema:
+            $ref: '#/definitions/res.Response'
+      summary: 提交反馈信息
+      tags:
+      - 反馈管理
 swagger: "2.0"
