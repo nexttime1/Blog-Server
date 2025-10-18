@@ -15,4 +15,6 @@ func BigModelRouter(r *gin.RouterGroup) {
 	r.PUT("/big_model/session_setting", middleware.AdminMiddleware, app.BigModelSessionUpdateView) // 修改大模型会话配置
 	r.GET("big_model/user_scope_enable", middleware.AuthMiddleware, app.UserScopeEnableView)       // 用户是否可以领取积分
 	r.POST("big_model/user_scope", middleware.AuthMiddleware, app.UserScopeView)                   // 用户 领取积分
+	r.PUT("big_model/auto_reply", middleware.AdminMiddleware, app.AutoReplyUpdateView)
+	r.GET("big_model/auto_reply", middleware.AdminMiddleware, app.AutoReplyListView)
 }

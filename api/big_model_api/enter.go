@@ -5,6 +5,7 @@ import (
 	"Blog_server/common/res"
 	"Blog_server/conf"
 	"Blog_server/global"
+	"Blog_server/models"
 	"Blog_server/models/enum"
 	"Blog_server/service/big_model_service"
 	"Blog_server/utils/jwts"
@@ -174,5 +175,48 @@ func (BigModelApi) UserScopeView(c *gin.Context) {
 		return
 	}
 	res.OkWithData(c, "积分领取成功")
+
+}
+
+func (BigModelApi) AutoReplyUpdateView(c *gin.Context) {
+	_, exist := c.Get("claims")
+	if !exist {
+		return
+	}
+	var cr big_model_service.AutoReplyUpdateRequest
+	err := c.ShouldBindJSON(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	flag, err := big_model_service.AutoReplyUpdateService(cr)
+	if err != nil {
+		res.FailWithMsg(c, fmt.Sprintf("%v", err))
+		return
+	}
+	if flag == 1 {
+		res.OkWithMessage(c, "自动回复添加成功")
+	} else {
+		res.OkWithMessage(c, "自动回复更新成功")
+	}
+
+}
+
+func (BigModelApi) AutoReplyListView(c *gin.Context) {
+	_, exist := c.Get("claims")
+	if !exist {
+		return
+	}
+	var cr common.PageInfo
+	c.ShouldBindQuery(&cr) // 有默认值 没事
+	list, count, err := common.ListQuery(models.AutoReplyModel{}, common.Options{
+		PageInfo: cr,
+		Likes:    []string{"name"},
+	})
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	res.OkWithList(c, list, count)
 
 }
