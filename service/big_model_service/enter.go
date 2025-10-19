@@ -5,6 +5,7 @@ import (
 	"Blog_server/global"
 	"Blog_server/models"
 	"Blog_server/utils/jwts"
+	"Blog_server/utils/struct_to_map"
 	"errors"
 	"fmt"
 	"github.com/sirupsen/logrus"
@@ -45,6 +46,20 @@ type TagListResponse struct {
 	Title     string `json:"title"`     // 名称
 	Color     string `json:"color"`     // 颜色
 	RoleCount int    `json:"roleCount"` // 角色个数
+}
+
+// RoleUpdateRequest 服务  BigModelRoleUpdateService
+type RoleUpdateRequest struct {
+	ID        uint   `json:"id" structs:"-"`
+	Name      string `json:"name" structs:"name"`            // 角色名称
+	Enable    bool   `json:"enable" structs:"enable"`        // 是否启用
+	Icon      string `json:"icon" structs:"icon"`            // 可以选择系统默认的一些，也可以图片上传
+	Abstract  string `json:"abstract" structs:"abstract"`    // 简介
+	Scope     int    `json:"scope" structs:"scope"`          // 消耗的积分
+	Prologue  string `json:"prologue" structs:"prologue"`    // 开场白
+	Prompt    string `json:"prompt" structs:"prompt"`        // 设定词
+	AutoReply bool   `json:"autoReply" structs:"auto_reply"` // 自动回复
+	TagList   []uint `json:"tagList" structs:"-"`            // 标签的id列表
 }
 
 func UserScopeEnableService(claim *jwts.MyClaims) (UserScopeEnableResponse, error) {
@@ -260,4 +275,135 @@ func BigModelTagRemoveService(cr models.RemoveRequest) error {
 	}
 	// 所有操作成功，提交事务
 	return tx.Commit().Error
+}
+
+func BigModelRoleUpdateService(cr RoleUpdateRequest) (int, error) {
+	// 开启事务，保证操作原子性
+	tx := global.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	var tags []models.BigModelTagModel
+	count := tx.Where("id in ?", cr.TagList).Find(&tags).RowsAffected
+	if count != int64(len(cr.TagList)) {
+		tx.Rollback()
+		return 0, errors.New("部分标签不存在")
+	}
+
+	if cr.ID == 0 {
+		// 添加
+		var model models.BigModelRoleModel
+		count := tx.Where("name = ?", cr.Name).Find(&model).RowsAffected
+		if count != 0 {
+			return 0, errors.New("名称已经存在")
+		}
+		role := models.BigModelRoleModel{
+			Name:      cr.Name,
+			Enable:    cr.Enable,
+			Icon:      cr.Icon,
+			Abstract:  cr.Abstract,
+			Scope:     cr.Scope,
+			Prologue:  cr.Prologue,
+			Prompt:    cr.Prompt,
+			AutoReply: cr.AutoReply,
+			Tags:      tags,
+		}
+		err := tx.Create(&role).Error
+		if err != nil {
+			tx.Rollback()
+			logrus.Errorf("%#v", err)
+			return 0, errors.New("添加角色失败")
+		}
+		// 添加第三张表    已经删除了
+
+		return 1, tx.Commit().Error // 显式提交事务
+	}
+
+	//修改
+	var model models.BigModelRoleModel
+	err := tx.Where("id = ?", cr.ID).Take(&model).Error
+	if err != nil {
+		tx.Rollback()
+		logrus.Errorf("%#v", err)
+		return 0, errors.New("角色不存在")
+	}
+	// 查看 修改后的 name  会不会重复
+	var arm models.BigModelRoleModel
+	err = tx.Where("name = ? and id <> ?", cr.Name, cr.ID).Take(&arm).Error
+	if err == nil {
+		return 0, errors.New("修改的名称已经存在")
+	}
+
+	toMap := struct_to_map.StructToMap(cr) //只修改 传入的
+	// 先修改 角色表
+	err = tx.Model(model).Updates(toMap).Error
+	if err != nil {
+		tx.Rollback()
+		logrus.Errorf("%#v", err)
+		return 0, errors.New("修改角色失败")
+	}
+
+	// 修改中间表  全删除  在新建  便是 修改
+	var ThreeList []models.BigModelRoleTagModel
+	tx.Where("big_model_role_model_id = ?", cr.ID).Find(&ThreeList)
+	if len(ThreeList) > 0 {
+		// 有 要删除
+		err := tx.Delete(&ThreeList).Error
+		if err != nil {
+			tx.Rollback()
+			logrus.Errorf("%#v", err)
+			return 0, errors.New("修改失败")
+		}
+	}
+	// 重新添加  由于刚开始已经搜索到了 tags
+	for _, tagId := range cr.TagList {
+		err = tx.Create(&models.BigModelRoleTagModel{
+			BigModelTagModelId:  tagId,
+			BigModelRoleModelId: cr.ID,
+		}).Error
+		if err != nil {
+			tx.Rollback()
+			logrus.Errorf("%#v", err)
+			return 0, errors.New("关联表添加失败")
+		}
+	}
+	return 2, tx.Commit().Error // 显式提交事务
+}
+
+func BigModelRoleRemoveService(cr models.RemoveRequest) (error, string) {
+	// 开启事务，保证操作原子性
+	tx := global.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	//先看看有没有这个人
+	var userModels []models.BigModelRoleModel
+	tx.Where("id in ?", cr.IDList).Find(&userModels)
+	if len(userModels) != len(cr.IDList) {
+		tx.Rollback()
+		logrus.Errorf("只查到了%d个角色", len(userModels))
+		return errors.New("部分角色不存在"), ""
+	}
+	// 去找对应的 关联表
+	err := tx.Where("big_model_role_model_id in ?", cr.IDList).Delete(&models.BigModelRoleTagModel{}).Error
+	if err != nil {
+		tx.Rollback()
+		logrus.Errorf("%v", err)
+		return errors.New("删除失败"), ""
+	}
+	//在删除人
+	err = tx.Delete(&userModels).Error
+
+	if err != nil {
+		tx.Rollback()
+		logrus.Errorf("%v", err)
+		return errors.New("删除失败"), ""
+	}
+	return tx.Commit().Error, fmt.Sprintf("成功删除%d个角色", len(userModels))
 }

@@ -21,4 +21,8 @@ func BigModelRouter(r *gin.RouterGroup) {
 	r.PUT("big_model/tags", middleware.AdminMiddleware, app.BigModelTagUpdateView)
 	r.GET("big_model/tags", middleware.AdminMiddleware, app.BigModelTagListView)
 	r.DELETE("big_model/tags", middleware.AdminMiddleware, app.BigModelTagRemoveView)
+	r.PUT("big_model/roles", middleware.AdminMiddleware, app.BigModelRoleUpdateView)
+	r.GET("big_model/roles", middleware.AdminMiddleware, app.BigModelRoleListiew)
+	r.DELETE("big_model/roles", middleware.AdminMiddleware, app.BigModelRoleRemoveView)
+
 }

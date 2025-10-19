@@ -460,3 +460,67 @@ func (BigModelApi) BigModelTagRemoveView(c *gin.Context) {
 	}
 	res.OkWithMessage(c, "删除成功")
 }
+
+func (BigModelApi) BigModelRoleUpdateView(c *gin.Context) {
+	_, exist := c.Get("claims")
+	if !exist {
+		return
+	}
+	var cr big_model_service.RoleUpdateRequest
+	err := c.ShouldBindJSON(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	flag, err := big_model_service.BigModelRoleUpdateService(cr)
+	if err != nil {
+		res.FailWithMsg(c, fmt.Sprintf("%v", err))
+		return
+	}
+	if flag == 1 {
+		res.OkWithData(c, "角色添加成功")
+		return
+	}
+	res.FailWithMsg(c, "角色更新成功")
+}
+
+func (BigModelApi) BigModelRoleListiew(c *gin.Context) {
+	_, exist := c.Get("claims")
+	if !exist {
+		return
+	}
+	var cr common.PageInfo
+	err := c.ShouldBindQuery(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+
+	list, count, err := common.ListQuery(models.BigModelRoleModel{}, common.Options{
+		PageInfo: cr,
+		Likes:    []string{"name"},
+	})
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	res.OkWithList(c, list, count)
+}
+
+func (BigModelApi) BigModelRoleRemoveView(c *gin.Context) {
+	_, exist := c.Get("claims")
+	if !exist {
+		return
+	}
+	var cr models.RemoveRequest
+	err := c.ShouldBindJSON(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+	}
+	err, msg := big_model_service.BigModelRoleRemoveService(cr)
+	if err != nil {
+		res.FailWithMsg(c, fmt.Sprintf("%v", err))
+		return
+	}
+	res.OkWithMessage(c, msg)
+}

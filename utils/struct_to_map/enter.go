@@ -2,14 +2,14 @@ package struct_to_map
 
 import (
 	"Blog_server/models/enum"
-	"fmt"
 	"github.com/fatih/structs"
+	"github.com/sirupsen/logrus"
 )
 
 func StructToMap(obj interface{}) map[string]interface{} {
 	m := structs.Map(obj)
 	data := DeleteEmpty(m)
-	fmt.Println(data)
+	logrus.Infof("data: %v", data)
 	return data
 }
 
