@@ -17,4 +17,8 @@ func BigModelRouter(r *gin.RouterGroup) {
 	r.POST("big_model/user_scope", middleware.AuthMiddleware, app.UserScopeView)                   // 用户 领取积分
 	r.PUT("big_model/auto_reply", middleware.AdminMiddleware, app.AutoReplyUpdateView)
 	r.GET("big_model/auto_reply", middleware.AdminMiddleware, app.AutoReplyListView)
+	r.DELETE("big_model/auto_reply", middleware.AdminMiddleware, app.AutoReplyDeleteView)
+	r.PUT("big_model/tags", middleware.AdminMiddleware, app.BigModelTagUpdateView)
+	r.GET("big_model/tags", middleware.AdminMiddleware, app.BigModelTagListView)
+	r.DELETE("big_model/tags", middleware.AdminMiddleware, app.BigModelTagRemoveView)
 }

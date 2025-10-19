@@ -113,6 +113,55 @@ definitions:
     required:
     - id
     type: object
+  big_model_api.SettingType:
+    properties:
+      api-key:
+        type: string
+      api-secret:
+        type: string
+      enable:
+        type: boolean
+      help:
+        type: string
+      name:
+        type: string
+      prompt:
+        type: string
+      title:
+        type: string
+    type: object
+  big_model_service.AutoReplyUpdateRequest:
+    properties:
+      id:
+        type: integer
+      mode:
+        description: 匹配模式 1 精确匹配，2 模糊匹配，3 前缀匹配，4 正则匹配
+        enum:
+        - 1
+        - 2
+        - 3
+        - 4
+        type: integer
+      name:
+        description: 规则名称
+        type: string
+      replyContent:
+        description: 回复内容
+        type: string
+      rule:
+        description: 匹配规则
+        type: string
+    required:
+    - mode
+    - name
+    - replyContent
+    - rule
+    type: object
+  big_model_service.UserScopeRequest:
+    properties:
+      status:
+        type: boolean
+    type: object
   chat_api.ChatRemoveRequest:
     properties:
       id_list:
@@ -134,6 +183,33 @@ definitions:
     required:
     - article_id
     - content
+    type: object
+  conf.SessionSetting:
+    properties:
+      chat-scope:
+        description: 对话的积分消耗
+        type: integer
+      day-scope:
+        description: 每日可以领取的积分
+        type: integer
+      session-scope:
+        description: 会话的积分消耗
+        type: integer
+    type: object
+  conf.Setting:
+    properties:
+      api-key:
+        type: string
+      api-secret:
+        type: string
+      enable:
+        type: boolean
+      name:
+        type: string
+      prompt:
+        type: string
+      title:
+        type: string
     type: object
   enum.ImageType:
     enum:
@@ -332,6 +408,29 @@ definitions:
         description: 发送人id
         type: integer
     type: object
+  models.AutoReplyModel:
+    properties:
+      UpdatedAt:
+        type: string
+      created_at:
+        description: 创建时间
+        type: string
+      id:
+        description: 主键ID
+        type: integer
+      mode:
+        description: 匹配模式 1 精确匹配，2 模糊匹配，3 前缀匹配，4 正则匹配
+        type: integer
+      name:
+        description: 规则名称
+        type: string
+      replyContent:
+        description: 回复内容
+        type: string
+      rule:
+        description: 匹配规则
+        type: string
+    type: object
   models.BannerModel:
     properties:
       UpdatedAt:
@@ -377,7 +476,7 @@ definitions:
     type: object
   models.RemoveRequest:
     properties:
-      IDList:
+      Id_list:
         items:
           type: integer
         type: array
@@ -413,6 +512,8 @@ definitions:
         allOf:
         - $ref: '#/definitions/enum.RoleType'
         description: 1 为管理员  2 为 普通用户
+      scope:
+        type: integer
       tel:
         type: string
       token:
@@ -2731,6 +2832,381 @@ paths:
       summary: 更新权限
       tags:
       - 用户管理
+  /big_model/auto_reply:
+    delete:
+      consumes:
+      - application/json
+      description: 仅管理员可操作，接收要删除的自动回复ID列表，校验ID存在性后执行删除，返回删除数量
+      parameters:
+      - description: 删除请求参数（包含要删除的ID列表）
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.RemoveRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功返回删除数量（如：共删除2个自动回复）
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                msg:
+                  type: string
+              type: object
+        "400":
+          description: 请求参数错误（如ID列表为空或格式错误）
+          schema:
+            $ref: '#/definitions/res.Response'
+        "401":
+          description: 未登录或非管理员权限
+          schema:
+            $ref: '#/definitions/res.Response'
+        "404":
+          description: 部分或全部ID不存在（提示：删除的Id 不存在）
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 数据库操作失败
+          schema:
+            $ref: '#/definitions/res.Response'
+      security:
+      - BearerAuth: []
+      summary: 批量删除自动回复
+      tags:
+      - 自动回复管理
+    get:
+      consumes:
+      - application/json
+      description: 仅管理员可获取，支持分页和名称模糊查询
+      parameters:
+      - description: 页码（默认1）
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数（默认10）
+        in: query
+        name: page_size
+        type: integer
+      - description: 名称模糊查询
+        in: query
+        name: name
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功返回列表和总条数
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  allOf:
+                  - $ref: '#/definitions/res.DataListResponse'
+                  - properties:
+                      Count:
+                        type: integer
+                      List:
+                        items:
+                          $ref: '#/definitions/models.AutoReplyModel'
+                        type: array
+                    type: object
+              type: object
+        "401":
+          description: 未登录或非管理员权限
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 查询失败
+          schema:
+            $ref: '#/definitions/res.Response'
+      security:
+      - BearerAuth: []
+      summary: 获取自动回复列表
+      tags:
+      - 自动回复管理
+    put:
+      consumes:
+      - application/json
+      description: 仅管理员可操作，ID存在则更新，不存在则新增
+      parameters:
+      - description: 自动回复信息
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/big_model_service.AutoReplyUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 添加成功或更新成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                msg:
+                  type: string
+              type: object
+        "400":
+          description: 请求参数格式错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "401":
+          description: 未登录或非管理员权限
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 操作失败
+          schema:
+            $ref: '#/definitions/res.Response'
+      security:
+      - BearerAuth: []
+      summary: 新增或更新自动回复
+      tags:
+      - 自动回复管理
+  /big_model/session_setting:
+    get:
+      consumes:
+      - application/json
+      description: 登录用户可获取大模型会话相关配置（如最大长度、自动保存等）
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功返回会话配置
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/conf.SessionSetting'
+              type: object
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/res.Response'
+      security:
+      - BearerAuth: []
+      summary: 获取大模型会话配置
+      tags:
+      - 大模型管理
+    put:
+      consumes:
+      - application/json
+      description: 仅管理员可修改大模型会话配置（修改后会持久化到配置文件）
+      parameters:
+      - description: 会话配置信息
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/conf.SessionSetting'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 修改成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                msg:
+                  type: string
+              type: object
+        "400":
+          description: 请求参数格式错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "401":
+          description: 未登录或非管理员权限
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 配置文件写入失败
+          schema:
+            $ref: '#/definitions/res.Response'
+      security:
+      - BearerAuth: []
+      summary: 修改大模型会话配置
+      tags:
+      - 大模型管理
+  /big_model/setting:
+    get:
+      consumes:
+      - application/json
+      description: 登录用户可获取大模型配置（管理员可见完整配置，普通用户隐藏敏感字段）
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功返回配置及帮助信息
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/big_model_api.SettingType'
+              type: object
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务内部错误（如文件读取失败）
+          schema:
+            $ref: '#/definitions/res.Response'
+      security:
+      - BearerAuth: []
+      summary: 获取大模型配置
+      tags:
+      - 大模型管理
+    put:
+      consumes:
+      - application/json
+      description: 仅管理员可修改大模型基本配置（修改后会持久化到配置文件）
+      parameters:
+      - description: 大模型配置信息
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/conf.Setting'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 修改成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                msg:
+                  type: string
+              type: object
+        "400":
+          description: 请求参数格式错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "401":
+          description: 未登录或非管理员权限
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 配置文件写入失败
+          schema:
+            $ref: '#/definitions/res.Response'
+      security:
+      - BearerAuth: []
+      summary: 修改大模型配置
+      tags:
+      - 大模型管理
+  /big_model/usable:
+    get:
+      consumes:
+      - application/json
+      description: 仅管理员可获取系统中可用的大模型配置列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功返回可用大模型配置列表
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/conf.Setting'
+                  type: array
+              type: object
+        "401":
+          description: 未登录或非管理员权限
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      security:
+      - BearerAuth: []
+      summary: 获取可用大模型配置
+      tags:
+      - 大模型管理
+  /big_model/user_scope:
+    post:
+      consumes:
+      - application/json
+      description: 登录用户提交积分领取请求（需满足领取条件）
+      parameters:
+      - description: 积分领取请求参数
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/big_model_service.UserScopeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 积分领取成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  type: string
+              type: object
+        "400":
+          description: 请求参数格式错误
+          schema:
+            $ref: '#/definitions/res.Response'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 领取失败（如不满足条件）
+          schema:
+            $ref: '#/definitions/res.Response'
+      security:
+      - BearerAuth: []
+      summary: 用户领取积分
+      tags:
+      - 用户积分
+  /big_model/user_scope_enable:
+    get:
+      consumes:
+      - application/json
+      description: 登录用户查询自己是否满足积分领取条件
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功返回是否可领取（true=可领取，false=不可领取）
+          schema:
+            allOf:
+            - $ref: '#/definitions/res.Response'
+            - properties:
+                data:
+                  type: boolean
+              type: object
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/res.Response'
+        "500":
+          description: 服务内部错误
+          schema:
+            $ref: '#/definitions/res.Response'
+      security:
+      - BearerAuth: []
+      summary: 查询用户是否可领取积分
+      tags:
+      - 用户积分
   /feedback:
     delete:
       consumes:
