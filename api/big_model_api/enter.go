@@ -95,6 +95,7 @@ func (BigModelApi) BigModelSettingView(c *gin.Context) {
 		ApiSecret: "",
 		Title:     "",
 		Prompt:    "",
+		Slogan:    "",
 	}
 
 	var UserSt = SettingType{
@@ -523,4 +524,58 @@ func (BigModelApi) BigModelRoleRemoveView(c *gin.Context) {
 		return
 	}
 	res.OkWithMessage(c, msg)
+}
+
+func (BigModelApi) BigModelTagRoleListView(c *gin.Context) {
+	err, response := big_model_service.BigModelTagRoleListService()
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	res.OkWithData(c, response)
+
+}
+
+func (BigModelApi) BigModelSessionCreateView(c *gin.Context) {
+	_claims, exist := c.Get("claims")
+	if !exist {
+		return
+	}
+	claims := _claims.(*jwts.MyClaims)
+
+	var cr big_model_service.SessionCreateRequest
+	err := c.ShouldBindJSON(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+
+	sessionID, err := big_model_service.BigModelSessionCreateService(claims, cr)
+	if err != nil {
+		res.FailWithMsg(c, fmt.Sprintf("%v", err))
+		return
+	}
+
+	res.Ok(c, "会话创建成功", sessionID)
+
+}
+
+func (BigModelApi) BigModelChatCreateView(c *gin.Context) {
+	_claims, exist := c.Get("claims")
+	if !exist {
+		return
+	}
+	claims := _claims.(*jwts.MyClaims)
+	var cr big_model_service.ChatCreateRequest
+	err := c.ShouldBindJSON(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	err = big_model_service.BigModelChatCreateService(claims, cr)
+	if err != nil {
+		res.FailWithMsg(c, fmt.Sprintf("%v", err))
+		return
+	}
+	res.Ok(c, "你好", "对话创建成功")
 }

@@ -13,6 +13,7 @@ type Setting struct {
 	ApiSecret string `yaml:"api-secret" json:"api-secret"`
 	Title     string `yaml:"title" json:"title"`
 	Prompt    string `yaml:"prompt" json:"prompt"`
+	Slogan    string `yaml:"slogan" json:"slogan"`
 }
 
 type SessionSetting struct {

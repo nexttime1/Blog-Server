@@ -24,5 +24,7 @@ func BigModelRouter(r *gin.RouterGroup) {
 	r.PUT("big_model/roles", middleware.AdminMiddleware, app.BigModelRoleUpdateView)
 	r.GET("big_model/roles", middleware.AdminMiddleware, app.BigModelRoleListiew)
 	r.DELETE("big_model/roles", middleware.AdminMiddleware, app.BigModelRoleRemoveView)
-
+	r.GET("big_model/square", app.BigModelTagRoleListView)
+	r.POST("big_model/session", middleware.AuthMiddleware, app.BigModelSessionCreateView) //创建 会话
+	r.POST("big_model/chat", middleware.AuthMiddleware, app.BigModelChatCreateView)       //创建 对话
 }

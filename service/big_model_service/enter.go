@@ -77,6 +77,32 @@ func UserScopeEnableService(claim *jwts.MyClaims) (UserScopeEnableResponse, erro
 	return response, nil
 }
 
+// RoleItem 服务于  TagRoleListResponse
+type RoleItem struct {
+	ID       uint   `json:"id"`       // 角色id
+	Name     string `json:"name"`     // 角色名称
+	Abstract string `json:"abstract"` // 角色简介
+}
+
+// TagRoleListResponse 服务于  BigModelTagRoleListService
+type TagRoleListResponse struct {
+	ID       uint       `json:"id"`       // 标签的id
+	Title    string     `json:"title"`    // 名称
+	RoleList []RoleItem `json:"roleList"` // 角色列表
+
+}
+
+// SessionCreateRequest 服务于 BigModelSessionCreateService
+type SessionCreateRequest struct {
+	RoleID uint `json:"roleID" binding:"required"` // 角色id
+}
+
+// ChatCreateRequest 服务于
+type ChatCreateRequest struct {
+	SessionID uint   `json:"sessionID" binding:"required"` // 会话id
+	Content   string `json:"content" binding:"required"`   // 对话内容
+}
+
 func UserScopeService(cr UserScopeRequest, claim *jwts.MyClaims) error {
 
 	var userScopeModel models.UserScopeModel
@@ -406,4 +432,131 @@ func BigModelRoleRemoveService(cr models.RemoveRequest) (error, string) {
 		return errors.New("删除失败"), ""
 	}
 	return tx.Commit().Error, fmt.Sprintf("成功删除%d个角色", len(userModels))
+}
+
+func BigModelTagRoleListService() (error, []TagRoleListResponse) {
+	tx := global.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	var tags []models.BigModelTagModel
+
+	tx.Preload("Roles").Find(&tags)
+
+	var response []TagRoleListResponse
+	for _, tag := range tags {
+		var roleList []RoleItem
+		for _, model := range tag.Roles {
+			roleList = append(roleList, RoleItem{
+				ID:       model.ID,
+				Name:     model.Name,
+				Abstract: model.Abstract,
+			})
+		}
+		response = append(response, TagRoleListResponse{
+			ID:       tag.ID,
+			Title:    tag.Title,
+			RoleList: roleList,
+		})
+	}
+
+	return tx.Commit().Error, response
+}
+
+func BigModelSessionCreateService(claims *jwts.MyClaims, cr SessionCreateRequest) (uint, error) {
+	tx := global.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	// 查看角色有没有
+	var role models.BigModelRoleModel
+	err := tx.Where("id = ?", cr.RoleID).Take(&role).Error
+	if err != nil {
+		tx.Rollback()
+		logrus.Errorf("%#v", err)
+		return 0, errors.New("大模型角色不存在")
+	}
+	// 拿到这个 user 的积分看看够不够
+	var user models.UserModel
+	err = tx.Where("id = ?", claims.UserID).Take(&user).Error
+	if err != nil {
+		tx.Rollback()
+		logrus.Errorf("%#v", err)
+		return 0, errors.New("登录的用户不存在")
+	}
+	scope := global.Config.BigModel.SessionSetting.SessionScope
+	if user.Scope < scope {
+		tx.Rollback()
+		return 0, errors.New("用户积分不足")
+	}
+	//创建会话
+	session := models.BigModelSessionModel{
+		UserID: claims.UserID,
+		RoleID: cr.RoleID,
+	}
+	tx.Create(&session)
+	// 扣除积分
+	tx.Model(&user).Update("scope", gorm.Expr("scope - ?", scope))
+
+	return session.ID, tx.Commit().Error
+}
+
+func BigModelChatCreateService(claims *jwts.MyClaims, cr ChatCreateRequest) error {
+	tx := global.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	// 找一下 这个会话
+	var sessionModel models.BigModelSessionModel
+	err := tx.Where("id = ?", cr.SessionID).Take(&sessionModel).Error
+	if err != nil {
+		tx.Rollback()
+		logrus.Errorf("%#v", err)
+		return errors.New("会话不存在")
+	}
+	// 判断一下 这个会话是不是自己创建的
+	if sessionModel.UserID != claims.UserID {
+		tx.Rollback()
+		return errors.New("对话鉴权错误")
+	}
+	// 积分够不够
+	var user models.UserModel
+	err = tx.Where("id = ?", claims.UserID).Take(&user).Error
+	if err != nil {
+		tx.Rollback()
+		logrus.Errorf("%#v", err)
+		return errors.New("用户已经不存在")
+	}
+	scope := global.Config.BigModel.SessionSetting.ChatScope
+	if user.Scope < scope {
+		tx.Rollback()
+		return errors.New("用户积分不足")
+	}
+	err = global.DB.Create(&models.BigModelChatModel{
+		SessionID:  cr.SessionID,
+		Status:     true,
+		Content:    cr.Content,
+		BotContent: "你好",
+		RoleID:     sessionModel.RoleID,
+		UserID:     claims.UserID,
+	}).Error
+	if err != nil {
+		tx.Rollback()
+		logrus.Errorf("%#v", err)
+		return errors.New("错误")
+	}
+	//扣除积分
+	err = tx.Model(&user).Update("scope", gorm.Expr("scope - ?", scope)).Error
+	if err != nil {
+		tx.Rollback()
+		logrus.Errorf("%#v", err)
+		return errors.New("错误")
+	}
+	return tx.Commit().Error
 }
