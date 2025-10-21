@@ -4,6 +4,7 @@ import (
 	"Blog_server/common"
 	"Blog_server/global"
 	"Blog_server/models"
+	"Blog_server/models/enum"
 	"Blog_server/utils/jwts"
 	"Blog_server/utils/struct_to_map"
 	"errors"
@@ -82,6 +83,7 @@ type RoleItem struct {
 	ID       uint   `json:"id"`       // 角色id
 	Name     string `json:"name"`     // 角色名称
 	Abstract string `json:"abstract"` // 角色简介
+	Icon     string `json:"icon"`
 }
 
 // TagRoleListResponse 服务于  BigModelTagRoleListService
@@ -94,13 +96,64 @@ type TagRoleListResponse struct {
 
 // SessionCreateRequest 服务于 BigModelSessionCreateService
 type SessionCreateRequest struct {
-	RoleID uint `json:"roleID" binding:"required"` // 角色id
+	RoleID uint   `json:"roleID" binding:"required"` // 角色id
+	Name   string `json:"name" `
 }
 
-// ChatCreateRequest 服务于
+// ChatCreateRequest 服务于  BigModelChatCreateService
 type ChatCreateRequest struct {
 	SessionID uint   `json:"sessionID" binding:"required"` // 会话id
 	Content   string `json:"content" binding:"required"`   // 对话内容
+}
+
+// SessionListResponse 服务于   BigModelSessionListService
+type SessionListResponse struct {
+	models.Model
+	UserID      uint   `json:"userID"`
+	NickName    string `json:"nickName"`
+	SessionName string `json:"sessionName"` // 会话名称   有名称就用自己的名称，没有就自动生成
+	RoleName    string `json:"roleName"`    // ai角色的名称
+	ChatCount   int    `json:"chatCount"`   // 对话的次数
+	LastContent string `json:"lastContent"` // 最后一次的聊天内容
+}
+
+// SessionUserUpdateNameRequest  服务于 BigModelUserUpdateNameService
+type SessionUserUpdateNameRequest struct {
+	SessionID uint   `json:"sessionID" binding:"required"` // 会话id
+	Name      string `json:"name"`
+}
+
+// RoleDetailResponse 服务于 BigModelRoleDetailService
+type RoleDetailResponse struct {
+	models.Model
+	Name      string        `json:"name"`
+	Icon      string        `json:"icon"`
+	Abstract  string        `json:"abstract"`
+	Tags      []TagResponse `json:"tags"`
+	ChatCount int           `json:"chatCount"`
+}
+
+// TagResponse 服务于  RoleDetailResponse
+type TagResponse struct {
+	ID    uint   `json:"id"`
+	Title string `json:"title"`
+	Color string `json:"color"`
+}
+
+// ChatListRequest 服务于 BigModelChatListService
+type ChatListRequest struct {
+	SessionID uint `json:"sessionID" form:"sessionID" binding:"required"`
+	common.PageInfo
+}
+
+// ChatListResponse 服务于 BigModelChatListService
+type ChatListResponse struct {
+	models.Model
+	UserContent string `json:"userContent"` // 用户聊天内容
+	UserAvatar  string `json:"userAvatar"`  // 用户头像
+	BotContent  string `json:"botContent"`  // AI的聊天内容
+	BotAvatar   string `json:"botAvatar"`   // AI的头像
+	Status      bool   `json:"status"`
 }
 
 func UserScopeService(cr UserScopeRequest, claim *jwts.MyClaims) error {
@@ -335,7 +388,7 @@ func BigModelRoleUpdateService(cr RoleUpdateRequest) (int, error) {
 			Prologue:  cr.Prologue,
 			Prompt:    cr.Prompt,
 			AutoReply: cr.AutoReply,
-			Tags:      tags,
+			Tags:      tags, // gorm 已经自己添加了
 		}
 		err := tx.Create(&role).Error
 		if err != nil {
@@ -343,7 +396,6 @@ func BigModelRoleUpdateService(cr RoleUpdateRequest) (int, error) {
 			logrus.Errorf("%#v", err)
 			return 0, errors.New("添加角色失败")
 		}
-		// 添加第三张表    已经删除了
 
 		return 1, tx.Commit().Error // 显式提交事务
 	}
@@ -453,6 +505,7 @@ func BigModelTagRoleListService() (error, []TagRoleListResponse) {
 				ID:       model.ID,
 				Name:     model.Name,
 				Abstract: model.Abstract,
+				Icon:     model.Icon,
 			})
 		}
 		response = append(response, TagRoleListResponse{
@@ -493,10 +546,28 @@ func BigModelSessionCreateService(claims *jwts.MyClaims, cr SessionCreateRequest
 		tx.Rollback()
 		return 0, errors.New("用户积分不足")
 	}
+	// 如果创建了新的会话没有聊天  那就不能再创建
+	var sessionList []models.BigModelSessionModel
+	tx.Where("user_id = ? and role_id = ?", user.ID, cr.RoleID).Preload("ChatList").Find(&sessionList)
+	flag := true // 说明可以创建
+	for _, model := range sessionList {
+		if len(model.ChatList) <= 1 {
+			flag = false //说明没聊天
+		}
+	}
+	if !flag {
+		tx.Rollback()
+		return 0, errors.New("已经创建过了")
+	}
+
 	//创建会话
+	if cr.Name == "" {
+		cr.Name = "新的会话"
+	}
 	session := models.BigModelSessionModel{
 		UserID: claims.UserID,
 		RoleID: cr.RoleID,
+		Name:   cr.Name,
 	}
 	tx.Create(&session)
 	// 扣除积分
@@ -559,4 +630,265 @@ func BigModelChatCreateService(claims *jwts.MyClaims, cr ChatCreateRequest) erro
 		return errors.New("错误")
 	}
 	return tx.Commit().Error
+}
+
+func BigModelSessionListService(cr common.PageInfo) (error, []SessionListResponse, int) {
+
+	list, count, err := common.ListQuery(models.BigModelSessionModel{}, common.Options{
+		PageInfo: cr,
+		Preload:  []string{"UserModel", "RoleModel", "ChatList"},
+	})
+	if err != nil {
+		logrus.Errorf("%#v", err)
+		return errors.New("查询失败"), nil, 0
+	}
+
+	var response []SessionListResponse
+	for _, model := range list {
+		var last_content string
+		if len(model.ChatList) > 0 {
+			last_content = model.ChatList[len(model.ChatList)-1].Content
+		} else {
+			last_content = ""
+		}
+		response = append(response, SessionListResponse{
+			Model:       model.Model,
+			UserID:      model.UserID,
+			NickName:    model.UserModel.Nickname,
+			SessionName: model.Name,
+			RoleName:    model.RoleModel.Name,
+			ChatCount:   len(model.ChatList),
+			LastContent: last_content,
+		})
+	}
+	return nil, response, count
+}
+
+func BigModelUserUpdateNameService(claims *jwts.MyClaims, cr SessionUserUpdateNameRequest) error {
+	tx := global.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	// 先看看有没有这个 Session
+	var sessionModel models.BigModelSessionModel
+	err := tx.Where("id = ?", cr.SessionID).Take(&sessionModel).Error
+	if err != nil {
+		tx.Rollback()
+		logrus.Errorf("%#v", err)
+		return errors.New("该会话不存在")
+	}
+	// 再看看是不是你创建的
+	if claims.UserID != sessionModel.UserID {
+		tx.Rollback()
+		logrus.Errorf("%#v", err)
+		return errors.New("鉴权错误")
+	}
+	// 修改
+	err = tx.Model(&sessionModel).Update("name", cr.Name).Error
+	if err != nil {
+		tx.Rollback()
+		logrus.Errorf("%#v", err)
+		return errors.New("修改失败")
+	}
+
+	return tx.Commit().Error
+}
+
+func BigModelUserDeleteSessionService(claims *jwts.MyClaims, cr models.IDRequest) error {
+	tx := global.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	// 判断存不存在
+	var sessionModel models.BigModelSessionModel
+	err := tx.Where("id = ?", cr.ID).Preload("ChatList").Take(&sessionModel).Error
+	if err != nil {
+		tx.Rollback()
+		logrus.Errorf("%#v", err)
+		return errors.New("会话不存在")
+	}
+	// 判断是不是自己的
+	if claims.UserID != sessionModel.UserID {
+		tx.Rollback()
+		return errors.New("鉴权错误")
+	}
+	// 先删除关联表 (对话)
+	if len(sessionModel.ChatList) > 0 {
+		err = tx.Delete(&sessionModel.ChatList).Error
+		if err != nil {
+			tx.Rollback()
+			logrus.Errorf("%#v", err)
+			return errors.New("删除关联表失败")
+		}
+	}
+	// 删除会话
+	err = tx.Delete(&sessionModel).Error
+	if err != nil {
+		tx.Rollback()
+		logrus.Errorf("%#v", err)
+		return errors.New("会话删除失败")
+	}
+	return tx.Commit().Error
+
+}
+
+func BigModelAdminDeleteSessionService(cr models.RemoveRequest) (error, string) {
+	tx := global.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	// 判断存不存在
+	var sessionModelList []models.BigModelSessionModel
+	tx.Where("id in ?", cr.IDList).Preload("ChatList").Find(&sessionModelList)
+	if len(sessionModelList) != len(cr.IDList) {
+		tx.Rollback()
+		return errors.New("部分会话不存在"), ""
+	}
+
+	// 先删除关联表 (对话)
+	for _, sessionModel := range sessionModelList {
+		if len(sessionModel.ChatList) > 0 {
+			err := tx.Delete(&sessionModel.ChatList).Error
+			if err != nil {
+				tx.Rollback()
+				logrus.Errorf("%#v", err)
+				return errors.New("删除关联表失败"), ""
+			}
+		}
+	}
+	// 删除会话
+	err := tx.Delete(&sessionModelList).Error
+	if err != nil {
+		tx.Rollback()
+		logrus.Errorf("%#v", err)
+		return errors.New("会话删除失败"), ""
+	}
+	return tx.Commit().Error, fmt.Sprintf("删除成功，共删除%d个会话", len(sessionModelList))
+
+}
+
+func BigModelRoleDetailService(cr models.IDRequest) (error, RoleDetailResponse) {
+	var role models.BigModelRoleModel
+	err := global.DB.Where("id = ?", cr.ID).Preload("Tags").Take(&role).Error
+	if err != nil {
+		logrus.Errorf("%#v", err)
+		return errors.New("未找到该角色"), RoleDetailResponse{}
+	}
+	var tagList = make([]TagResponse, 0)
+	for _, tag := range role.Tags {
+		tagList = append(tagList, TagResponse{
+			ID:    tag.ID,
+			Title: tag.Title,
+			Color: tag.Color,
+		})
+
+	}
+	var count int64
+	global.DB.Model(models.BigModelChatModel{}).Where("role_id = ?", role.ID).Count(&count)
+
+	var response = RoleDetailResponse{
+		Model:     role.Model,
+		Name:      role.Name,
+		Icon:      role.Icon,
+		Abstract:  role.Abstract,
+		Tags:      tagList,
+		ChatCount: int(count),
+	}
+	return nil, response
+
+}
+
+func BigModelUserRoleHistoryService(claims *jwts.MyClaims) []RoleItem {
+	//通过 session 表 找到 用户使用过 大模型角色
+	var roleIDList []uint
+	global.DB.Where("user_id = ?", claims.UserID).Group("role_id").Select("role_id").Scan(&roleIDList)
+	var roleList []models.BigModelRoleModel
+	global.DB.Where("role_id in ?", roleIDList).Find(&roleList)
+
+	var list = make([]RoleItem, 0)
+	for _, model := range roleList {
+		list = append(list, RoleItem{
+			ID:       model.ID,
+			Name:     model.Name,
+			Abstract: model.Abstract,
+			Icon:     model.Icon,
+		})
+	}
+	return list
+}
+
+func BigModelChatListService(cr ChatListRequest, claims *jwts.MyClaims) (error, []ChatListResponse, int) {
+	// 找出对话
+	var sessionModel models.BigModelSessionModel
+	err := global.DB.Where("id = ?", cr.SessionID).Take(&sessionModel).Error
+	if err != nil {
+		logrus.Errorf("%#v", err)
+		return errors.New("会话不存在"), []ChatListResponse{}, 0
+	}
+
+	// 看看是不是自己的 会话  管理员除外  他随便
+	if claims.Role != enum.AdminRole {
+		if sessionModel.UserID != claims.UserID {
+			return errors.New("会话鉴权失败"), []ChatListResponse{}, 0
+		}
+	}
+	_list, count, err := common.ListQuery(models.BigModelChatModel{SessionID: cr.SessionID}, common.Options{
+		PageInfo: cr.PageInfo,
+		Preload:  []string{"RoleModel", "UserModel"},
+	})
+	var list = make([]ChatListResponse, 0)
+	for _, model := range _list {
+		list = append(list, ChatListResponse{
+			Model:       model.Model,
+			UserContent: model.Content,
+			UserAvatar:  model.UserModel.Avatar,
+			BotContent:  model.BotContent,
+			BotAvatar:   model.RoleModel.Icon,
+			Status:      model.Status,
+		})
+	}
+	return nil, list, count
+
+}
+
+func BigModelUserChatDeleteService(cr models.IDRequest, claims *jwts.MyClaims) error {
+	//  对话 存不存咋
+	var chat models.BigModelChatModel
+	err := global.DB.Where("id = ?", cr.ID).Take(&chat).Error
+	if err != nil {
+		return errors.New("对话不存在")
+	}
+	// 鉴权
+	if chat.UserID != claims.UserID {
+		return errors.New("鉴权失败")
+	}
+	// 删除会话
+	err = global.DB.Delete(&chat).Error
+	if err != nil {
+		logrus.Errorf("%#v", err)
+		return errors.New("对话删除失败")
+	}
+	return nil
+
+}
+
+func BigModelAdMINChatDeleteService(cr models.RemoveRequest) (error, string) {
+	var Chatmodels []models.BigModelChatModel
+	global.DB.Where("id in ?", cr.IDList).Find(&Chatmodels)
+	if len(Chatmodels) == len(cr.IDList) {
+		return errors.New("部分对话不存在"), ""
+	}
+	err := global.DB.Delete(&Chatmodels).Error
+	if err != nil {
+		logrus.Errorf("%#v", err)
+		return errors.New("删除失败"), ""
+	}
+	return nil, fmt.Sprintf("删除成功，共删除%d个对话", len(Chatmodels))
+
 }

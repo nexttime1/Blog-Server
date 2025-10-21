@@ -579,3 +579,174 @@ func (BigModelApi) BigModelChatCreateView(c *gin.Context) {
 	}
 	res.Ok(c, "你好", "对话创建成功")
 }
+
+func (BigModelApi) BigModelSessionListView(c *gin.Context) {
+	_, exist := c.Get("claims")
+	if !exist {
+		return
+	}
+	var cr common.PageInfo
+	err := c.ShouldBindQuery(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	err, responses, count := big_model_service.BigModelSessionListService(cr)
+	if err != nil {
+		res.FailWithMsg(c, fmt.Sprintf("%v", err))
+		return
+	}
+	res.OkWithList(c, responses, count)
+}
+
+func (BigModelApi) BigModelUserUpdateNameView(c *gin.Context) {
+	_Claims, exist := c.Get("claims")
+	if !exist {
+		return
+	}
+	claims := _Claims.(*jwts.MyClaims)
+	var cr big_model_service.SessionUserUpdateNameRequest
+	err := c.ShouldBindJSON(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	err = big_model_service.BigModelUserUpdateNameService(claims, cr)
+	if err != nil {
+		res.FailWithMsg(c, fmt.Sprintf("%v", err))
+		return
+	}
+	res.OkWithMessage(c, "修改成功")
+
+}
+
+func (BigModelApi) BigModelUserDeleteSessionView(c *gin.Context) {
+	_Claims, exist := c.Get("claims")
+	if !exist {
+		return
+	}
+	claims := _Claims.(*jwts.MyClaims)
+	var request models.IDRequest
+	err := c.ShouldBindUri(&request)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	err = big_model_service.BigModelUserDeleteSessionService(claims, request)
+	if err != nil {
+		res.FailWithMsg(c, fmt.Sprintf("%v", err))
+		return
+	}
+	res.OkWithMessage(c, "删除成功")
+
+}
+
+func (BigModelApi) BigModelAdminDeleteSessionView(c *gin.Context) {
+	_, exist := c.Get("claims")
+	if !exist {
+		return
+	}
+	var cr models.RemoveRequest
+	err := c.ShouldBindJSON(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	err, msg := big_model_service.BigModelAdminDeleteSessionService(cr)
+	if err != nil {
+		res.FailWithMsg(c, fmt.Sprintf("%v", err))
+		return
+	}
+	res.FailWithMsg(c, msg)
+}
+
+func (BigModelApi) BigModelRoleDetailView(c *gin.Context) {
+	var cr models.IDRequest
+	err := c.ShouldBindUri(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+
+	err, response := big_model_service.BigModelRoleDetailService(cr)
+	if err != nil {
+		res.FailWithMsg(c, fmt.Sprintf("%v", err))
+		return
+	}
+	res.OkWithData(c, response)
+}
+
+func (BigModelApi) BigModelUserRoleHistoryView(c *gin.Context) {
+	_Claims, exist := c.Get("claims")
+	if !exist {
+		return
+	}
+	claims := _Claims.(*jwts.MyClaims)
+	list := big_model_service.BigModelUserRoleHistoryService(claims)
+
+	res.OkWithData(c, list)
+}
+
+func (BigModelApi) BigModelChatListView(c *gin.Context) {
+	_Claims, exist := c.Get("claims")
+	if !exist {
+		return
+	}
+	claims := _Claims.(*jwts.MyClaims)
+	var cr big_model_service.ChatListRequest
+	err := c.ShouldBindQuery(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	err, responses, count := big_model_service.BigModelChatListService(cr, claims)
+	if err != nil {
+		res.FailWithMsg(c, fmt.Sprintf("%v", err))
+		return
+	}
+	res.OkWithList(c, responses, count)
+
+}
+
+func (BigModelApi) BigModelUserChatDeleteView(c *gin.Context) {
+	_Claims, exist := c.Get("claims")
+	if !exist {
+		return
+	}
+	claims := _Claims.(*jwts.MyClaims)
+
+	var cr models.IDRequest
+	err := c.ShouldBindUri(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	err = big_model_service.BigModelUserChatDeleteService(cr, claims)
+	if err != nil {
+		res.FailWithMsg(c, fmt.Sprintf("%v", err))
+		return
+	}
+	res.OkWithMessage(c, "删除成功")
+
+}
+
+func (BigModelApi) BigModelAdminChatDeleteView(c *gin.Context) {
+	_, exist := c.Get("claims")
+	if !exist {
+		return
+	}
+
+	var cr models.RemoveRequest
+	err := c.ShouldBindJSON(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	err, msg := big_model_service.BigModelAdMINChatDeleteService(cr)
+	if err != nil {
+		res.FailWithMsg(c, fmt.Sprintf("%v", err))
+		return
+	}
+	res.OkWithMessage(c, msg)
+
+}

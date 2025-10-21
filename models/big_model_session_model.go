@@ -3,6 +3,7 @@ package models
 // BigModelSessionModel 大模型会话表（逻辑外键版本）
 type BigModelSessionModel struct {
 	Model
+	Name      string              `gorm:"size:32" json:"name"`
 	UserID    uint                `json:"userID"`                                         // 用户id 逻辑外键
 	UserModel UserModel           `gorm:"foreignKey:UserID;constraint:false" json:"-"`    // 禁用物理外键约束
 	RoleID    uint                `json:"roleID"`                                         // 角色id 逻辑外键
