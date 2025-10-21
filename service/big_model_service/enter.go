@@ -2,15 +2,19 @@ package big_model_service
 
 import (
 	"Blog_server/common"
+	"Blog_server/common/res"
 	"Blog_server/global"
 	"Blog_server/models"
 	"Blog_server/models/enum"
+	"Blog_server/utils/big_model"
 	"Blog_server/utils/jwts"
 	"Blog_server/utils/struct_to_map"
 	"errors"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"io"
 	"regexp"
 )
 
@@ -102,8 +106,8 @@ type SessionCreateRequest struct {
 
 // ChatCreateRequest 服务于  BigModelChatCreateService
 type ChatCreateRequest struct {
-	SessionID uint   `json:"sessionID" binding:"required"` // 会话id
-	Content   string `json:"content" binding:"required"`   // 对话内容
+	SessionID uint   `form:"sessionID" binding:"required"` // 会话id
+	Content   string `form:"content" binding:"required"`   // 对话内容
 }
 
 // SessionListResponse 服务于   BigModelSessionListService
@@ -576,7 +580,7 @@ func BigModelSessionCreateService(claims *jwts.MyClaims, cr SessionCreateRequest
 	return session.ID, tx.Commit().Error
 }
 
-func BigModelChatCreateService(claims *jwts.MyClaims, cr ChatCreateRequest) error {
+func BigModelChatCreateService(c *gin.Context, claims *jwts.MyClaims, cr ChatCreateRequest) {
 	tx := global.DB.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -589,12 +593,14 @@ func BigModelChatCreateService(claims *jwts.MyClaims, cr ChatCreateRequest) erro
 	if err != nil {
 		tx.Rollback()
 		logrus.Errorf("%#v", err)
-		return errors.New("会话不存在")
+		res.FailWithMsgSSE(c, "会话不存在")
+		return
 	}
 	// 判断一下 这个会话是不是自己创建的
 	if sessionModel.UserID != claims.UserID {
 		tx.Rollback()
-		return errors.New("对话鉴权错误")
+		res.FailWithMsgSSE(c, "对话鉴权错误")
+		return
 	}
 	// 积分够不够
 	var user models.UserModel
@@ -602,34 +608,59 @@ func BigModelChatCreateService(claims *jwts.MyClaims, cr ChatCreateRequest) erro
 	if err != nil {
 		tx.Rollback()
 		logrus.Errorf("%#v", err)
-		return errors.New("用户已经不存在")
+		res.FailWithMsgSSE(c, "用户已经不存在")
+		return
 	}
 	scope := global.Config.BigModel.SessionSetting.ChatScope
 	if user.Scope < scope {
 		tx.Rollback()
-		return errors.New("用户积分不足")
+		res.FailWithMsgSSE(c, "用户积分不足")
+		return
 	}
+
+	//扣除积分
+	err = tx.Model(&user).Update("scope", gorm.Expr("scope - ?", scope)).Error
+	if err != nil {
+		tx.Rollback()
+		logrus.Errorf("%#v", err)
+		res.FailWithMsgSSE(c, "错误")
+		return
+	}
+
+	// 这个 send 里面有goroutine
+	msgChan, err := big_model.Send(cr.SessionID, cr.Content)
+	if err != nil {
+		tx.Rollback()
+		logrus.Errorf("%#v", err)
+		res.FailWithMsgSSE(c, "请求大模型失败")
+		return
+	}
+	var botContent = "" // AI的回答
+	// 流式传输
+	c.Stream(func(w io.Writer) bool {
+		if content, ok := <-msgChan; ok {
+			res.FailWithMsg(c, content)
+			botContent += content
+			return true
+		}
+		return false
+	})
 	err = global.DB.Create(&models.BigModelChatModel{
 		SessionID:  cr.SessionID,
 		Status:     true,
 		Content:    cr.Content,
-		BotContent: "你好",
+		BotContent: botContent,
 		RoleID:     sessionModel.RoleID,
 		UserID:     claims.UserID,
 	}).Error
 	if err != nil {
 		tx.Rollback()
 		logrus.Errorf("%#v", err)
-		return errors.New("错误")
+		res.FailWithMsgSSE(c, "错误")
+		return
 	}
-	//扣除积分
-	err = tx.Model(&user).Update("scope", gorm.Expr("scope - ?", scope)).Error
-	if err != nil {
-		tx.Rollback()
-		logrus.Errorf("%#v", err)
-		return errors.New("错误")
-	}
-	return tx.Commit().Error
+
+	return
 }
 
 func BigModelSessionListService(cr common.PageInfo) (error, []SessionListResponse, int) {

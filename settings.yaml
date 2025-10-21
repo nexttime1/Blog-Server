@@ -122,9 +122,9 @@ gaode:
     key: ""
 big-model:
     setting:
-        name: 生效大模型
+        name: qwen
         enable: true
-        api-key: xxxxx
+        api-key: sk-e8ed4fd4fc82489f8494ef9b6317e9e8
         api-secret: xxxx-xx-xxxx
         title: 下次一定.
         prompt: 提示词

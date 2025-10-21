@@ -51,3 +51,22 @@ func AdminMiddleware(c *gin.Context) {
 	c.Set("claims", claims)
 	c.Next()
 }
+
+func AuthSSEMiddleware(c *gin.Context) {
+	claims, err := jwts.ParseTokenByGin(c)
+	if err != nil {
+		res.FailWithErrSSE(c, err)
+		c.Abort()
+		return
+	}
+	//判断是否在黑名单里
+	ok, blackType := redis_jwt.HasTokenBlackByGin(c)
+	if ok { //ok = true  的话 在黑名单 不能再走了
+		res.FailWithMsgSSE(c, blackType.Msg())
+		c.Abort() //后面请求响应都不走  但	c.Set  要走  所以要return
+		return
+	}
+	c.Set("claims", claims)
+	c.Next()
+	return
+}

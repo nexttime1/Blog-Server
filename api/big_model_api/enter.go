@@ -567,17 +567,13 @@ func (BigModelApi) BigModelChatCreateView(c *gin.Context) {
 	}
 	claims := _claims.(*jwts.MyClaims)
 	var cr big_model_service.ChatCreateRequest
-	err := c.ShouldBindJSON(&cr)
+	err := c.ShouldBindQuery(&cr)
 	if err != nil {
-		res.FailWithErr(c, err)
+		res.FailWithErrSSE(c, err)
 		return
 	}
-	err = big_model_service.BigModelChatCreateService(claims, cr)
-	if err != nil {
-		res.FailWithMsg(c, fmt.Sprintf("%v", err))
-		return
-	}
-	res.Ok(c, "你好", "对话创建成功")
+	big_model_service.BigModelChatCreateService(c, claims, cr)
+
 }
 
 func (BigModelApi) BigModelSessionListView(c *gin.Context) {

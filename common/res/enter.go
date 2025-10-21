@@ -2,6 +2,7 @@ package res
 
 import (
 	"Blog_server/utils/validate"
+	"encoding/json"
 	"github.com/gin-gonic/gin"
 )
 
@@ -46,6 +47,12 @@ func (r Response) Json(c *gin.Context) {
 	c.JSON(200, r)
 }
 
+func (r Response) ToJson() string {
+	byteData, _ := json.Marshal(r)
+	return string(byteData)
+
+}
+
 func Ok(c *gin.Context, message string, data interface{}) {
 	Response{SuccessCode, data, message}.Json(c)
 }
@@ -78,4 +85,33 @@ func OkWithList(c *gin.Context, List any, Count int) {
 		List:  List,
 		Count: Count,
 	}, "成功"}.Json(c)
+}
+
+func OkWithMessageSSE(c *gin.Context, message string) {
+	data := Response{
+		Code: SuccessCode,
+		Data: map[string]interface{}{},
+		Msg:  message,
+	}.ToJson()
+	c.SSEvent("", data)
+}
+
+func OkWithDataSSE(c *gin.Context, data interface{}) {
+	data = Response{SuccessCode, data, "成功"}.ToJson()
+	c.SSEvent("", data)
+}
+
+func FailWithMsgSSE(c *gin.Context, message string) {
+	msg := Response{FailValidCode, empty, message}.ToJson()
+	c.SSEvent("", msg)
+}
+
+func FailWithDataSSE(c *gin.Context, message string, data interface{}) {
+	data = Response{FailServiceCode, data, message}.ToJson()
+	c.SSEvent("", data)
+}
+
+func FailWithErrSSE(c *gin.Context, err error) {
+	data, msg := validate.ValidateErr(err)
+	FailWithDataSSE(c, msg, data)
 }
