@@ -31,7 +31,7 @@ var xtm = "big_model"
 // BigModelOptionListView
 // @Summary 获取可用大模型配置
 // @Description 仅管理员可获取系统中可用的大模型配置列表
-// @Tags 大模型管理
+// @Tags 大模型配置管理
 // @Accept application/json
 // @Produce application/json
 // @Security BearerAuth
@@ -52,7 +52,7 @@ func (BigModelApi) BigModelOptionListView(c *gin.Context) {
 // BigModelSettingView  只有管理员可以看到  而 游客和 普通用户就看一点
 // @Summary 获取大模型配置
 // @Description 登录用户可获取大模型配置（管理员可见完整配置，普通用户隐藏敏感字段）
-// @Tags 大模型管理
+// @Tags 大模型配置管理
 // @Accept application/json
 // @Produce application/json
 // @Security BearerAuth
@@ -110,7 +110,7 @@ func (BigModelApi) BigModelSettingView(c *gin.Context) {
 // BigModelUpdateView
 // @Summary 修改大模型配置
 // @Description 仅管理员可修改大模型基本配置（修改后会持久化到配置文件）
-// @Tags 大模型管理
+// @Tags 大模型配置管理
 // @Accept application/json
 // @Produce application/json
 // @Security BearerAuth
@@ -147,7 +147,7 @@ func (BigModelApi) BigModelUpdateView(c *gin.Context) {
 // BigModelSessionView
 // @Summary 获取大模型会话配置
 // @Description 登录用户可获取大模型会话相关配置（如最大长度、自动保存等）
-// @Tags 大模型管理
+// @Tags 大模型配置管理
 // @Accept application/json
 // @Produce application/json
 // @Security BearerAuth
@@ -165,7 +165,7 @@ func (BigModelApi) BigModelSessionView(c *gin.Context) {
 // BigModelSessionUpdateView
 // @Summary 修改大模型会话配置
 // @Description 仅管理员可修改大模型会话配置（修改后会持久化到配置文件）
-// @Tags 大模型管理
+// @Tags 大模型配置管理
 // @Accept application/json
 // @Produce application/json
 // @Security BearerAuth
@@ -198,7 +198,7 @@ func (BigModelApi) BigModelSessionUpdateView(c *gin.Context) {
 // UserScopeEnableView
 // @Summary 查询用户是否可领取积分
 // @Description 登录用户查询自己是否满足积分领取条件
-// @Tags 用户积分
+// @Tags 大模型用户积分管理
 // @Accept application/json
 // @Produce application/json
 // @Security BearerAuth
@@ -226,7 +226,7 @@ func (BigModelApi) UserScopeEnableView(c *gin.Context) {
 // UserScopeView
 // @Summary 用户领取积分
 // @Description 登录用户提交积分领取请求（需满足领取条件）
-// @Tags 用户积分
+// @Tags 大模型用户积分管理
 // @Accept application/json
 // @Produce application/json
 // @Security BearerAuth
@@ -441,6 +441,17 @@ func (BigModelApi) BigModelTagListView(c *gin.Context) {
 
 }
 
+// BigModelTagRemoveView 批量删除大模型标签
+// @Summary 批量删除大模型标签
+// @Description 仅管理员可调用，批量删除指定ID的大模型标签
+// @Tags 大模型标签管理
+// @Accept application/json
+// @Produce application/json
+// @Security ApiKeyAuth
+// @Param data body models.RemoveRequest true "删除参数" remark "包含需要删除的标签ID列表（通常为`IDs []uint`）"
+// @Success 200 {object} res.Response{code=int,data=map[string]interface{},msg=string} "删除成功"
+// @Failure 1001 {object} res.Response{code=int,data=map[string]interface{},msg=string} "参数错误或删除失败"
+// @Router /big_model/tags [delete]
 func (BigModelApi) BigModelTagRemoveView(c *gin.Context) {
 	_, exist := c.Get("claims")
 	if !exist {
@@ -462,6 +473,26 @@ func (BigModelApi) BigModelTagRemoveView(c *gin.Context) {
 	res.OkWithMessage(c, "删除成功")
 }
 
+// BigModelRoleUpdateView 新增或更新大模型角色
+// @Summary 新增或更新大模型角色
+// @Description 仅管理员可调用，ID为空时新增角色，ID存在时更新角色信息
+// @Tags 大模型角色管理
+// @Accept application/json
+// @Produce application/json
+// @Security ApiKeyAuth
+// @Param data body big_model_service.RoleUpdateRequest true "角色信息"
+// @Param data.name formData string true "角色名称"
+// @Param data.enable formData bool true "是否启用"
+// @Param data.icon formData string false "角色图标（可选，支持系统默认或上传）"
+// @Param data.abstract formData string true "角色简介"
+// @Param data.scope formData int true "消耗积分"
+// @Param data.prologue formData string true "开场白"
+// @Param data.prompt formData string true "设定词"
+// @Param data.autoReply formData bool true "是否自动回复"
+// @Param data.tagList formData []uint true "关联标签ID列表"
+// @Success 200 {object} res.Response{code=int,data=string,msg=string} "成功（返回`角色添加成功`或`角色更新成功`）"
+// @Failure 1001 {object} res.Response{code=int,data=map[string]interface{},msg=string} "参数错误或操作失败"
+// @Router /big_model/roles [put]
 func (BigModelApi) BigModelRoleUpdateView(c *gin.Context) {
 	_, exist := c.Get("claims")
 	if !exist {
@@ -485,7 +516,20 @@ func (BigModelApi) BigModelRoleUpdateView(c *gin.Context) {
 	res.FailWithMsg(c, "角色更新成功")
 }
 
-func (BigModelApi) BigModelRoleListiew(c *gin.Context) {
+// BigModelRoleListView 获取大模型角色分页列表
+// @Summary 获取大模型角色分页列表
+// @Description 仅管理员可调用，分页查询大模型角色列表，支持按名称模糊搜索
+// @Tags 大模型角色管理
+// @Accept application/json
+// @Produce application/json
+// @Security ApiKeyAuth
+// @Param page query int false "页码（默认1）"
+// @Param pageSize query int false "每页条数（默认10）"
+// @Param name query string false "角色名称（模糊搜索）"
+// @Success 200 {object} res.Response{code=int,data=res.DataListResponse{List=[]models.BigModelRoleModel,Count=int},msg=string} "成功（返回角色列表和总数）"
+// @Failure 1001 {object} res.Response{code=int,data=map[string]interface{},msg=string} "参数错误或查询失败"
+// @Router /big_model/roles [get]
+func (BigModelApi) BigModelRoleListView(c *gin.Context) {
 	_, exist := c.Get("claims")
 	if !exist {
 		return
@@ -508,6 +552,18 @@ func (BigModelApi) BigModelRoleListiew(c *gin.Context) {
 	res.OkWithList(c, list, count)
 }
 
+// BigModelRoleRemoveView 批量删除大模型角色
+// @Summary 批量删除大模型角色
+// @Description 仅管理员可调用，批量删除指定ID的大模型角色
+// @Tags 大模型角色管理
+// @Accept application/json
+// @Produce application/json
+// @Security ApiKeyAuth
+// @Param data body models.RemoveRequest true "删除参数" remark "包含需要删除的角色ID列表（格式：{\"IDs\": [1,2,3]}）"
+// @Success 200 {object} res.Response{code=int,data=map[string]interface{},msg=string} "删除成功（返回具体删除结果描述）"
+// @Failure 1001 {object} res.Response{code=int,data=map[string]interface{},msg=string} "参数错误（如ID列表为空）"
+// @Failure 1002 {object} res.Response{code=int,data=map[string]interface{},msg=string} "服务异常（如删除失败）"
+// @Router /big_model/roles [delete]
 func (BigModelApi) BigModelRoleRemoveView(c *gin.Context) {
 	_, exist := c.Get("claims")
 	if !exist {
@@ -526,6 +582,15 @@ func (BigModelApi) BigModelRoleRemoveView(c *gin.Context) {
 	res.OkWithMessage(c, msg)
 }
 
+// BigModelTagRoleListView 获取大模型标签及关联角色列表
+// @Summary 获取大模型标签及关联角色列表
+// @Description 无需认证，返回所有标签及其关联的角色信息（用于角色广场展示）
+// @Tags 大模型角色管理
+// @Accept application/json
+// @Produce application/json
+// @Success 200 {object} res.Response{code=int,data=[]big_model_service.TagRoleListResponse,msg=string} "成功（返回标签列表，每个标签包含关联角色信息）"
+// @Failure 1002 {object} res.Response{code=int,data=map[string]interface{},msg=string} "服务异常（如查询失败）"
+// @Router /big_model/square [get]
 func (BigModelApi) BigModelTagRoleListView(c *gin.Context) {
 	err, response := big_model_service.BigModelTagRoleListService()
 	if err != nil {
@@ -536,6 +601,20 @@ func (BigModelApi) BigModelTagRoleListView(c *gin.Context) {
 
 }
 
+// BigModelSessionCreateView 创建大模型会话
+// @Summary 创建大模型会话
+// @Description 需用户认证，基于指定角色创建新会话（用于后续对话交互）
+// @Tags 大模型会话管理
+// @Accept application/json
+// @Produce application/json
+// @Security ApiKeyAuth
+// @Param data body big_model_service.SessionCreateRequest true "会话创建参数"
+// @Param data.RoleID body uint true "角色ID（关联的大模型角色）"
+// @Param data.Name body string false "会话名称（可选，不填则自动生成）"
+// @Success 200 {object} res.Response{code=int,data=uint,msg=string} "成功（返回创建的会话ID，msg为“会话创建成功”）"
+// @Failure 1001 {object} res.Response{code=int,data=map[string]interface{},msg=string} "参数错误（如RoleID为空）"
+// @Failure 1002 {object} res.Response{code=int,data=map[string]interface{},msg=string} "服务异常（如创建失败）"
+// @Router /big_model/session [post]
 func (BigModelApi) BigModelSessionCreateView(c *gin.Context) {
 	_claims, exist := c.Get("claims")
 	if !exist {
@@ -560,6 +639,19 @@ func (BigModelApi) BigModelSessionCreateView(c *gin.Context) {
 
 }
 
+// BigModelChatCreateView 创建大模型对话（SSE流）
+// @Summary 创建大模型对话（SSE流）
+// @Description 需用户认证，通过SSE（Server-Sent Events）实时返回对话内容
+// @Tags 大模型对话管理
+// @Accept application/json
+// @Produce text/event-stream
+// @Security ApiKeyAuth
+// @Param sessionID query uint true "会话ID（关联已创建的会话）"
+// @Param content query string true "对话内容（用户输入的消息）"
+// @Success 200 {string} string "SSE事件流（实时返回AI的响应内容，格式为event-stream）"
+// @Failure 1001 {string} string "参数错误（如sessionID或content为空，通过SSE返回错误信息）"
+// @Failure 1002 {string} string "服务异常（如对话生成失败，通过SSE返回错误信息）"
+// @Router /big_model/chat_sse [get]
 func (BigModelApi) BigModelChatCreateView(c *gin.Context) {
 	_claims, exist := c.Get("claims")
 	if !exist {
@@ -576,6 +668,19 @@ func (BigModelApi) BigModelChatCreateView(c *gin.Context) {
 
 }
 
+// BigModelSessionListView 获取大模型会话分页列表
+// @Summary 获取大模型会话分页列表
+// @Description 仅管理员可调用，分页查询所有用户的大模型会话记录
+// @Tags 大模型会话管理
+// @Accept application/json
+// @Produce application/json
+// @Security ApiKeyAuth
+// @Param page query int false "页码（默认1）"
+// @Param pageSize query int false "每页条数（默认10）"
+// @Success 200 {object} res.Response{code=int,data=res.DataListResponse{List=[]big_model_service.SessionListResponse,Count=int},msg=string} "成功（返回会话列表和总数，List为会话详情数组）"
+// @Failure 1001 {object} res.Response{code=int,data=map[string]interface{},msg=string} "参数错误（如分页参数格式错误）"
+// @Failure 1002 {object} res.Response{code=int,data=map[string]interface{},msg=string} "服务异常（如查询失败）"
+// @Router /big_model/session [get]
 func (BigModelApi) BigModelSessionListView(c *gin.Context) {
 	_, exist := c.Get("claims")
 	if !exist {
@@ -595,6 +700,20 @@ func (BigModelApi) BigModelSessionListView(c *gin.Context) {
 	res.OkWithList(c, responses, count)
 }
 
+// BigModelUserUpdateNameView 用户修改会话名称
+// @Summary 用户修改会话名称
+// @Description 需用户认证，修改当前用户所属会话的名称
+// @Tags 大模型会话管理
+// @Accept application/json
+// @Produce application/json
+// @Security ApiKeyAuth
+// @Param data body big_model_service.SessionUserUpdateNameRequest true "修改参数"
+// @Param data.SessionID body uint true "会话ID（需属于当前用户）"
+// @Param data.Name body string false "新会话名称（为空则不修改）"
+// @Success 200 {object} res.Response{code=int,data=map[string]interface{},msg=string} "成功（msg为“修改成功”）"
+// @Failure 1001 {object} res.Response{code=int,data=map[string]interface{},msg=string} "参数错误（如SessionID为空）"
+// @Failure 1002 {object} res.Response{code=int,data=map[string]interface{},msg=string} "服务异常（如会话不存在或无权限）"
+// @Router /big_model/session [put]
 func (BigModelApi) BigModelUserUpdateNameView(c *gin.Context) {
 	_Claims, exist := c.Get("claims")
 	if !exist {
@@ -616,6 +735,18 @@ func (BigModelApi) BigModelUserUpdateNameView(c *gin.Context) {
 
 }
 
+// BigModelUserDeleteSessionView 用户删除单个会话
+// @Summary 用户删除单个会话
+// @Description 需用户认证，删除当前用户所属的指定会话（含关联对话记录）
+// @Tags 大模型会话管理
+// @Accept application/json
+// @Produce application/json
+// @Security ApiKeyAuth
+// @Param id path uint true "会话ID（需属于当前用户）"
+// @Success 200 {object} res.Response{code=int,data=map[string]interface{},msg=string} "成功（msg为“删除成功”）"
+// @Failure 1001 {object} res.Response{code=int,data=map[string]interface{},msg=string} "参数错误（如ID格式错误）"
+// @Failure 1002 {object} res.Response{code=int,data=map[string]interface{},msg=string} "服务异常（如会话不存在或无权限）"
+// @Router /big_model/session/{id} [delete]
 func (BigModelApi) BigModelUserDeleteSessionView(c *gin.Context) {
 	_Claims, exist := c.Get("claims")
 	if !exist {
@@ -637,6 +768,18 @@ func (BigModelApi) BigModelUserDeleteSessionView(c *gin.Context) {
 
 }
 
+// BigModelAdminDeleteSessionView 管理员批量删除会话
+// @Summary 管理员批量删除会话
+// @Description 仅管理员可调用，批量删除指定ID的会话（支持跨用户删除）
+// @Tags 大模型会话管理
+// @Accept application/json
+// @Produce application/json
+// @Security ApiKeyAuth
+// @Param data body models.RemoveRequest true "批量删除参数" remark "包含需要删除的会话ID列表（格式：{\"IDs\": [1,2,3]}）"
+// @Success 200 {object} res.Response{code=int,data=map[string]interface{},msg=string} "成功（返回删除结果描述）"
+// @Failure 1001 {object} res.Response{code=int,data=map[string]interface{},msg=string} "参数错误（如ID列表为空）"
+// @Failure 1002 {object} res.Response{code=int,data=map[string]interface{},msg=string} "服务异常（如删除失败）"
+// @Router /big_model/session [delete]
 func (BigModelApi) BigModelAdminDeleteSessionView(c *gin.Context) {
 	_, exist := c.Get("claims")
 	if !exist {
@@ -656,6 +799,17 @@ func (BigModelApi) BigModelAdminDeleteSessionView(c *gin.Context) {
 	res.FailWithMsg(c, msg)
 }
 
+// BigModelRoleDetailView 获取大模型角色详情
+// @Summary 获取大模型角色详情
+// @Description 查询指定ID的大模型角色详细信息（含关联标签、聊天次数等）
+// @Tags 大模型角色管理
+// @Accept application/json
+// @Produce application/json
+// @Param id path uint true "角色ID"
+// @Success 200 {object} res.Response{code=int,data=big_model_service.RoleDetailResponse,msg=string} "成功（返回角色详情，包含名称、图标、标签等信息）"
+// @Failure 1001 {object} res.Response{code=int,data=map[string]interface{},msg=string} "参数错误（如ID格式错误）"
+// @Failure 1002 {object} res.Response{code=int,data=map[string]interface{},msg=string} "服务异常（如角色不存在）"
+// @Router /big_model/roles/{id} [get]
 func (BigModelApi) BigModelRoleDetailView(c *gin.Context) {
 	var cr models.IDRequest
 	err := c.ShouldBindUri(&cr)
@@ -672,6 +826,16 @@ func (BigModelApi) BigModelRoleDetailView(c *gin.Context) {
 	res.OkWithData(c, response)
 }
 
+// BigModelUserRoleHistoryView 用户获取使用过的大模型聊天历史
+// @Summary 用户获取使用过的大模型聊天历史
+// @Description 需用户认证，返回当前用户与所有使用过的大模型角色的聊天历史记录
+// @Tags 大模型对话管理
+// @Accept application/json
+// @Produce application/json
+// @Security ApiKeyAuth
+// @Success 200 {object} res.Response{code=int,data=[]interface{},msg=string} "成功（返回历史记录列表）"
+// @Failure 1002 {object} res.Response{code=int,data=map[string]interface{},msg=string} "服务异常（如查询失败）"
+// @Router /big_model/roles_history [get]
 func (BigModelApi) BigModelUserRoleHistoryView(c *gin.Context) {
 	_Claims, exist := c.Get("claims")
 	if !exist {
@@ -683,6 +847,20 @@ func (BigModelApi) BigModelUserRoleHistoryView(c *gin.Context) {
 	res.OkWithData(c, list)
 }
 
+// BigModelChatListView 获取单个会话的聊天记录列表
+// @Summary 获取单个会话的聊天记录列表
+// @Description 需用户认证，分页查询指定会话的所有聊天记录（用户与AI的交互内容）
+// @Tags 大模型对话管理
+// @Accept application/json
+// @Produce application/json
+// @Security ApiKeyAuth
+// @Param sessionID query uint true "会话ID（需属于当前用户）"
+// @Param page query int false "页码（默认1）"
+// @Param pageSize query int false "每页条数（默认10）"
+// @Success 200 {object} res.Response{code=int,data=res.DataListResponse{List=[]big_model_service.ChatListResponse,Count=int},msg=string} "成功（返回聊天记录列表和总数）"
+// @Failure 1001 {object} res.Response{code=int,data=map[string]interface{},msg=string} "参数错误（如sessionID为空或分页参数无效）"
+// @Failure 1002 {object} res.Response{code=int,data=map[string]interface{},msg=string} "服务异常（如会话不存在或无权限）"
+// @Router /big_model/chat [get]
 func (BigModelApi) BigModelChatListView(c *gin.Context) {
 	_Claims, exist := c.Get("claims")
 	if !exist {
@@ -704,6 +882,18 @@ func (BigModelApi) BigModelChatListView(c *gin.Context) {
 
 }
 
+// BigModelUserChatDeleteView 用户删除单个对话记录
+// @Summary 用户删除单个对话记录
+// @Description 需用户认证，删除当前用户所属会话中的指定对话记录
+// @Tags 大模型对话管理
+// @Accept application/json
+// @Produce application/json
+// @Security ApiKeyAuth
+// @Param id path uint true "对话记录ID（需属于当前用户）"
+// @Success 200 {object} res.Response{code=int,data=map[string]interface{},msg=string} "成功（msg为“删除成功”）"
+// @Failure 1001 {object} res.Response{code=int,data=map[string]interface{},msg=string} "参数错误（如ID格式错误）"
+// @Failure 1002 {object} res.Response{code=int,data=map[string]interface{},msg=string} "服务异常（如对话记录不存在或无权限）"
+// @Router /big_model/chat/{id} [delete]
 func (BigModelApi) BigModelUserChatDeleteView(c *gin.Context) {
 	_Claims, exist := c.Get("claims")
 	if !exist {
@@ -726,6 +916,18 @@ func (BigModelApi) BigModelUserChatDeleteView(c *gin.Context) {
 
 }
 
+// BigModelAdminChatDeleteView 管理员批量删除对话记录
+// @Summary 管理员批量删除对话记录
+// @Description 仅管理员可调用，批量删除指定ID的对话记录（支持跨用户删除）
+// @Tags 大模型对话管理
+// @Accept application/json
+// @Produce application/json
+// @Security ApiKeyAuth
+// @Param data body models.RemoveRequest true "批量删除参数" remark "包含需要删除的对话记录ID列表（格式：{\"IDs\": [1,2,3]}）"
+// @Success 200 {object} res.Response{code=int,data=map[string]interface{},msg=string} "成功（返回删除结果描述）"
+// @Failure 1001 {object} res.Response{code=int,data=map[string]interface{},msg=string} "参数错误（如ID列表为空）"
+// @Failure 1002 {object} res.Response{code=int,data=map[string]interface{},msg=string} "服务异常（如删除失败）"
+// @Router /big_model/chat [delete]
 func (BigModelApi) BigModelAdminChatDeleteView(c *gin.Context) {
 	_, exist := c.Get("claims")
 	if !exist {
@@ -744,5 +946,57 @@ func (BigModelApi) BigModelAdminChatDeleteView(c *gin.Context) {
 		return
 	}
 	res.OkWithMessage(c, msg)
+
+}
+
+func (BigModelApi) BigModelRoleTagsListView(c *gin.Context) {
+
+	_, exist := c.Get("claims")
+	if !exist {
+		return
+	}
+	var list []models.Options[uint]
+	global.DB.Model(models.BigModelTagModel{}).Select("id as value", "title as label").Scan(&list)
+	res.OkWithData(c, list)
+
+}
+
+func (BigModelApi) IconView(c *gin.Context) {
+	dir, err := os.ReadDir("uploads/role_icons")
+	if err != nil {
+		logrus.Error(err)
+		res.FailWithMsg(c, "目录不存在")
+		return
+	}
+	var list []models.Options[string]
+	for _, entry := range dir {
+		key := "/" + path.Join("uploads/role_icons", entry.Name())
+		list = append(list, models.Options[string]{
+			Label: key,
+			Value: key,
+		})
+	}
+	res.OkWithData(c, list)
+}
+
+func (BigModelApi) BigModelRoleSessionListView(c *gin.Context) {
+	_claims, exist := c.Get("claims")
+	if !exist {
+		return
+	}
+	claims := _claims.(*jwts.MyClaims)
+
+	var cr big_model_service.RoleSessionsRequest
+	err := c.ShouldBindQuery(&cr)
+	if err != nil {
+		res.FailWithErr(c, err)
+		return
+	}
+	err, count, responses := big_model_service.BigModelRoleSessionListService(cr, claims)
+	if err != nil {
+		res.FailWithMsg(c, fmt.Sprintf("%v", err))
+		return
+	}
+	res.OkWithList(c, responses, count)
 
 }

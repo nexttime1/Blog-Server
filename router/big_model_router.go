@@ -21,19 +21,27 @@ func BigModelRouter(r *gin.RouterGroup) {
 		r.PUT("big_model/tags", middleware.AdminMiddleware, app.BigModelTagUpdateView)                 //新增或修改大模型标签
 		r.GET("big_model/tags", middleware.AdminMiddleware, app.BigModelTagListView)                   //获取大模型标签分页列表
 		r.DELETE("big_model/tags", middleware.AdminMiddleware, app.BigModelTagRemoveView)              //批量删除大模型标签
+		r.GET("big_model/tags/options", middleware.AdminMiddleware, app.BigModelRoleTagsListView)      // 角色标签id列表
 	}
 	// 用户相关
 	{
-		r.GET("big_model/user_scope_enable", middleware.AuthMiddleware, app.UserScopeEnableView) // 用户是否可以领取积分
-		r.POST("big_model/user_scope", middleware.AuthMiddleware, app.UserScopeView)             // 用户 领取积分
+		r.GET("big_model/user_scope_enable", middleware.AuthMiddleware, app.UserScopeEnableView)    // 用户是否可以领取积分
+		r.POST("big_model/user_scope", middleware.AuthMiddleware, app.UserScopeView)                // 用户 领取积分
+		r.GET("big_model/role_session", middleware.AuthMiddleware, app.BigModelRoleSessionListView) //当前用户查询当前角色的会话列表
 	}
+
+	{
+		r.GET("big_model/icons/options", app.IconView) //角色可选 图标
+	}
+
 	//大模型角色相关
 	{
 		r.PUT("big_model/roles", middleware.AdminMiddleware, app.BigModelRoleUpdateView)    //
-		r.GET("big_model/roles", middleware.AdminMiddleware, app.BigModelRoleListiew)       //
+		r.GET("big_model/roles", middleware.AdminMiddleware, app.BigModelRoleListView)      //
 		r.DELETE("big_model/roles", middleware.AdminMiddleware, app.BigModelRoleRemoveView) //
 		r.GET("big_model/roles/:id", app.BigModelRoleDetailView)                            // 角色细节
 		r.GET("big_model/square", app.BigModelTagRoleListView)                              //大模型角色广场
+
 	}
 	//大模型会话相关
 	{

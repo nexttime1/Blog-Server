@@ -22,3 +22,7 @@ type EsIdQuest struct {
 type EsIdListQuest struct {
 	IDList []string `json:"id_list" binding:"required"`
 }
+type Options[T any] struct {
+	Label string `json:"label"`
+	Value T      `json:"value"`
+}

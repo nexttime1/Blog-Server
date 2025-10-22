@@ -3683,6 +3683,1529 @@ const docTemplate = `{
                 }
             }
         },
+        "/big_model/chat": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "需用户认证，分页查询指定会话的所有聊天记录（用户与AI的交互内容）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "大模型对话管理"
+                ],
+                "summary": "获取单个会话的聊天记录列表",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "会话ID（需属于当前用户）",
+                        "name": "sessionID",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "页码（默认1）",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页条数（默认10）",
+                        "name": "pageSize",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "1001": {
+                        "description": "参数错误（如sessionID为空或分页参数无效）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "1002": {
+                        "description": "服务异常（如会话不存在或无权限）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "200": {
+                        "description": "成功（返回聊天记录列表和总数）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/res.DataListResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "Count": {
+                                                            "type": "integer"
+                                                        },
+                                                        "List": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/big_model_service.ChatListResponse"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "仅管理员可调用，批量删除指定ID的对话记录（支持跨用户删除）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "大模型对话管理"
+                ],
+                "summary": "管理员批量删除对话记录",
+                "parameters": [
+                    {
+                        "description": "批量删除参数",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.RemoveRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "1001": {
+                        "description": "参数错误（如ID列表为空）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "1002": {
+                        "description": "服务异常（如删除失败）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "200": {
+                        "description": "成功（返回删除结果描述）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/big_model/chat/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "需用户认证，删除当前用户所属会话中的指定对话记录",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "大模型对话管理"
+                ],
+                "summary": "用户删除单个对话记录",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "对话记录ID（需属于当前用户）",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "1001": {
+                        "description": "参数错误（如ID格式错误）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "1002": {
+                        "description": "服务异常（如对话记录不存在或无权限）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "200": {
+                        "description": "成功（msg为“删除成功”）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/big_model/chat_sse": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "需用户认证，通过SSE（Server-Sent Events）实时返回对话内容",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "大模型对话管理"
+                ],
+                "summary": "创建大模型对话（SSE流）",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "会话ID（关联已创建的会话）",
+                        "name": "sessionID",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "对话内容（用户输入的消息）",
+                        "name": "content",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "1001": {
+                        "description": "参数错误（如sessionID或content为空，通过SSE返回错误信息）",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1002": {
+                        "description": "服务异常（如对话生成失败，通过SSE返回错误信息）",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "200": {
+                        "description": "SSE事件流（实时返回AI的响应内容，格式为event-stream）",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/big_model/roles": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "仅管理员可调用，分页查询大模型角色列表，支持按名称模糊搜索",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "大模型角色管理"
+                ],
+                "summary": "获取大模型角色分页列表",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "页码（默认1）",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页条数（默认10）",
+                        "name": "pageSize",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "角色名称（模糊搜索）",
+                        "name": "name",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "1001": {
+                        "description": "参数错误或查询失败",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "200": {
+                        "description": "成功（返回角色列表和总数）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/res.DataListResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "Count": {
+                                                            "type": "integer"
+                                                        },
+                                                        "List": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/models.BigModelRoleModel"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "仅管理员可调用，ID为空时新增角色，ID存在时更新角色信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "大模型角色管理"
+                ],
+                "summary": "新增或更新大模型角色",
+                "parameters": [
+                    {
+                        "description": "角色信息",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/big_model_service.RoleUpdateRequest"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "角色名称",
+                        "name": "data.name",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "是否启用",
+                        "name": "data.enable",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "角色图标（可选，支持系统默认或上传）",
+                        "name": "data.icon",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "角色简介",
+                        "name": "data.abstract",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "消耗积分",
+                        "name": "data.scope",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "开场白",
+                        "name": "data.prologue",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "设定词",
+                        "name": "data.prompt",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "是否自动回复",
+                        "name": "data.autoReply",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "关联标签ID列表",
+                        "name": "data.tagList",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "1001": {
+                        "description": "参数错误或操作失败",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "200": {
+                        "description": "成功（返回` + "`" + `角色添加成功` + "`" + `或` + "`" + `角色更新成功` + "`" + `）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "string"
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "仅管理员可调用，批量删除指定ID的大模型角色",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "大模型角色管理"
+                ],
+                "summary": "批量删除大模型角色",
+                "parameters": [
+                    {
+                        "description": "删除参数",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.RemoveRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "1001": {
+                        "description": "参数错误（如ID列表为空）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "1002": {
+                        "description": "服务异常（如删除失败）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "200": {
+                        "description": "删除成功（返回具体删除结果描述）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/big_model/roles/{id}": {
+            "get": {
+                "description": "查询指定ID的大模型角色详细信息（含关联标签、聊天次数等）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "大模型角色管理"
+                ],
+                "summary": "获取大模型角色详情",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "角色ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "1001": {
+                        "description": "参数错误（如ID格式错误）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "1002": {
+                        "description": "服务异常（如角色不存在）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "200": {
+                        "description": "成功（返回角色详情，包含名称、图标、标签等信息）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "$ref": "#/definitions/big_model_service.RoleDetailResponse"
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/big_model/roles_history": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "需用户认证，返回当前用户与所有使用过的大模型角色的聊天历史记录",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "大模型对话管理"
+                ],
+                "summary": "用户获取使用过的大模型聊天历史",
+                "responses": {
+                    "1002": {
+                        "description": "服务异常（如查询失败）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "200": {
+                        "description": "成功（返回历史记录列表）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/big_model/session": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "仅管理员可调用，分页查询所有用户的大模型会话记录",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "大模型会话管理"
+                ],
+                "summary": "获取大模型会话分页列表",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "页码（默认1）",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页条数（默认10）",
+                        "name": "pageSize",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "1001": {
+                        "description": "参数错误（如分页参数格式错误）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "1002": {
+                        "description": "服务异常（如查询失败）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "200": {
+                        "description": "成功（返回会话列表和总数，List为会话详情数组）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/res.DataListResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "Count": {
+                                                            "type": "integer"
+                                                        },
+                                                        "List": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/big_model_service.SessionListResponse"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "需用户认证，修改当前用户所属会话的名称",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "大模型会话管理"
+                ],
+                "summary": "用户修改会话名称",
+                "parameters": [
+                    {
+                        "description": "修改参数",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/big_model_service.SessionUserUpdateNameRequest"
+                        }
+                    },
+                    {
+                        "description": "会话ID（需属于当前用户）",
+                        "name": "data.SessionID",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "description": "新会话名称（为空则不修改）",
+                        "name": "data.Name",
+                        "in": "body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "1001": {
+                        "description": "参数错误（如SessionID为空）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "1002": {
+                        "description": "服务异常（如会话不存在或无权限）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "200": {
+                        "description": "成功（msg为“修改成功”）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "需用户认证，基于指定角色创建新会话（用于后续对话交互）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "大模型会话管理"
+                ],
+                "summary": "创建大模型会话",
+                "parameters": [
+                    {
+                        "description": "会话创建参数",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/big_model_service.SessionCreateRequest"
+                        }
+                    },
+                    {
+                        "description": "角色ID（关联的大模型角色）",
+                        "name": "data.RoleID",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "description": "会话名称（可选，不填则自动生成）",
+                        "name": "data.Name",
+                        "in": "body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "1001": {
+                        "description": "参数错误（如RoleID为空）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "1002": {
+                        "description": "服务异常（如创建失败）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "200": {
+                        "description": "成功（返回创建的会话ID，msg为“会话创建成功”）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "integer"
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "仅管理员可调用，批量删除指定ID的会话（支持跨用户删除）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "大模型会话管理"
+                ],
+                "summary": "管理员批量删除会话",
+                "parameters": [
+                    {
+                        "description": "批量删除参数",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.RemoveRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "1001": {
+                        "description": "参数错误（如ID列表为空）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "1002": {
+                        "description": "服务异常（如删除失败）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "200": {
+                        "description": "成功（返回删除结果描述）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/big_model/session/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "需用户认证，删除当前用户所属的指定会话（含关联对话记录）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "大模型会话管理"
+                ],
+                "summary": "用户删除单个会话",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "会话ID（需属于当前用户）",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "1001": {
+                        "description": "参数错误（如ID格式错误）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "1002": {
+                        "description": "服务异常（如会话不存在或无权限）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "200": {
+                        "description": "成功（msg为“删除成功”）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/big_model/session_setting": {
             "get": {
                 "security": [
@@ -3698,7 +5221,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "大模型管理"
+                    "大模型配置管理"
                 ],
                 "summary": "获取大模型会话配置",
                 "responses": {
@@ -3742,7 +5265,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "大模型管理"
+                    "大模型配置管理"
                 ],
                 "summary": "修改大模型会话配置",
                 "parameters": [
@@ -3811,7 +5334,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "大模型管理"
+                    "大模型配置管理"
                 ],
                 "summary": "获取大模型配置",
                 "responses": {
@@ -3861,7 +5384,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "大模型管理"
+                    "大模型配置管理"
                 ],
                 "summary": "修改大模型配置",
                 "parameters": [
@@ -3915,6 +5438,316 @@ const docTemplate = `{
                 }
             }
         },
+        "/big_model/square": {
+            "get": {
+                "description": "无需认证，返回所有标签及其关联的角色信息（用于角色广场展示）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "大模型角色管理"
+                ],
+                "summary": "获取大模型标签及关联角色列表",
+                "responses": {
+                    "1002": {
+                        "description": "服务异常（如查询失败）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "200": {
+                        "description": "成功（返回标签列表，每个标签包含关联角色信息）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/big_model_service.TagRoleListResponse"
+                                            }
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/big_model/tags": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "仅管理员可获取大模型标签的分页列表，支持基础分页参数",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "大模型标签管理"
+                ],
+                "summary": "获取大模型标签分页列表",
+                "parameters": [
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "页码（默认值：1）",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 50,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "每页条数（默认值：10，最大值：50）",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功返回标签列表及总条数",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/res.DataListResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "Count": {
+                                                            "type": "integer"
+                                                        },
+                                                        "List": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/big_model_service.TagListResponse"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "分页参数错误（如页码小于1、每页条数超出限制等）",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录或非管理员权限",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务内部错误（如数据库查询失败）",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "仅管理员可操作，根据是否传入ID判断：无ID则新增标签，有ID则修改已有标签",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "大模型标签管理"
+                ],
+                "summary": "新增或修改大模型标签",
+                "parameters": [
+                    {
+                        "description": "标签新增/修改参数",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/big_model_service.TagUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "操作成功（新增返回：标签添加成功；修改返回：标签修改成功）",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误（如名称为空、长度超限等）",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录或非管理员权限",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务内部错误（如数据库操作失败、标签名称重复等）",
+                        "schema": {
+                            "$ref": "#/definitions/res.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "仅管理员可调用，批量删除指定ID的大模型标签",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "大模型标签管理"
+                ],
+                "summary": "批量删除大模型标签",
+                "parameters": [
+                    {
+                        "description": "删除参数",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.RemoveRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "1001": {
+                        "description": "参数错误或删除失败",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "200": {
+                        "description": "删除成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/res.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/big_model/usable": {
             "get": {
                 "security": [
@@ -3930,7 +5763,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "大模型管理"
+                    "大模型配置管理"
                 ],
                 "summary": "获取可用大模型配置",
                 "responses": {
@@ -3985,7 +5818,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "用户积分"
+                    "大模型用户积分管理"
                 ],
                 "summary": "用户领取积分",
                 "parameters": [
@@ -4054,7 +5887,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "用户积分"
+                    "大模型用户积分管理"
                 ],
                 "summary": "查询用户是否可领取积分",
                 "responses": {
@@ -4443,6 +6276,9 @@ const docTemplate = `{
                 "prompt": {
                     "type": "string"
                 },
+                "slogan": {
+                    "type": "string"
+                },
                 "title": {
                     "type": "string"
                 }
@@ -4480,6 +6316,293 @@ const docTemplate = `{
                 },
                 "rule": {
                     "description": "匹配规则",
+                    "type": "string"
+                }
+            }
+        },
+        "big_model_service.ChatListResponse": {
+            "type": "object",
+            "properties": {
+                "UpdatedAt": {
+                    "type": "string"
+                },
+                "botAvatar": {
+                    "description": "AI的头像",
+                    "type": "string"
+                },
+                "botContent": {
+                    "description": "AI的聊天内容",
+                    "type": "string"
+                },
+                "created_at": {
+                    "description": "创建时间",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "主键ID",
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "boolean"
+                },
+                "userAvatar": {
+                    "description": "用户头像",
+                    "type": "string"
+                },
+                "userContent": {
+                    "description": "用户聊天内容",
+                    "type": "string"
+                }
+            }
+        },
+        "big_model_service.RoleDetailResponse": {
+            "type": "object",
+            "properties": {
+                "UpdatedAt": {
+                    "type": "string"
+                },
+                "abstract": {
+                    "type": "string"
+                },
+                "chatCount": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "description": "创建时间",
+                    "type": "string"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "description": "主键ID",
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/big_model_service.TagResponse"
+                    }
+                }
+            }
+        },
+        "big_model_service.RoleItem": {
+            "type": "object",
+            "properties": {
+                "abstract": {
+                    "description": "角色简介",
+                    "type": "string"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "description": "角色id",
+                    "type": "integer"
+                },
+                "name": {
+                    "description": "角色名称",
+                    "type": "string"
+                }
+            }
+        },
+        "big_model_service.RoleUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "abstract": {
+                    "description": "简介",
+                    "type": "string"
+                },
+                "autoReply": {
+                    "description": "自动回复",
+                    "type": "boolean"
+                },
+                "enable": {
+                    "description": "是否启用",
+                    "type": "boolean"
+                },
+                "icon": {
+                    "description": "可以选择系统默认的一些，也可以图片上传",
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "description": "角色名称",
+                    "type": "string"
+                },
+                "prologue": {
+                    "description": "开场白",
+                    "type": "string"
+                },
+                "prompt": {
+                    "description": "设定词",
+                    "type": "string"
+                },
+                "scope": {
+                    "description": "消耗的积分",
+                    "type": "integer"
+                },
+                "tagList": {
+                    "description": "标签的id列表",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "big_model_service.SessionCreateRequest": {
+            "type": "object",
+            "required": [
+                "roleID"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "roleID": {
+                    "description": "角色id",
+                    "type": "integer"
+                }
+            }
+        },
+        "big_model_service.SessionListResponse": {
+            "type": "object",
+            "properties": {
+                "UpdatedAt": {
+                    "type": "string"
+                },
+                "chatCount": {
+                    "description": "对话的次数",
+                    "type": "integer"
+                },
+                "created_at": {
+                    "description": "创建时间",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "主键ID",
+                    "type": "integer"
+                },
+                "lastContent": {
+                    "description": "最后一次的聊天内容",
+                    "type": "string"
+                },
+                "nickName": {
+                    "type": "string"
+                },
+                "roleName": {
+                    "description": "ai角色的名称",
+                    "type": "string"
+                },
+                "sessionName": {
+                    "description": "会话名称   有名称就用自己的名称，没有就自动生成",
+                    "type": "string"
+                },
+                "userID": {
+                    "type": "integer"
+                }
+            }
+        },
+        "big_model_service.SessionUserUpdateNameRequest": {
+            "type": "object",
+            "required": [
+                "sessionID"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "sessionID": {
+                    "description": "会话id",
+                    "type": "integer"
+                }
+            }
+        },
+        "big_model_service.TagListResponse": {
+            "type": "object",
+            "properties": {
+                "UpdatedAt": {
+                    "type": "string"
+                },
+                "color": {
+                    "description": "颜色",
+                    "type": "string"
+                },
+                "created_at": {
+                    "description": "创建时间",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "主键ID",
+                    "type": "integer"
+                },
+                "roleCount": {
+                    "description": "角色个数",
+                    "type": "integer"
+                },
+                "title": {
+                    "description": "名称",
+                    "type": "string"
+                }
+            }
+        },
+        "big_model_service.TagResponse": {
+            "type": "object",
+            "properties": {
+                "color": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "big_model_service.TagRoleListResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "description": "标签的id",
+                    "type": "integer"
+                },
+                "roleList": {
+                    "description": "角色列表",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/big_model_service.RoleItem"
+                    }
+                },
+                "title": {
+                    "description": "名称",
+                    "type": "string"
+                }
+            }
+        },
+        "big_model_service.TagUpdateRequest": {
+            "type": "object",
+            "required": [
+                "color",
+                "title"
+            ],
+            "properties": {
+                "color": {
+                    "description": "颜色",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "更新使用",
+                    "type": "integer"
+                },
+                "title": {
+                    "description": "名称",
                     "type": "string"
                 }
             }
@@ -4558,6 +6681,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "prompt": {
+                    "type": "string"
+                },
+                "slogan": {
                     "type": "string"
                 },
                 "title": {
@@ -4910,6 +7036,90 @@ const docTemplate = `{
                 },
                 "path": {
                     "description": "图片路径",
+                    "type": "string"
+                }
+            }
+        },
+        "models.BigModelRoleModel": {
+            "type": "object",
+            "properties": {
+                "UpdatedAt": {
+                    "type": "string"
+                },
+                "abstract": {
+                    "type": "string"
+                },
+                "autoReply": {
+                    "description": "是否接入自动回复",
+                    "type": "boolean"
+                },
+                "created_at": {
+                    "description": "创建时间",
+                    "type": "string"
+                },
+                "enable": {
+                    "description": "是否启用",
+                    "type": "boolean"
+                },
+                "icon": {
+                    "description": "可以选择系统默认的一些，也可以图片上传",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "主键ID",
+                    "type": "integer"
+                },
+                "name": {
+                    "description": "角色名称",
+                    "type": "string"
+                },
+                "prologue": {
+                    "description": "开场白",
+                    "type": "string"
+                },
+                "prompt": {
+                    "description": "设定词",
+                    "type": "string"
+                },
+                "scope": {
+                    "description": "消耗的积分",
+                    "type": "integer"
+                },
+                "tags": {
+                    "description": "角色简介",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.BigModelTagModel"
+                    }
+                }
+            }
+        },
+        "models.BigModelTagModel": {
+            "type": "object",
+            "properties": {
+                "UpdatedAt": {
+                    "type": "string"
+                },
+                "color": {
+                    "description": "颜色",
+                    "type": "string"
+                },
+                "created_at": {
+                    "description": "创建时间",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "主键ID",
+                    "type": "integer"
+                },
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.BigModelRoleModel"
+                    }
+                },
+                "title": {
+                    "description": "标签的名称",
                     "type": "string"
                 }
             }

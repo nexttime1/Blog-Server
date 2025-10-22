@@ -127,7 +127,7 @@ big-model:
         api-key: sk-e8ed4fd4fc82489f8494ef9b6317e9e8
         api-secret: xxxx-xx-xxxx
         title: 下次一定.
-        prompt: 提示词
+        prompt: You are a helpful assistant
     model-list:
         - label: 通义千问
           value: qwen

@@ -16,6 +16,7 @@ import (
 	"gorm.io/gorm"
 	"io"
 	"regexp"
+	"time"
 )
 
 // UserScopeEnableResponse 服务 UserScopeEnableService
@@ -65,21 +66,6 @@ type RoleUpdateRequest struct {
 	Prompt    string `json:"prompt" structs:"prompt"`        // 设定词
 	AutoReply bool   `json:"autoReply" structs:"auto_reply"` // 自动回复
 	TagList   []uint `json:"tagList" structs:"-"`            // 标签的id列表
-}
-
-func UserScopeEnableService(claim *jwts.MyClaims) (UserScopeEnableResponse, error) {
-
-	// 查这个用户，今天能不能领取这个积分
-	var userScopeModel models.UserScopeModel
-	err := global.DB.Take(&userScopeModel, "user_id = ? and to_days(created_at)=to_days(now())", claim.UserID).Error
-	var response UserScopeEnableResponse
-	if err == nil {
-		// 查到了
-		return response, errors.New("今日已领取积分了")
-	}
-	response.Enable = true
-	response.Scope = global.Config.BigModel.SessionSetting.DayScope
-	return response, nil
 }
 
 // RoleItem 服务于  TagRoleListResponse
@@ -158,6 +144,34 @@ type ChatListResponse struct {
 	BotContent  string `json:"botContent"`  // AI的聊天内容
 	BotAvatar   string `json:"botAvatar"`   // AI的头像
 	Status      bool   `json:"status"`
+}
+
+// RoleSessionsRequest 服务于 BigModelRoleSessionListService
+type RoleSessionsRequest struct {
+	common.PageInfo
+	RoleID uint `json:"roleID" form:"roleID" binding:"required"`
+}
+
+// RoleSessionResponse 服务于 BigModelRoleSessionListService
+type RoleSessionResponse struct {
+	ID        uint      `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	Name      string    `json:"name"`
+}
+
+func UserScopeEnableService(claim *jwts.MyClaims) (UserScopeEnableResponse, error) {
+
+	// 查这个用户，今天能不能领取这个积分
+	var userScopeModel models.UserScopeModel
+	err := global.DB.Take(&userScopeModel, "user_id = ? and to_days(created_at)=to_days(now())", claim.UserID).Error
+	var response UserScopeEnableResponse
+	if err == nil {
+		// 查到了
+		return response, errors.New("今日已领取积分了")
+	}
+	response.Enable = true
+	response.Scope = global.Config.BigModel.SessionSetting.DayScope
+	return response, nil
 }
 
 func UserScopeService(cr UserScopeRequest, claim *jwts.MyClaims) error {
@@ -627,6 +641,29 @@ func BigModelChatCreateService(c *gin.Context, claims *jwts.MyClaims, cr ChatCre
 		return
 	}
 
+	//先创建  要不事务包含太多  最好不要把流放进去
+	chatModel := models.BigModelChatModel{
+		SessionID:  cr.SessionID,
+		Status:     false,
+		Content:    cr.Content,
+		BotContent: "",
+		RoleID:     sessionModel.RoleID,
+		UserID:     claims.UserID,
+	}
+	err = tx.Create(&chatModel).Error
+	if err != nil {
+		tx.Rollback()
+		logrus.Errorf("%#v", err)
+		res.FailWithMsgSSE(c, "错误")
+		return
+	}
+	err = tx.Commit().Error
+	if err != nil {
+		tx.Rollback()
+		logrus.Errorf("%#v", err)
+		res.FailWithMsgSSE(c, "错误")
+	}
+
 	// 这个 send 里面有goroutine
 	msgChan, err := big_model.Send(cr.SessionID, cr.Content)
 	if err != nil {
@@ -645,18 +682,14 @@ func BigModelChatCreateService(c *gin.Context, claims *jwts.MyClaims, cr ChatCre
 		}
 		return false
 	})
-	err = global.DB.Create(&models.BigModelChatModel{
-		SessionID:  cr.SessionID,
-		Status:     true,
-		Content:    cr.Content,
-		BotContent: botContent,
-		RoleID:     sessionModel.RoleID,
-		UserID:     claims.UserID,
-	}).Error
-	if err != nil {
-		tx.Rollback()
-		logrus.Errorf("%#v", err)
-		res.FailWithMsgSSE(c, "错误")
+	// 这个时候再更新
+	if err = global.DB.Model(chatModel).Updates(map[string]interface{}{
+		"bot_content": botContent,
+		"status":      true,
+	}).Error; err != nil {
+		logrus.Errorf("更新聊天记录失败: %#v", err)
+		// 这里失败不影响用户使用，只是记录不完整，可后续补偿
+		res.FailWithMsgSSE(c, "更新聊天记录失败")
 		return
 	}
 
@@ -922,4 +955,24 @@ func BigModelAdMINChatDeleteService(cr models.RemoveRequest) (error, string) {
 	}
 	return nil, fmt.Sprintf("删除成功，共删除%d个对话", len(Chatmodels))
 
+}
+
+func BigModelRoleSessionListService(cr RoleSessionsRequest, claims *jwts.MyClaims) (error, int, []RoleSessionResponse) {
+	_list, count, err := common.ListQuery(models.BigModelSessionModel{RoleID: cr.RoleID, UserID: claims.UserID}, common.Options{
+		PageInfo: cr.PageInfo,
+		Likes:    []string{"name"},
+	})
+	if err != nil {
+		logrus.Errorf("%#v", err)
+		return errors.New("查询错误"), 0, []RoleSessionResponse{}
+	}
+	var list = make([]RoleSessionResponse, 0)
+	for _, model := range _list {
+		list = append(list, RoleSessionResponse{
+			ID:        model.ID,
+			CreatedAt: model.CreatedAt,
+			Name:      model.Name,
+		})
+	}
+	return nil, count, list
 }

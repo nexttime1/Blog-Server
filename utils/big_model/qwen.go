@@ -45,24 +45,27 @@ type QwenModel struct {
 	SessionID uint `json:"session_id"`
 }
 
-func (QwenModel) Send(Content string) (msgChan chan string, err error) {
+func (q QwenModel) Send(Content string) (msgChan chan string, err error) {
 	req := Request{
 		Model: "qwen-turbo",
 		Input: Input{
-			Messages: []Message{
-				{
-					Role:    "system",
-					Content: "You are a helpful assistant.",
-				},
-			},
+			Messages: []Message{},
 		},
 		Parameters: Parameters{
 			IncrementalOutput: true,
 		},
 	}
+	// 找到提示词
+	var sessionModel models.BigModelSessionModel
+	global.DB.Where("id = ?", q.SessionID).Preload("RoleModel").Find(&sessionModel)
+	req.Input.Messages = append(req.Input.Messages, Message{
+		Role:    "system",
+		Content: sessionModel.RoleModel.Prompt,
+	})
+
 	// 找到聊天记录  sessionID 一定是对的  不然到不了这里
 	var ChatList []models.BigModelChatModel
-	global.DB.Where("session_id = ?", QwenModel{}.SessionID).Order("created_at asc").Find(&ChatList)
+	global.DB.Where("session_id = ?", q.SessionID).Order("created_at asc").Find(&ChatList)
 	for _, model := range ChatList {
 		req.Input.Messages = append(req.Input.Messages, Message{
 			Role:    "user",
