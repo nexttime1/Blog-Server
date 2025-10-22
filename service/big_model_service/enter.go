@@ -692,6 +692,8 @@ func BigModelChatCreateService(c *gin.Context, claims *jwts.MyClaims, cr ChatCre
 		res.FailWithMsgSSE(c, "更新聊天记录失败")
 		return
 	}
+	// 返回Id 好删除
+	res.OkWithSSE(c, "成功", chatModel.ID)
 
 	return
 }

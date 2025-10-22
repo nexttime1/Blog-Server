@@ -115,3 +115,11 @@ func FailWithErrSSE(c *gin.Context, err error) {
 	data, msg := validate.ValidateErr(err)
 	FailWithDataSSE(c, msg, data)
 }
+func OkWithSSE(c *gin.Context, message string, data interface{}) {
+	Result := Response{
+		Code: SuccessCode,
+		Data: data,
+		Msg:  message,
+	}.ToJson()
+	c.SSEvent("", Result)
+}
