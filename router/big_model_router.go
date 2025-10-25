@@ -10,7 +10,7 @@ func BigModelRouter(r *gin.RouterGroup) {
 	app := api.App.BigModelApi
 	// 大模型相关
 	{
-		r.GET("/big_model/usable", middleware.AdminMiddleware, app.BigModelOptionListView)             // 可用大模型配置
+		r.GET("/big_model/usable", middleware.AdminMiddleware, app.BigModelOptionListView)             // 可用大模型列表
 		r.GET("/big_model/setting", middleware.AuthMiddleware, app.BigModelSettingView)                // 获得大模型配置
 		r.PUT("/big_model/setting", middleware.AdminMiddleware, app.BigModelUpdateView)                // 修改大模型配置
 		r.GET("/big_model/session_setting", middleware.AuthMiddleware, app.BigModelSessionView)        // 获取大模型会话配置
@@ -36,8 +36,8 @@ func BigModelRouter(r *gin.RouterGroup) {
 
 	//大模型角色相关
 	{
-		r.PUT("big_model/roles", middleware.AdminMiddleware, app.BigModelRoleUpdateView)    //
-		r.GET("big_model/roles", middleware.AdminMiddleware, app.BigModelRoleListView)      //
+		r.PUT("big_model/roles", middleware.AdminMiddleware, app.BigModelRoleUpdateView)    // 创建或者修改大模型角色
+		r.GET("big_model/roles", middleware.AdminMiddleware, app.BigModelRoleListView)      // 大模型角色列表
 		r.DELETE("big_model/roles", middleware.AdminMiddleware, app.BigModelRoleRemoveView) //
 		r.GET("big_model/roles/:id", app.BigModelRoleDetailView)                            // 角色细节
 		r.GET("big_model/square", app.BigModelTagRoleListView)                              //大模型角色广场

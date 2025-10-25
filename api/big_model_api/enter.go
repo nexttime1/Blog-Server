@@ -45,7 +45,7 @@ func (BigModelApi) BigModelOptionListView(c *gin.Context) {
 		// 有问题 AuthMiddleware 已经res 返回了 这里不需要返回
 		return
 	}
-	res.OkWithData(c, global.Config.BigModel)
+	res.OkWithData(c, global.Config.BigModel.ModelList)
 
 }
 
@@ -544,6 +544,7 @@ func (BigModelApi) BigModelRoleListView(c *gin.Context) {
 	list, count, err := common.ListQuery(models.BigModelRoleModel{}, common.Options{
 		PageInfo: cr,
 		Likes:    []string{"name"},
+		Preload:  []string{"Tags"},
 	})
 	if err != nil {
 		res.FailWithErr(c, err)
@@ -631,6 +632,10 @@ func (BigModelApi) BigModelSessionCreateView(c *gin.Context) {
 
 	sessionID, err := big_model_service.BigModelSessionCreateService(claims, cr)
 	if err != nil {
+		if sessionID != 0 {
+			res.Ok(c, "已经存在新的会话", sessionID)
+			return
+		}
 		res.FailWithMsg(c, fmt.Sprintf("%v", err))
 		return
 	}

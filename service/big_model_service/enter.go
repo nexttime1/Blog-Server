@@ -568,14 +568,16 @@ func BigModelSessionCreateService(claims *jwts.MyClaims, cr SessionCreateRequest
 	var sessionList []models.BigModelSessionModel
 	tx.Where("user_id = ? and role_id = ?", user.ID, cr.RoleID).Preload("ChatList").Find(&sessionList)
 	flag := true // 说明可以创建
+	var SessionID uint
 	for _, model := range sessionList {
 		if len(model.ChatList) <= 1 {
+			SessionID = model.ID
 			flag = false //说明没聊天
 		}
 	}
 	if !flag {
 		tx.Rollback()
-		return 0, errors.New("已经创建过了")
+		return SessionID, errors.New("已经存在新的会话")
 	}
 
 	//创建会话
@@ -904,6 +906,7 @@ func BigModelChatListService(cr ChatListRequest, claims *jwts.MyClaims) (error, 
 			return errors.New("会话鉴权失败"), []ChatListResponse{}, 0
 		}
 	}
+	cr.Order = "created_at asc"
 	_list, count, err := common.ListQuery(models.BigModelChatModel{SessionID: cr.SessionID}, common.Options{
 		PageInfo: cr.PageInfo,
 		Preload:  []string{"RoleModel", "UserModel"},

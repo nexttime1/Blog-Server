@@ -73,7 +73,7 @@ func ListQuery[T any](model T, options Options) (list []T, count int, err error)
 	} else {
 		query = query.Order(options.DefaultOrder)
 	}
-
+	y
 	// 定制化查询你
 	if options.Where != nil {
 		query = query.Where(options.Where)

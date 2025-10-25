@@ -120,31 +120,31 @@ chat_group:
 gaode:
     enable: true
     key: ""
-big-model:
+big_model:
     setting:
         name: qwen
         enable: true
-        api-key: sk-e8ed4fd4fc82489f8494ef9b6317e9e8
-        api-secret: xxxx-xx-xxxx
+        api_key: sk-e8ed4fd4fc82489f8494ef9b6317e9e8
+        api_secret: xxxx-xx-xxxx
         title: 下次一定.
         prompt: You are a helpful assistant
-    model-list:
+    model_list:
         - label: 通义千问
           value: qwen
-          disable: false
+          disabled: true
         - label: 文心一言
           value: wenxin
-          disable: true
+          disabled: false
         - label: 星火大模型
           value: xinghuo
-          disable: true
+          disabled: false
         - label: 天工大模型
           value: tiangong
-          disable: true
+          disabled: false
         - label: ChatGPT
           value: ChatGPT
-          disable: true
-    session-setting:
-        chat-scope: 3
-        session-scope: 5
-        day-scope: 100_
+          disabled: false
+    session_setting:
+        chat_scope: 3
+        session_scope: 5
+        day_scope: 100
