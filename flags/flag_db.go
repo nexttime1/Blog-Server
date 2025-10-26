@@ -32,7 +32,7 @@ func FlagDB() {
 		//&models.ArticleModel{},  es上
 		&models.MenuModel{},
 		&models.MenuBannerModel{},
-		&models.FadeBackModel{},
+		&models.FeedbackModel{},
 		&models.LoginDataModel{},
 		&models.LogModel{},
 		&models.ConversationModel{},

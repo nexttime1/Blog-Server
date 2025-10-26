@@ -8,6 +8,7 @@ import (
 	"Blog_server/utils/struct_to_map"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -122,7 +123,7 @@ func (MenuApi) MenuListView(c *gin.Context) {
 // @Success 200 {object} res.Response{data=[]MenuNameListResponse}
 // @Failure 400 {object} res.Response "请求参数错误"
 // @Failure 500 {object} res.Response "服务器内部错误"
-// @Router /api/menus_name [get]
+// @Router /api/menus_names [get]
 func (MenuApi) MenuNameListView(c *gin.Context) {
 	var mr []MenuNameListResponse
 	err := global.DB.Model(models.MenuModel{}).Select("id, title, path").Scan(&mr).Error
@@ -253,21 +254,21 @@ func (MenuApi) MenuDeleteView(c *gin.Context) {
 // @Produce json
 // @Param id path int true "id"
 // @Param token header string true "用户认证令牌"
-// @Success 200 {object} res.Response{data=[]MenuListResponse}
+// @Success 200 {object} res.Response{data = MenuBannerResponse} "成功返回横幅配置"
 // @Failure 400 {object} res.Response "请求参数错误"
 // @Failure 500 {object} res.Response "服务器内部错误"
-// @Router /api/menus/{id} [get]
+// @Router /api/menus/detail[get]
 func (MenuApi) MenuDetailView(c *gin.Context) {
-	id := c.Param("id")
+	path := c.Query("path")
 	var model models.MenuModel
-	err := global.DB.Where("id = ?", id).Take(&model).Error
+	err := global.DB.Where("path = ?", path).Take(&model).Error
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
 
 	var menuBannerModel []models.MenuBannerModel
-	global.DB.Preload("BannerModel").Order("sort desc").Find(&menuBannerModel, "id = ?", id)
+	global.DB.Preload("BannerModel").Order("sort desc").Find(&menuBannerModel, "menu_id = ?", model.ID)
 	var banners []Banners
 	for _, banner := range menuBannerModel {
 		banners = append(banners, Banners{
@@ -276,10 +277,20 @@ func (MenuApi) MenuDetailView(c *gin.Context) {
 		})
 	}
 
-	response := MenuListResponse{
-		MenuModel: model,
-		Banners:   banners,
+	response := MenuBannerResponse{
+		Slogan:     model.Slogan,     // 标语（前端data.slogan）
+		Abstract:   model.Abstract,   // 描述文字（前端data.abstract，支持字符串或数组）
+		BannerTime: model.BannerTime, // 轮播间隔时间（秒，前端data.banner_time）
+		Banners:    banners,          // 轮播图列表（前端data.banners）
 	}
+	logrus.Infof("response: %v", response)
 	res.OkWithData(c, response)
 
+}
+
+type MenuBannerResponse struct {
+	Slogan     string      `json:"slogan"`      // 标语（必填）
+	Abstract   interface{} `json:"abstract"`    // 描述（支持string或[]string）
+	BannerTime int         `json:"banner_time"` // 轮播间隔时间（秒，可选，前端默认7）
+	Banners    []Banners   `json:"banners"`     // 轮播图（
 }

@@ -71,7 +71,7 @@ qq:
     key: VURxpNMnpwPKsJPo
     redirect: ""
 qiniu:
-    enable: true
+    enable: false
     access_key: D3bqvd7CrziBb7S70D-0dQHReO-h0xwperqoVUbg
     secret_key: sv2jm0MGuHM4bn8ca_6qjBTItOlxxjDm4bKq1fY8
     bucket: xiaciyiding

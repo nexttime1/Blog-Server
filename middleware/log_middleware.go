@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"Blog_server/service/log_service"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -19,7 +18,7 @@ type ResponseWriter struct {
 }
 
 func (w *ResponseWriter) Write(data []byte) (int, error) {
-	fmt.Println("response :", string(data))
+	//fmt.Println("response :", string(data))
 	w.Body = append(w.Body, data...)
 	return w.ResponseWriter.Write(data)
 }
@@ -40,7 +39,7 @@ func (w *ResponseWriter) WriteHeader(code int) {
 
 func LogMiddleware(c *gin.Context) {
 	//请求部分
-	fmt.Println("中间件") //先走中间件
+	//fmt.Println("中间件") //先走中间件
 	log := log_service.NewActionLogByGin(c)
 
 	log.SetRequest(c)
@@ -56,9 +55,10 @@ func LogMiddleware(c *gin.Context) {
 
 	c.Next()
 	//响应部分
-	fmt.Println("中间件响应") //走完 路由中的函数 再走这里
-	fmt.Println("res", string(res.Body))
+	//fmt.Println("中间件响应") //走完 路由中的函数 再走这里
+	//fmt.Println("res", string(res.Body))
 	log.SetResponse(res.Body)
+
 	//使用c.JSON类似操作   res.Head 会被填充，且填充的是响应头
 	log.SetResponseHeader(res.Head)
 

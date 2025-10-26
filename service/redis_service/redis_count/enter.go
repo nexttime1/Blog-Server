@@ -122,7 +122,7 @@ func Update() {
 		}
 
 		if len(MapEnd) == 0 {
-			logrus.Infof("%s 无变化", article.Title)
+			//logrus.Infof("%s 无变化", article.Title)
 			continue
 		}
 		//需要更新
@@ -149,7 +149,7 @@ func UpdateToDB() {
 	for _, model := range modelList {
 		RedisCount := infoList[fmt.Sprintf("%d", model.ID)]
 		if RedisCount == 0 {
-			logrus.Infof("%s 不需要更新评论点赞", model.Content[:10])
+			//logrus.Infof("%s 不需要更新评论点赞", model.Content[:10])
 			continue
 		}
 		global.DB.Model(&model).Update("digg_count", model.DiggCount+RedisCount)

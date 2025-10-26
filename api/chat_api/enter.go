@@ -75,6 +75,7 @@ func (ChatApi) ChatGroupView(c *gin.Context) {
 	if err != nil {
 		// res.FailWithCode 是自定义的响应工具函数，用于返回错误码
 		// res.FailArgumentCode 表示参数错误（通常对应 HTTP 400）
+		logrus.Errorf("%v", err)
 		res.FailWithCode(c, res.FailArgumentCode)
 		return // 终止函数执行
 	}
@@ -263,12 +264,14 @@ func (ChatApi) ChatRemoveView(c *gin.Context) {
 	var cr ChatRemoveRequest
 	err := c.ShouldBindJSON(&cr)
 	if err != nil {
+		logrus.Errorf("%v", err)
 		res.FailWithErr(c, err)
 		return
 	}
 	var chatModels []models.ChatModel
 	count := global.DB.Where("id IN ?", cr.IdList).Find(&chatModels).RowsAffected
 	if count == 0 {
+		logrus.Errorf("%v", err)
 		res.FailWithMsg(c, "该记录不存在")
 		return
 	}
