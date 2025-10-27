@@ -875,9 +875,9 @@ func BigModelRoleDetailService(cr models.IDRequest) (error, RoleDetailResponse) 
 func BigModelUserRoleHistoryService(claims *jwts.MyClaims) []RoleItem {
 	//通过 session 表 找到 用户使用过 大模型角色
 	var roleIDList []uint
-	global.DB.Where("user_id = ?", claims.UserID).Group("role_id").Select("role_id").Scan(&roleIDList)
+	global.DB.Model(models.BigModelSessionModel{}).Where("user_id = ?", claims.UserID).Group("role_id").Select("role_id").Scan(&roleIDList)
 	var roleList []models.BigModelRoleModel
-	global.DB.Where("role_id in ?", roleIDList).Find(&roleList)
+	global.DB.Where("id in ?", roleIDList).Find(&roleList)
 
 	var list = make([]RoleItem, 0)
 	for _, model := range roleList {

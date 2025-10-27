@@ -16,6 +16,7 @@ import (
 	"github.com/liu-cn/json-filter/filter"
 	"github.com/olivere/elastic/v7"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
 type ArticleApi struct {
@@ -37,8 +38,10 @@ type IDListRequest struct {
 
 type ArticleSearchRequest struct {
 	common.PageInfo
-	Tag    string `json:"tag" form:"tag"`
-	IsUser bool   `json:"is_user" form:"is_user"` // 根据这个参数判断是否显示我收藏的文章列表
+	Tag      string `json:"tag" form:"tag"`
+	Category string `json:"category" form:"category"`
+	IsUser   bool   `json:"is_user" form:"is_user"` // 根据这个参数判断是否显示我收藏的文章列表
+	Date     string `json:"date" form:"date"`       // 发布时间搜索
 }
 
 // ArticleListView 文章列表
@@ -51,11 +54,6 @@ type ArticleSearchRequest struct {
 // @Produce json
 // @Success 200 {object} res.Response{data=res.DataListResponse[list = models.ArticleModel]}
 func (ArticleApi) ArticleListView(c *gin.Context) {
-	_claims, exists := c.Get("claims")
-	claims := _claims.(*jwts.MyClaims)
-	if !exists {
-		return
-	}
 	var cr ArticleSearchRequest
 	if err := c.ShouldBindQuery(&cr); err != nil {
 		res.FailWithCode(c, res.ArgumentError)
@@ -64,13 +62,27 @@ func (ArticleApi) ArticleListView(c *gin.Context) {
 	boolSearch := elastic.NewBoolQuery()
 
 	if cr.IsUser {
-		boolSearch.Must(elastic.NewTermsQuery("user_id", claims.UserID))
+		claims, err := jwts.ParseTokenByGin(c)
+		if err == nil {
+			boolSearch.Must(elastic.NewTermsQuery("user_id", claims.UserID))
+		}
+
 	}
 
-	list, count, err := Es_option.EsArticleListQuery(cr.Tag, common.Options{
+	if cr.Date != "" {
+		date, err := time.Parse("2006-01-02", cr.Date)
+		if err == nil {
+			boolSearch.Must(elastic.NewRangeQuery("created_at").
+				Gte(date.Format("2006-01-02") + " 00:00:00").
+				Lte(date.Format("2006-01-02") + " 23:59:59"))
+		}
+	}
+
+	list, count, err := Es_option.EsArticleListQuery(cr.Tag, Es_option.Options{
 		PageInfo: cr.PageInfo,
-		Likes:    []string{"title", "content", "category"},
+		Likes:    []string{"title", "content"},
 		Query:    boolSearch,
+		Category: cr.Category,
 	})
 	if err != nil {
 		logrus.Error(err)

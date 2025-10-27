@@ -16,21 +16,14 @@ const timeout = 2 * time.Second
 
 func (NewApi) NewListView(c *gin.Context) {
 	var cr new_service.Params
-	var headers new_service.Header
 	err := c.ShouldBindJSON(&cr)
 	if err != nil {
 		logrus.Errorf("接收参数问题：%s", err)
 		res.FailWithErr(c, err)
 		return
 	}
-	err = c.ShouldBindHeader(&headers)
-	if err != nil {
-		logrus.Errorf("接收参数问题：%s", err)
-		res.FailWithErr(c, err)
-		return
-	}
 
-	data, err := new_service.NewListService(cr, headers, newAPI, timeout)
+	data, err := new_service.NewListService(cr, newAPI, timeout)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return

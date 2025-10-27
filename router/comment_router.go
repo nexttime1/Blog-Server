@@ -10,7 +10,7 @@ func CommentRouter(c *gin.RouterGroup) {
 	app := api.App.CommentApi
 	c.GET("comments/articles", app.CommentByArticleListView)
 	c.POST("comments", middleware.AuthMiddleware, app.CommentAddView)
-	c.GET("comments/:id", middleware.AuthMiddleware, app.CommentListView)
+	c.GET("comments/:article_id", middleware.AuthMiddleware, app.CommentListView)
 	c.GET("comments/digg/:id", middleware.AuthMiddleware, app.CommentDiggView)
 	c.DELETE("comments/:id", middleware.AuthMiddleware, app.CommentDeleteView)
 

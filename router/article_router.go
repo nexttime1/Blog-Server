@@ -9,7 +9,7 @@ import (
 func ArticleRouter(c *gin.RouterGroup) {
 	app := api.App.ArticleApi
 	c.POST("articles", middleware.AuthMiddleware, app.ArticleCreateView)
-	c.GET("articles", middleware.AuthMiddleware, app.ArticleListView)
+	c.GET("articles", app.ArticleListView)
 	c.GET("articles/:id", app.ArticleDetailByIdView)
 	c.GET("articles_detail_title", app.ArticleDetailByTitleView)
 	c.GET("articles/calendar", app.ArticleCalendarView)

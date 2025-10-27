@@ -178,13 +178,19 @@ func (ImageApi) ImageUpdateView(c *gin.Context) {
 // @Produce json
 // @Param token header string true "token"
 // @Success 200 {object} res.Response{data=[]ImageNameListResponse}
-// @Router /api/images_name [get]
+// @Router /api/image_names [get]
 func (ImageApi) ImageNameListView(c *gin.Context) {
-	var imageList []ImageNameListResponse
-	err := global.DB.Model(&models.BannerModel{}).Select("id", "path", "name").Scan(&imageList).Error
+	var List []ImageNameListResponse
+	err := global.DB.Model(&models.BannerModel{}).Select("id", "path", "name").Scan(&List).Error
+	var imagesList []ImageNameListResponse
+	for _, response := range List {
+		path := "http://127.0.0.1/" + response.Path
+		response.Path = path
+		imagesList = append(imagesList, response)
+	}
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
-	res.OkWithData(c, imageList)
+	res.OkWithData(c, imagesList)
 }

@@ -5,7 +5,10 @@ import (
 	"Blog_server/models"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/go-redis/redis"
+
 	"github.com/olivere/elastic/v7"
 	"github.com/sirupsen/logrus"
 	"strconv"
@@ -47,11 +50,24 @@ func NewCommentDigg() CountDB {
 func (c CountDB) Set(id string) {
 	num, err := global.Redis.HGet(c.Index, id).Int()
 	if err != nil {
-		logrus.Errorf("查找错误 %s", err)
+		// 区分 "键不存在" 和其他错误（如连接失败）
+		if errors.Is(err, redis.Nil) {
+			logrus.Infof("键 %s 不存在，初始化为 0", id)
+			num = 0 // 明确初始化为 0
+		} else {
+			logrus.Errorf("HGet 错误: %s", err)
+			return // 非 "键不存在" 的错误，直接返回避免后续错误
+		}
 	}
 
 	num++
-	global.Redis.HSet(c.Index, id, num)
+	err = global.Redis.HSet(c.Index, id, num).Err()
+	if err != nil {
+		logrus.Errorf("HSet 失败: %s", err)
+	} else {
+		logrus.Infof("HSet 成功，id=%s, 新值=%d", id, num)
+	}
+
 }
 
 func (c CountDB) Get(id string) int {

@@ -19,7 +19,15 @@ type SortField struct {
 	Order bool
 }
 
-func EsArticleListQuery(tags string, options common.Options) ([]models.ArticleModel, int, error) {
+type Options struct {
+	common.PageInfo
+	Likes    []string
+	Preload  []string
+	Category string
+	Query    *elastic.BoolQuery // ES布尔查询条件
+}
+
+func EsArticleListQuery(tags string, options Options) ([]models.ArticleModel, int, error) {
 	var query *elastic.BoolQuery
 	if options.Query != nil {
 		// 外部已传入查询条件，以此为基础扩展
@@ -34,6 +42,11 @@ func EsArticleListQuery(tags string, options common.Options) ([]models.ArticleMo
 	}
 	if tags != "" {
 		query.Must(elastic.NewMultiMatchQuery(tags, "tags"))
+	}
+	if options.Category != "" {
+		query.Must(
+			elastic.NewMultiMatchQuery(options.Category, "category"),
+		)
 	}
 
 	fmt.Printf("likes ::: %T, %v\n", options.Likes, options.Likes) //likes ::: []string, ["title", "content"]

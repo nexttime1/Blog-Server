@@ -25,9 +25,9 @@ func BigModelRouter(r *gin.RouterGroup) {
 	}
 	// 用户相关
 	{
-		r.GET("big_model/user_scope_enable", middleware.AuthMiddleware, app.UserScopeEnableView)    // 用户是否可以领取积分
-		r.POST("big_model/user_scope", middleware.AuthMiddleware, app.UserScopeView)                // 用户 领取积分
-		r.GET("big_model/role_session", middleware.AuthMiddleware, app.BigModelRoleSessionListView) //当前用户查询当前角色的会话列表
+		r.GET("big_model/user_scope_enable", middleware.AuthMiddleware, app.UserScopeEnableView)     // 用户是否可以领取积分
+		r.POST("big_model/user_scope", middleware.AuthMiddleware, app.UserScopeView)                 // 用户 领取积分
+		r.GET("big_model/role_sessions", middleware.AuthMiddleware, app.BigModelRoleSessionListView) //当前用户查询当前角色的会话列表
 	}
 
 	{

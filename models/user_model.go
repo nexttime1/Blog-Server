@@ -19,7 +19,7 @@ type UserModel struct {
 	Addr           string            `gorm:"size:64" json:"addr,select(c)"`
 	Token          string            `gorm:"size:64" json:"token"` //第三方登陆的唯一id
 	IP             string            `gorm:"size:32" json:"ip,select(c)"`
-	Scope          int               `gorm:"size:32 default:0" json:"scope,select(info)"`
+	Scope          int               `gorm:"default:0" json:"scope,select(info)"`
 	Role           enum.RoleType     `json:"role"` // 1 为管理员  2 为 普通用户
 
 }

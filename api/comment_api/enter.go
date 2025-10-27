@@ -21,7 +21,7 @@ import (
 type CommentApi struct {
 }
 type CommentRequest struct {
-	ArticleID string `form:"article_id"`
+	ArticleID string `uri:"article_id"`
 }
 type CommentDiggRequest struct {
 	ID int `form:"id" uri:"id"`
@@ -71,7 +71,7 @@ func (CommentApi) CommentAddView(c *gin.Context) {
 // @Success 200 {object} res.Response{data=res.DataListResponse}
 // @Failure 400 {object} res.Response "请求参数错误"
 // @Failure 500 {object} res.Response "服务器内部错误"
-// @Router /api/comments/{id} [get]
+// @Router /api/comments/{article_id} [get]
 func (CommentApi) CommentListView(c *gin.Context) {
 	var cr CommentRequest
 	err := c.ShouldBindUri(&cr)
@@ -85,12 +85,14 @@ func (CommentApi) CommentListView(c *gin.Context) {
 
 	global.DB.Preload("User").Where("article_id = ? and parent_comment_id is null", cr.ArticleID).Find(&ParentsModels)
 	fmt.Println(len(ParentsModels))
+	count := len(ParentsModels) // 根评论数量
 	for _, model := range ParentsModels {
 		var subCommentModels []*models.CommentModel
 		Recursion(model, &subCommentModels)
 		model.SubComments = subCommentModels
+		count += len(subCommentModels)
 	}
-	res.OkWithData(c, filter.Select("c", ParentsModels))
+	res.OkWithList(c, filter.Select("c", ParentsModels), count)
 }
 
 func Recursion(model *models.CommentModel, subCommentModels *[]*models.CommentModel) {

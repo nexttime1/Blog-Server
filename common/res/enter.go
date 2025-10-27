@@ -39,8 +39,8 @@ func (c Code) Message() string {
 }
 
 type DataListResponse struct {
-	List  any
-	Count int
+	List  any `json:"list"`
+	Count int `json:"count"`
 }
 
 func (r Response) Json(c *gin.Context) {

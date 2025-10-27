@@ -3,7 +3,6 @@ package new_service
 import (
 	"Blog_server/service/redis_service/redis_news"
 	"Blog_server/utils/request"
-	"Blog_server/utils/struct_to_map"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -29,8 +28,7 @@ type NewResponse struct {
 	Msg  string               `json:"msg"`
 }
 
-func NewListService(cr Params, headers Header, newAPI string, timeout time.Duration) ([]redis_news.NewData, error) {
-	toMap := struct_to_map.StructToMap(headers)
+func NewListService(cr Params, newAPI string, timeout time.Duration) ([]redis_news.NewData, error) {
 	if cr.Size == 0 {
 		cr.Size = 1
 	}
@@ -41,12 +39,12 @@ func NewListService(cr Params, headers Header, newAPI string, timeout time.Durat
 		return data, nil
 
 	}
-	httpResponse, err := request.Post(newAPI, cr, toMap, timeout)
+	httpResponse, err := request.Get(newAPI, timeout)
 	if err != nil {
-		logrus.Errorf("post请求错误：%s", err)
+		logrus.Errorf("get 请求错误：%s", err)
 		return []redis_news.NewData{}, err
 	}
-
+	defer httpResponse.Body.Close()
 	var response NewResponse
 
 	byteData, err := io.ReadAll(httpResponse.Body)
