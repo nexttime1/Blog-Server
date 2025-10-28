@@ -62,20 +62,28 @@ func (r RoleType) Value() (driver.Value, error) {
 	return int64(r), nil
 }
 
-// MarshalJSON 实现 json.Marshaler 接口，序列化时返回中文名称
 func (r RoleType) MarshalJSON() ([]byte, error) {
-	return json.Marshal(r.ParseRole())
+	return json.Marshal(int64(r)) // 直接返回数字（如1、2、3、4）
 }
+
+// MarshalJSON 实现 json.Marshaler 接口，序列化时返回中文名称
+//     return json.Marshal(r.ParseRole()) // 返回的是"管理员"这类字符串
 
 // UnmarshalJSON 实现 json.Unmarshaler 接口，反序列化时将字符串转换为对应的RoleType
 func (r *RoleType) UnmarshalJSON(data []byte) error {
+	// 1️⃣ 优先尝试解析为数字
+	var num int
+	if err := json.Unmarshal(data, &num); err == nil {
+		*r = RoleType(num)
+		return nil
+	}
+
+	// 2️⃣ 再尝试解析为字符串
 	var roleStr string
-	// 先将JSON数据解析为字符串
 	if err := json.Unmarshal(data, &roleStr); err != nil {
 		return err
 	}
 
-	// 根据字符串匹配对应的枚举值
 	switch roleStr {
 	case "1", "管理员":
 		*r = AdminRole
@@ -86,9 +94,7 @@ func (r *RoleType) UnmarshalJSON(data []byte) error {
 	case "4", "黑名单":
 		*r = BlackRole
 	default:
-		// 处理未知角色，可根据需求返回错误或设为默认值
 		return errors.New("无效的角色类型: " + roleStr)
-		// 或者设为默认值：*r = VisitorRole; return nil
 	}
 	return nil
 }

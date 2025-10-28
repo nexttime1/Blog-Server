@@ -43,6 +43,14 @@ type UserBindEmailRequest struct {
 	Password string  `json:"password"`
 }
 
+type UserInfoResponse struct {
+	Username string        `json:"user_name"`
+	Nickname string        `json:"nick_name"`
+	Role     enum.RoleType `json:"role"`   // 1 为管理员  2 为 普通用户
+	Avatar   string        `json:"avatar"` //头像
+
+}
+
 // UserEmailLogin 邮箱登录
 // @Summary 邮箱登录
 // @Description 邮箱登录 输入 用户名和密码  都是必填
@@ -512,10 +520,14 @@ func (UserApi) UserUpdateInfoView(c *gin.Context) {
 // @Router /api/user_info [get]
 // @Param token header string  true  "token"
 // @Produce json
-// @Success 200 {object} res.Response{data=models.UserModel}
+// @Success 200 {object} res.Response{data= UserInfoResponse }
 func (UserApi) UserInfoView(c *gin.Context) {
 
-	_claims, _ := c.Get("claims")
+	_claims, exist := c.Get("claims")
+	if !exist {
+		logrus.Errorf("没登陆")
+		return
+	}
 	claims := _claims.(*jwts.MyClaims)
 
 	var userInfo models.UserModel
@@ -524,7 +536,14 @@ func (UserApi) UserInfoView(c *gin.Context) {
 		res.FailWithMsg(c, "用户不存在")
 		return
 	}
-	res.OkWithData(c, filter.Select("info", userInfo))
+	response := UserInfoResponse{
+		Username: userInfo.Username,
+		Nickname: userInfo.Nickname,
+		Role:     userInfo.Role,
+		Avatar:   userInfo.Avatar,
+	}
+
+	res.OkWithData(c, response)
 
 }
 

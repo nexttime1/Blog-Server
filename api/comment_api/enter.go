@@ -58,7 +58,7 @@ func (CommentApi) CommentAddView(c *gin.Context) {
 		res.FailWithMsg(c, fmt.Sprintf("%s", err))
 		return
 	}
-	res.OkWithMessage(c, "创建评论成功")
+	res.OkWithMessage(c, "发布评论成功")
 }
 
 // CommentListView 评论列表
@@ -87,6 +87,8 @@ func (CommentApi) CommentListView(c *gin.Context) {
 	fmt.Println(len(ParentsModels))
 	count := len(ParentsModels) // 根评论数量
 	for _, model := range ParentsModels {
+		avatar := model.User.Avatar
+		model.User.Avatar = "http://127.0.0.1:8080/" + avatar
 		var subCommentModels []*models.CommentModel
 		Recursion(model, &subCommentModels)
 		model.SubComments = subCommentModels
@@ -103,6 +105,8 @@ func Recursion(model *models.CommentModel, subCommentModels *[]*models.CommentMo
 	model.DiggCount = model.DiggCount + CommentDiggList[fmt.Sprintf("%d", model.ID)]
 
 	for _, commentModel := range model.SubComments {
+		avatar := commentModel.User.Avatar
+		commentModel.User.Avatar = "http://127.0.0.1:8080/" + avatar
 		*subCommentModels = append(*subCommentModels, commentModel)
 		Recursion(commentModel, subCommentModels)
 		commentModel.SubComments = nil
@@ -133,6 +137,11 @@ func (CommentApi) CommentDiggView(c *gin.Context) {
 		res.FailWithErr(c, err)
 		return
 	}
+
+	type data struct {
+		Is_digg bool `json:"is_digg"`
+	}
+	var data_ data
 	//查看评论存不存在
 	var commentModel models.CommentModel
 	err = global.DB.Where("id = ?", cr.ID).Take(&commentModel).Error
@@ -147,14 +156,17 @@ func (CommentApi) CommentDiggView(c *gin.Context) {
 		redis_user.NewUserDigg().Add(fmt.Sprintf("%d", claim.UserID), commentModel.ArticleID) // 在列表中增加
 		//评论点赞数 + 1
 		redis_count.NewCommentDigg().Set(fmt.Sprintf("%d", commentModel.ID))
-		res.OkWithMessage(c, "评论点赞成功")
+		data_.Is_digg = true
+		res.Ok(c, "评论点赞成功", data_)
 		return
 	}
 	// 这次 用户取消点赞
 	redis_user.NewUserDigg().Del(fmt.Sprintf("%d", claim.UserID), commentModel.ArticleID) //  在列表中减去
 	//评论点赞数 - 1
 	redis_count.NewCommentDigg().SetNum(fmt.Sprintf("%d", commentModel.ID), -1)
-	res.OkWithMessage(c, "取消点赞成功")
+
+	data_.Is_digg = false
+	res.Ok(c, "取消点赞成功", data_)
 
 }
 

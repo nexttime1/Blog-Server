@@ -906,7 +906,7 @@ func BigModelChatListService(cr ChatListRequest, claims *jwts.MyClaims) (error, 
 			return errors.New("会话鉴权失败"), []ChatListResponse{}, 0
 		}
 	}
-	cr.Order = "created_at asc"
+	cr.Sort = "created_at asc"
 	_list, count, err := common.ListQuery(models.BigModelChatModel{SessionID: cr.SessionID}, common.Options{
 		PageInfo: cr.PageInfo,
 		Preload:  []string{"RoleModel", "UserModel"},

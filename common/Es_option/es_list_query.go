@@ -54,8 +54,8 @@ func EsArticleListQuery(tags string, options Options) ([]models.ArticleModel, in
 		Field: "created_at", //默认
 		Order: true,         //升序
 	}
-	if options.Order != "" {
-		splitData := strings.Split(options.Order, " ") //空格切分
+	if options.Sort != "" {
+		splitData := strings.Split(options.Sort, " ") //空格切分
 		if len(splitData) == 2 && splitData[1] == "desc" || splitData[1] == "asc" {
 			sortField.Field = splitData[0]
 			if splitData[1] == "desc" {
@@ -63,10 +63,13 @@ func EsArticleListQuery(tags string, options Options) ([]models.ArticleModel, in
 			} else {
 				sortField.Order = true
 			}
+		} else {
+			//输入错误
+			logrus.Errorf("输入错误 格式 以空格问分界线 全部小写 例：created_at desc")
+			logrus.Errorf("你给的是 %v", options.Sort)
+			return []models.ArticleModel{}, 0, errors.New("输入错误 格式 以空格问分界线 全部小写 例：created_at desc")
 		}
-		// 输入错误
-		logrus.Errorf("输入错误 格式 以空格问分界线 全部小写 例：created_at desc")
-		return []models.ArticleModel{}, 0, errors.New("输入错误 格式 以空格问分界线 全部小写 例：created_at desc")
+
 	}
 
 	from := options.PageInfo.GetOffset()

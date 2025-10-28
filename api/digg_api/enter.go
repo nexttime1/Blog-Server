@@ -21,7 +21,7 @@ type DiggApi struct {
 // @Success 200 {object} res.Response "操作成功"
 // @Failure 400 {object} res.Response "请求参数错误"
 // @Failure 500 {object} res.Response "服务器内部错误"
-// @Router /api/digg/article [post]
+// @Router /api/articles/digg [post]
 func (DiggApi) DiggArticleView(c *gin.Context) {
 	var cr models.EsIdQuest
 	err := c.ShouldBindJSON(&cr)

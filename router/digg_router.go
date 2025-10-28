@@ -7,5 +7,5 @@ import (
 
 func DiggRouter(c *gin.RouterGroup) {
 	app := api.App.DiggApi
-	c.POST("digg/article", app.DiggArticleView)
+	c.POST("articles/digg", app.DiggArticleView)
 }

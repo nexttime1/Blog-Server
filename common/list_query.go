@@ -11,7 +11,7 @@ type PageInfo struct {
 	Limit int    `form:"limit"`
 	Page  int    `form:"page"`
 	Key   string `form:"key"`
-	Order string `form:"order"` //前端可以覆盖
+	Sort  string `form:"sort"` //前端可以覆盖
 }
 
 type Options struct {
@@ -68,8 +68,8 @@ func ListQuery[T any](model T, options Options) (list []T, count int, err error)
 		}
 	}
 	//Order 排序   前端没传送，用默认的  前端传了 就用前端的
-	if options.PageInfo.Order != "" {
-		query = query.Order(options.PageInfo.Order)
+	if options.PageInfo.Sort != "" {
+		query = query.Order(options.PageInfo.Sort)
 	} else {
 		query = query.Order(options.DefaultOrder)
 	}

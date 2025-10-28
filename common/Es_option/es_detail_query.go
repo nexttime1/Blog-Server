@@ -26,6 +26,10 @@ func EsArticleDetailByIdQuery(id string) (models.ArticleModel, error) {
 	}
 	//json 后的 id 不是 es的id
 	model.ID = res.Id
+	var Avatar string
+	Avatar = model.UserAvatar
+
+	model.UserAvatar = "http://127.0.0.1:8080/" + Avatar
 	return model, nil
 }
 
