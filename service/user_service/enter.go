@@ -139,9 +139,13 @@ func UserInfoPutService(cr UserUpdateInfoRequest, claim *jwts.MyClaims) error {
 	if ok && User.RegisterSource != enum.SignEmail {
 		delete(toMap, "avatar")
 	}
-	if ok {
-		delete(toMap, "avatar")
-	}
+	//avatar, ok := toMap["avatar"].(string)
+	//if ok {
+	//	const prefix = "http://127.0.0.1:8080/"
+	//	if strings.HasPrefix(avatar, prefix) {
+	//		toMap["avatar"] = strings.TrimPrefix(avatar, prefix)
+	//	}
+	//}
 	err = global.DB.Model(&User).Updates(toMap).Error
 	if err != nil {
 		logrus.Errorf("用户修改错误 %s", err.Error())

@@ -11,7 +11,7 @@ type UserModel struct {
 	Nickname       string            `gorm:"size:32" json:"nickname,select(c|info)"`
 	Password       string            `gorm:"size:64" json:"-"`
 	Avatar         string            `gorm:"size:256" json:"avatar,select(c)"` //头像
-	Abstract       string            `gorm:"size:256" json:"abstract"`
+	Sign           string            `gorm:"size:256" json:"sign"`
 	RegisterSource enum.RegisterType `json:"registerSource"`
 	CodeAge        string            `json:"codeAge"`
 	Email          string            `gorm:"size:256" json:"email"`
@@ -20,6 +20,7 @@ type UserModel struct {
 	Token          string            `gorm:"size:64" json:"token"` //第三方登陆的唯一id
 	IP             string            `gorm:"size:32" json:"ip,select(c)"`
 	Scope          int               `gorm:"default:0" json:"scope,select(info)"`
+	Link           string            `gorm:"size:256" json:"link,select(info)"`
 	Role           enum.RoleType     `json:"role"` // 1 为管理员  2 为 普通用户
 
 }

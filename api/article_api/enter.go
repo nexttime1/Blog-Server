@@ -382,9 +382,19 @@ func (ArticleApi) ArticleFullSearchView(c *gin.Context) {
 
 	from := cr.GetOffset()
 	limit := cr.GetLimit()
-	result, err := global.Es.Search(models.FullTextModel{}.Index()).Query(query).
-		Highlight(elastic.NewHighlight().Field("body")).
-		From(from).Size(limit).Do(context.Background())
+	result, err := global.Es.Search(models.FullTextModel{}.Index()).
+		Query(query).
+		Highlight(
+			elastic.NewHighlight().
+				Fields(
+					elastic.NewHighlighterField("title"),
+					elastic.NewHighlighterField("body"),
+				).
+				PreTags("<em>").PostTags("</em>"),
+		).
+		From(from).Size(limit).
+		Do(context.Background())
+
 	if err != nil {
 		logrus.Errorf("查询错误 %s", err)
 		res.FailWithMsg(c, fmt.Sprintf("查询错误 %s", err))
@@ -400,8 +410,10 @@ func (ArticleApi) ArticleFullSearchView(c *gin.Context) {
 			logrus.Error(err)
 			continue
 		}
-		body, ok := hit.Highlight["body"]
-		if ok {
+		if title, ok := hit.Highlight["title"]; ok {
+			model.Title = title[0]
+		}
+		if body, ok := hit.Highlight["body"]; ok {
 			model.Body = body[0]
 		}
 

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 type ImageApi struct {
@@ -44,7 +45,7 @@ type ImageNameListResponse struct {
 // @Success 200 {object} res.Response{data=[]image_service.ImageListResponse} "上传结果列表（包含每个文件的上传状态、路径等信息）"
 // @Failure 400 {object} res.Response "请求错误（如文件不存在、格式错误、大小超限等）"
 // @Failure 500 {object} res.Response "服务器错误（如上传七牛云失败、保存文件失败等）"
-// @Router /api/images [post]
+// @Router /api/image [post]
 func (ImageApi) ImageUploadView(c *gin.Context) {
 	form, err := c.MultipartForm()
 	if err != nil {
@@ -65,6 +66,9 @@ func (ImageApi) ImageUploadView(c *gin.Context) {
 			res.FailWithErr(c, err)
 			return
 		}
+		FilePath := "http://127.0.0.1:8080/" + response.FilePath
+		response.FilePath = FilePath
+		logrus.Infof("response.FilePath %v", response.FilePath)
 		responseList = append(responseList, response)
 	}
 	res.OkWithData(c, responseList)

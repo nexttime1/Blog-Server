@@ -69,6 +69,7 @@ func UploadService(c *gin.Context, FileHeader *multipart.FileHeader) (ImageListR
 			//说明已经找到了  上传重复
 			return ImageListResponse{
 				Filename:  FileHeader.Filename,
+				FilePath:  filepath,
 				Size:      size,
 				IsSuccess: false,
 				Msg:       "图片已存在 上传失败",

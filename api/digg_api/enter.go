@@ -23,6 +23,10 @@ type DiggApi struct {
 // @Failure 500 {object} res.Response "服务器内部错误"
 // @Router /api/articles/digg [post]
 func (DiggApi) DiggArticleView(c *gin.Context) {
+	_, exists := c.Get("claims")
+	if !exists {
+		return
+	}
 	var cr models.EsIdQuest
 	err := c.ShouldBindJSON(&cr)
 	if err != nil {
