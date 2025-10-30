@@ -169,8 +169,15 @@ func UpdateToDB() {
 			continue
 		}
 		global.DB.Model(&model).Update("digg_count", model.DiggCount+RedisCount)
-		logrus.Infof("%s  该评论更新点赞成功", model.Content[:10])
+		logrus.Infof("%s  该评论更新点赞成功", safeSubstr(model.Content, 10))
 
 	}
 	NewCommentDigg().Clear()
+}
+
+func safeSubstr(s string, length int) string {
+	if len(s) < length {
+		return s
+	}
+	return s[:length]
 }

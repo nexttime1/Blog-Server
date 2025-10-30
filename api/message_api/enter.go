@@ -9,6 +9,7 @@ import (
 	"Blog_server/utils/jwts"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 type MessageApi struct {
@@ -32,8 +33,16 @@ type MessageByMeRequest struct {
 // @Failure 500 {object} res.Response "服务器内部错误"
 // @Router /api/messages [post]
 func (MessageApi) MessageAddView(c *gin.Context) {
+	_claim, exists := c.Get("claims")
+	if !exists {
+		return
+	}
+	claim := _claim.(*jwts.MyClaims)
+	logrus.Infof("claim = %v", claim)
 	var cr message_service.MessageAddRequest
 	err := c.ShouldBindJSON(&cr)
+	cr.SendUserID = claim.UserID
+	logrus.Infof("cr: %v", cr)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
@@ -91,6 +100,7 @@ func (MessageApi) MessageListAllView(c *gin.Context) {
 // @Failure 500 {object} res.Response "服务器内部错误"
 // @Router /api/messages_record [get]
 func (MessageApi) MessageRecordView(c *gin.Context) {
+
 	var cr message_service.MessageRecordRequest
 	err := c.ShouldBindJSON(&cr)
 	if err != nil {

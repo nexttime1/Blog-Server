@@ -42,3 +42,22 @@ func NewLoginFail(c *gin.Context, loginType enum.LoginType, msg string, username
 		LoginType:   loginType,
 	})
 }
+
+func LogoutSuccess(c *gin.Context, model models.UserModel) {
+	ip := c.ClientIP()
+	addr := core.GetIpAddr(ip)
+
+	global.DB.Create(&models.LogModel{
+		LogType:     enum.LoginLogType,
+		Title:       "用户注销",
+		Content:     "",
+		UserID:      model.ID,
+		IP:          ip,
+		Addr:        addr,
+		LoginStatus: true,
+		UserName:    model.Username,
+		Pwd:         "-",
+		LoginType:   enum.LogoutType,
+	})
+
+}

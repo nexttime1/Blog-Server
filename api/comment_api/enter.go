@@ -87,8 +87,6 @@ func (CommentApi) CommentListView(c *gin.Context) {
 	fmt.Println(len(ParentsModels))
 	count := len(ParentsModels) // 根评论数量
 	for _, model := range ParentsModels {
-		avatar := model.User.Avatar
-		model.User.Avatar = "http://127.0.0.1:8080/" + avatar
 		var subCommentModels []*models.CommentModel
 		Recursion(model, &subCommentModels)
 		model.SubComments = subCommentModels
@@ -105,8 +103,6 @@ func Recursion(model *models.CommentModel, subCommentModels *[]*models.CommentMo
 	model.DiggCount = model.DiggCount + CommentDiggList[fmt.Sprintf("%d", model.ID)]
 
 	for _, commentModel := range model.SubComments {
-		avatar := commentModel.User.Avatar
-		commentModel.User.Avatar = "http://127.0.0.1:8080/" + avatar
 		*subCommentModels = append(*subCommentModels, commentModel)
 		Recursion(commentModel, subCommentModels)
 		commentModel.SubComments = nil

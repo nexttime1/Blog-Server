@@ -78,7 +78,7 @@ func (ArticleApi) ArticleListView(c *gin.Context) {
 		}
 	}
 
-	list, count, err := Es_option.EsArticleListQuery(cr.Tag, Es_option.Options{
+	list_, count, err := Es_option.EsArticleListQuery(cr.Tag, Es_option.Options{
 		PageInfo: cr.PageInfo,
 		Likes:    []string{"title", "content"},
 		Query:    boolSearch,
@@ -88,6 +88,12 @@ func (ArticleApi) ArticleListView(c *gin.Context) {
 		logrus.Error(err)
 		res.OkWithMessage(c, "查询失败")
 		return
+	}
+	var list []models.ArticleModel
+	for _, model := range list_ {
+		avatar := model.BannerUrl
+		model.BannerUrl = "http://127.0.0.1:8080/" + avatar
+		list = append(list, model)
 	}
 
 	// json-filter空值问题

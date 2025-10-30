@@ -45,6 +45,7 @@ func (b BlackType) String() string {
 	return fmt.Sprintf("%d", b)
 }
 
+// TokenBlack 加入黑名单
 func TokenBlack(token string, value BlackType) error {
 	key := fmt.Sprintf("xtm_token_%s", token)
 	Chains, err := jwts.ParseToken(token)
@@ -62,6 +63,7 @@ func TokenBlack(token string, value BlackType) error {
 	return nil
 }
 
+// HasTokenBlack 是否在黑名单
 func HasTokenBlack(token string) (bool, BlackType) {
 	key := fmt.Sprintf("xtm_token_%s", token)
 	result, err := global.Redis.Get(key).Result()
@@ -72,6 +74,7 @@ func HasTokenBlack(token string) (bool, BlackType) {
 	return true, blackType
 }
 
+// HasTokenBlackByGin 方便 不需要传token   判断是否在黑名单
 func HasTokenBlackByGin(c *gin.Context) (bool, BlackType) {
 	token := c.GetHeader("Token")
 	if token == "" {
@@ -81,6 +84,7 @@ func HasTokenBlackByGin(c *gin.Context) (bool, BlackType) {
 	return HasTokenBlack(token)
 }
 
+// TokenBlackByGin 方便 不需要传token  加入黑名单
 func TokenBlackByGin(c *gin.Context, value BlackType) error {
 	token := c.GetHeader("Token")
 	if token == "" {

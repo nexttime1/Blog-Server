@@ -148,6 +148,8 @@ func (CollectApi) UserCollectListView(c *gin.Context) {
 		var articleModel models.ArticleModel
 		_ = json.Unmarshal(hit.Source, &articleModel)
 		articleModel.ID = hit.Id
+		avatar := articleModel.BannerUrl
+		articleModel.BannerUrl = "http://127.0.0.1:8080/" + avatar
 		response = append(response, UserCollectResponses{
 			ArticleModel: articleModel,
 			CreateAt:     CollectMap[hit.Id],
@@ -219,6 +221,6 @@ func (CollectApi) UserCollectBatchDeleteView(c *gin.Context) {
 		}
 	}
 	global.DB.Delete(&CollectList)
-	res.FailWithMsg(c, fmt.Sprintf("成功取消%d个收藏的文章", len(CollectList)))
+	res.OkWithMessage(c, fmt.Sprintf("取消收藏%d个的文章", len(CollectList)))
 
 }

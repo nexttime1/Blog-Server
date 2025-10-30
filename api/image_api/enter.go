@@ -6,9 +6,12 @@ import (
 	"Blog_server/global"
 	"Blog_server/models"
 	"Blog_server/service/image_service"
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/olivere/elastic/v7"
 	"github.com/sirupsen/logrus"
 )
 
@@ -34,6 +37,12 @@ type ImageNameListResponse struct {
 	Name string `json:"name"` // 图片名称
 }
 
+type ImageListInfoResponse struct {
+	models.BannerModel
+	BannerCount  int `json:"bannerCount"`
+	ArticleCount int `json:"articleCount"`
+}
+
 // ImageUploadView 图片上传
 // @Summary 批量上传图片
 // @Description 支持多图片上传，自动验证格式（白名单）和大小，重复图片会被拦截
@@ -45,7 +54,7 @@ type ImageNameListResponse struct {
 // @Success 200 {object} res.Response{data=[]image_service.ImageListResponse} "上传结果列表（包含每个文件的上传状态、路径等信息）"
 // @Failure 400 {object} res.Response "请求错误（如文件不存在、格式错误、大小超限等）"
 // @Failure 500 {object} res.Response "服务器错误（如上传七牛云失败、保存文件失败等）"
-// @Router /api/image [post]
+// @Router /api/images [post]
 func (ImageApi) ImageUploadView(c *gin.Context) {
 	form, err := c.MultipartForm()
 	if err != nil {
@@ -94,20 +103,67 @@ func (ImageApi) ImageInfoView(c *gin.Context) {
 		res.FailWithErr(c, err)
 		return
 	}
-	list, count, err := common.ListQuery(models.BannerModel{
+	list_, count, err := common.ListQuery(models.BannerModel{
 		Path: cr.Path,
 		Hash: cr.Hash,
 		Name: cr.Name,
 	}, common.Options{
 		PageInfo:     cr.PageInfo,
 		Debug:        true,
+		Likes:        []string{"name"},
 		DefaultOrder: "created_at DESC", //写死了  默认降序排序  前端修改的话
 	})
+
+	var imageIDList []interface{}
+	for _, model := range list_ {
+		imageIDList = append(imageIDList, model.ID)
+	}
+	res1, err := global.Es.
+		Search(models.ArticleModel{}.Index()).
+		Query(elastic.NewTermsQuery("banner_id", imageIDList...)).
+		Size(10000).
+		Do(context.Background())
+	if err != nil {
+		logrus.Errorf("%v", err)
+		return
+	}
+	var imageIDArticleMap = map[uint]int{}
+	for _, hit := range res1.Hits.Hits {
+		var model models.ArticleModel
+		err = json.Unmarshal(hit.Source, &model)
+		if err != nil {
+			logrus.Error(err)
+			continue
+		}
+		val, ok := imageIDArticleMap[model.BannerID]
+		if !ok {
+			imageIDArticleMap[model.BannerID] = 1
+		} else {
+			imageIDArticleMap[model.BannerID] = val + 1
+		}
+	}
+
+	var response []ImageListInfoResponse
+	for _, model := range list_ {
+		url := model.Path
+		model.Path = "http://127.0.0.1:8080/" + url
+		// 求于 menus 管联的  也就是 这个图片 有几个menus用
+		var MenusCount int64
+		global.DB.Model(models.MenuBannerModel{}).Where("banner_id = ?", model.ID).Count(&MenusCount)
+
+		response = append(response, ImageListInfoResponse{
+			BannerModel:  model,
+			BannerCount:  int(MenusCount),
+			ArticleCount: imageIDArticleMap[model.ID],
+		})
+
+	}
+
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
-	res.OkWithList(c, list, count)
+	res.OkWithList(c, response, count)
 
 }
 

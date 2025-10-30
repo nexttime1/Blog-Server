@@ -1,5 +1,7 @@
 package enum
 
+import "encoding/json"
+
 type ImageType int8
 
 const (
@@ -14,5 +16,10 @@ func (image ImageType) String() string {
 	case QiNiuType:
 		return "七牛云"
 	}
+
 	return ""
+}
+
+func (image ImageType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(image.String())
 }

@@ -103,7 +103,7 @@ func (u UserApi) UserEmailLogin(c *gin.Context) {
 // @Param page query int false "页码，默认1" mininum(1)
 // @Param limit query int false "每页条数，默认10" mininum(1) maxinum(100)
 // @Param token header string true "用户认证令牌"
-// @Success 200 {object} res.Response{data=res.DataListResponse}
+// @Success 200 {object} res.Response{data= user_service.UserListResponse}
 // @Failure 400 {object} res.Response "请求参数错误"
 // @Failure 500 {object} res.Response "服务器内部错误"
 // @Router /api/users [get]
@@ -562,4 +562,32 @@ func (UserApi) QQLoginLinkView(c *gin.Context) {
 	}
 	res.OkWithData(c, path)
 	return
+}
+
+func (UserApi) UserLogoutView(c *gin.Context) {
+	_claim, exists := c.Get("claims")
+	if !exists {
+		return
+	}
+	claim := _claim.(*jwts.MyClaims)
+
+	var user models.UserModel
+	err := global.DB.Where("id = ?", claim.UserID).Take(&user).Error
+	if err != nil {
+		res.FailWithMsg(c, "没有该用户")
+		return
+	}
+
+	err = redis_jwt.TokenBlackByGin(c, redis_jwt.UserBlackType)
+	if err != nil {
+		logrus.Errorf(" %v", err)
+		res.FailWithMsg(c, "注销失败")
+		return
+	}
+	log_service.LogoutSuccess(c, user)
+
+	logrus.Info(fmt.Sprintf("用户 %s 注销登录", claim.Username))
+
+	res.OkWithMessage(c, "注销成功")
+
 }

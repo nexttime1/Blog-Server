@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/olivere/elastic/v7"
 	"github.com/sirupsen/logrus"
+	"strings"
 )
 
 //Get API 和 Search API 返回的数据结构不同
@@ -28,8 +29,10 @@ func EsArticleDetailByIdQuery(id string) (models.ArticleModel, error) {
 	model.ID = res.Id
 	var Avatar string
 	Avatar = model.UserAvatar
-
-	model.UserAvatar = "http://127.0.0.1:8080/" + Avatar
+	const prefix = "http://127.0.0.1:8080/"
+	if !strings.HasPrefix(Avatar, prefix) {
+		model.UserAvatar = "http://127.0.0.1:8080/" + Avatar
+	}
 	return model, nil
 }
 

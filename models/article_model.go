@@ -30,9 +30,9 @@ type ArticleModel struct {
 	UserNickName string `json:"user_nick_name"` //用户昵称
 	UserAvatar   string `json:"user_avatar"`    // 用户头像
 
-	Category string `json:"category"`          // 文章分类
-	Source   string `json:"source,omit(list)"` // 文章来源
-	Link     string `json:"link,omit(list)"`   // 原文链接
+	Category string `json:"category"` // 文章分类
+	Source   string `json:"source"`   // 文章来源
+	Link     string `json:"link"`     // 原文链接
 
 	BannerID  uint       `json:"banner_id"`  // 文章封面id
 	BannerUrl string     `json:"banner_url"` // 文章封面
