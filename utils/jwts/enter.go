@@ -11,7 +11,7 @@ import (
 )
 
 type Claims struct {
-	UserID   uint          `json:"userID"`
+	UserID   uint          `json:"user_id"`
 	Username string        `json:"username"`
 	Role     enum.RoleType `json:"role"`
 }

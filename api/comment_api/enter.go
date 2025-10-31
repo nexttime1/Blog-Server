@@ -231,12 +231,11 @@ func (CommentApi) CommentByArticleListView(c *gin.Context) {
 		ArticleID string
 		Count     int
 	}
-	offset := (cr.Page - 1) * cr.Limit
 
 	var _list []T
 	global.DB.Model(models.CommentModel{}).
-		Group("article_id").Order("count desc").Limit(cr.Limit).Offset(offset).Select("article_id", "count(id) as count").Scan(&_list)
-
+		Group("article_id").Order("count desc").Limit(cr.GetLimit()).Offset(cr.GetOffset()).Select("article_id", "count(id) as count").Scan(&_list)
+	//logrus.Infof("_list : %#v", _list)
 	var articleIDMap = map[string]int{}
 	var articleIDList []interface{}
 	for _, t := range _list {
@@ -244,11 +243,26 @@ func (CommentApi) CommentByArticleListView(c *gin.Context) {
 		articleIDList = append(articleIDList, t.ArticleID)
 	}
 
+	// 1. 先创建 BoolQuery，用于组合多个查询条件
+	boolQuery := elastic.NewBoolQuery()
+
+	// 2. 必须满足的条件：articleID 在之前获取的 articleIDList 内（原有逻辑保留）
+	boolQuery.Must(elastic.NewTermsQuery("_id", articleIDList...))
+
+	// 3. 可选条件：如果传了 title，就加 title 模糊匹配（核心新增）
+	if cr.Title != "" {
+		// 模糊匹配 title 字段：会对搜索词分词，比如“测试”能匹配“测试文章”“文章测试”
+		// 如果你需要更严格的“包含”（如“*测试*”），可换成 elastic.NewWildcardQuery("title", "*" + cr.Title + "*")
+		boolQuery.Must(elastic.NewMatchQuery("title", cr.Title))
+	}
+
+	// 4. ES 搜索时，用上面组合好的 boolQuery 作为查询条件（替换原来的 NewTermsQuery）
 	result, err := global.Es.
 		Search(models.ArticleModel{}.Index()).
-		Query(elastic.NewTermsQuery("_id", articleIDList...)).
+		Query(boolQuery). // 这里换成组合后的 boolQuery
 		Size(10000).
 		Do(context.Background())
+
 	if err != nil {
 		res.FailWithMsg(c, "es查询错误")
 		return

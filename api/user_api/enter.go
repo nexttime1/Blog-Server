@@ -48,7 +48,8 @@ type UserInfoResponse struct {
 	Nickname string        `json:"nick_name"`
 	Role     enum.RoleType `json:"role"`   // 1 为管理员  2 为 普通用户
 	Avatar   string        `json:"avatar"` //头像
-
+	Sign     string        `json:"sign"`
+	Link     string        `json:"link"`
 }
 
 // UserEmailLogin 邮箱登录
@@ -141,7 +142,7 @@ func (u UserApi) UserListInfoView(c *gin.Context) {
 // @Failure 400 {object} res.Response "请求参数错误（如ID格式错误）"
 // @Failure 404 {object} res.Response "不存在"
 // @Failure 500 {object} res.Response "服务器内部错误"
-// @Router /api/users_role [put]
+// @Router /api/user_role [put]
 func (u UserApi) UserUpdateView(c *gin.Context) {
 	_, ok := c.Get("claims")
 	if !ok {
@@ -541,6 +542,8 @@ func (UserApi) UserInfoView(c *gin.Context) {
 		Nickname: userInfo.Nickname,
 		Role:     userInfo.Role,
 		Avatar:   userInfo.Avatar,
+		Sign:     userInfo.Sign,
+		Link:     userInfo.Link,
 	}
 
 	res.OkWithData(c, response)

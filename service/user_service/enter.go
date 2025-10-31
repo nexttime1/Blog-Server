@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/sirupsen/logrus"
+	"strconv"
 )
 
 type EmailLoginRequest struct {
@@ -21,14 +22,14 @@ type EmailLoginRequest struct {
 
 type UserInfoRequest struct {
 	common.PageInfo
-	Username string `json:"user_name"`
+	Role string `json:"role" form:"role"`
 }
 
 type UserCreateRequest struct {
-	NickName string        `json:"nickname" binding:"required" msg:"请输入昵称"`  // 昵称
-	UserName string        `json:"username" binding:"required" msg:"请输入用户名"` // 用户名
-	Password string        `json:"password" binding:"required" msg:"请输入密码"`  // 密码
-	Role     enum.RoleType `json:"role" binding:"required" msg:"请选择权限"`      // 权限  1 管理员  2 普通用户  3 游客
+	NickName string        `json:"nick_name" binding:"required" msg:"请输入昵称"`   // 昵称
+	UserName string        `json:"user_name" binding:"required" msg:"请输入用户名"` // 用户名
+	Password string        `json:"password" binding:"required" msg:"请输入密码"`    // 密码
+	Role     enum.RoleType `json:"role" binding:"required" msg:"请选择权限"`        // 权限  1 管理员  2 普通用户  3 游客
 }
 
 type UserListResponse struct {
@@ -41,11 +42,12 @@ type UserListResponse struct {
 	Addr           string            `json:"addr"`
 	Token          string            `json:"token"`
 	IP             string            `json:"ip"`
-	Role           enum.RoleType     `json:"role"`
+	Role           string            `json:"role"`
 	RegisterSource enum.RegisterType `json:"sign_status"`
 	Scope          int               `json:"scope"`
 	Sign           string            `json:"sign"`
 	Link           string            `json:"link"`
+	RoleId         int               `json:"role_id"`
 }
 
 func UserEmailLoginService(mr EmailLoginRequest) (userModel models.UserModel, token string, msg string, err error) {
@@ -78,15 +80,34 @@ func UserEmailLoginService(mr EmailLoginRequest) (userModel models.UserModel, to
 }
 
 func UserInfoService(UserInfo UserInfoRequest) ([]UserListResponse, int, error) {
-	list, count, err := common.ListQuery(models.UserModel{
-		Username: UserInfo.Username,
-	}, common.Options{
-		PageInfo: UserInfo.PageInfo,
-		Likes:    []string{"username", "nickname"},
-	})
-	if err != nil {
-		return nil, 0, err
+	var list []models.UserModel
+	var count int
+	var err error
+	//logrus.Infof("UserInfo ：%v", UserInfo)
+	//logrus.Infof("UserInfo.Role ：%v， 类型是 %T", UserInfo.Role, UserInfo.Role)
+	if UserInfo.Role != "" {
+		role, err := strconv.Atoi(UserInfo.Role)
+		if err != nil {
+			return nil, 0, fmt.Errorf("字符串转int失败")
+		}
+		logrus.Infof("%v", enum.RoleType(role))
+		list, count, err = common.ListQuery(models.UserModel{Role: enum.RoleType(role)}, common.Options{
+			PageInfo: UserInfo.PageInfo,
+			Likes:    []string{"nickname"},
+		})
+		if err != nil {
+			return nil, 0, err
+		}
+	} else {
+		list, count, err = common.ListQuery(models.UserModel{}, common.Options{
+			PageInfo: UserInfo.PageInfo,
+			Likes:    []string{"nickname"},
+		})
+		if err != nil {
+			return nil, 0, err
+		}
 	}
+
 	var UserModelList []UserListResponse
 	for _, model := range list {
 		if model.Role == enum.AdminRole {
@@ -105,11 +126,12 @@ func UserInfoService(UserInfo UserInfoRequest) ([]UserListResponse, int, error) 
 			Addr:           model.Addr,
 			Token:          model.Token,
 			IP:             model.IP,
-			Role:           model.Role,
+			Role:           model.Role.ParseRole(),
 			RegisterSource: model.RegisterSource,
 			Scope:          model.Scope,
 			Sign:           model.Sign,
 			Link:           model.Link,
+			RoleId:         int(model.Role),
 		})
 	}
 

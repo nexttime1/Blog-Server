@@ -145,7 +145,7 @@ func (SettingApi) SettingInfoUpdateView(c *gin.Context) {
 	}
 
 	// 3. 把更新后的 global.Config 完整写入 yaml 文件（永久保存）
-	filePath := "D:\\1111kaoyan111111111111111111111111111111\\go_project\\Blog-Server\\settings.yaml"
+	filePath := global.SettingYaml
 	if err := saveConfigToYaml(filePath, global.Config); err != nil { // 假设 ConfigPath 是 yaml 路径
 		res.FailWithErr(c, errors.New("配置保存失败："+err.Error()))
 		return

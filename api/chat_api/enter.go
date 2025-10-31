@@ -23,12 +23,12 @@ type ChatApi struct {
 }
 
 const (
-	InRoomMsg  enum.MsgType = 1
-	TextMsg    enum.MsgType = 2
-	ImageMsg   enum.MsgType = 3
-	voiceMsg   enum.MsgType = 4
-	videoMsg   enum.MsgType = 5
-	SystemMsg  enum.MsgType = 6
+	SystemMsg enum.MsgType = 1
+	TextMsg   enum.MsgType = 2
+	ImageMsg  enum.MsgType = 3
+	voiceMsg  enum.MsgType = 4
+	videoMsg  enum.MsgType = 5
+	//SystemMsg  enum.MsgType = 6
 	OutRoomMsg enum.MsgType = 7
 )
 
@@ -47,7 +47,7 @@ type GroupResponse struct {
 	NickName    string       `json:"nick_name"`    // 前端自己生成
 	Avatar      string       `json:"avatar"`       // 头像
 	OnlineCount int          `json:"online_count"` //在线人数
-	Date        time.Time    `json:"date"`         // 消息的时间
+	CreatedAt   time.Time    `json:"created_at"`   // 消息的时间
 }
 
 var ConnGroupMap = make(map[string]ChatUser)
@@ -92,6 +92,14 @@ func (ChatApi) ChatGroupView(c *gin.Context) {
 	ConnGroupMap[addr] = User
 
 	logrus.Infof("%s 连接成功", addr)
+	SendGroupMsg(conn, GroupResponse{
+		MsgType:     SystemMsg,
+		NickName:    User.NickName,
+		Avatar:      User.Avatar,
+		Content:     fmt.Sprintf("%s 进入聊天室", User.NickName),
+		OnlineCount: len(ConnGroupMap),
+		CreatedAt:   time.Now(),
+	})
 	// 循环读取客户端发送的消息（WebSocket 连接是长连接，需要持续监听）
 	for {
 		// 调用 conn.ReadMessage 读取客户端消息
@@ -108,9 +116,9 @@ func (ChatApi) ChatGroupView(c *gin.Context) {
 				MsgType:     OutRoomMsg,
 				NickName:    User.NickName,
 				Avatar:      User.Avatar,
-				Content:     fmt.Sprintf("%s 离开聊天室", addr),
+				Content:     fmt.Sprintf("%s 离开聊天室", User.NickName),
 				OnlineCount: len(ConnGroupMap) - 1,
-				Date:        time.Now(),
+				CreatedAt:   time.Now(),
 			})
 
 			break
@@ -127,7 +135,7 @@ func (ChatApi) ChatGroupView(c *gin.Context) {
 					Content:     "消息不能为空",
 					NickName:    User.NickName,
 					OnlineCount: len(ConnGroupMap),
-					Date:        time.Now(),
+					CreatedAt:   time.Now(),
 				})
 				continue
 			}
@@ -138,15 +146,15 @@ func (ChatApi) ChatGroupView(c *gin.Context) {
 				NickName:    User.NickName,
 				Avatar:      User.Avatar,
 				OnlineCount: len(ConnGroupMap),
-				Date:        time.Now(),
+				CreatedAt:   time.Now(),
 			})
-		case InRoomMsg:
+		case SystemMsg:
 			SendGroupMsg(conn, GroupResponse{
 				NickName:    User.NickName,
 				Avatar:      User.Avatar,
 				Content:     fmt.Sprintf("%s 进入聊天室", User.NickName),
 				OnlineCount: len(ConnGroupMap),
-				Date:        time.Now(),
+				CreatedAt:   time.Now(),
 			})
 		default:
 			SendMsg(addr, GroupResponse{
@@ -155,7 +163,7 @@ func (ChatApi) ChatGroupView(c *gin.Context) {
 				NickName:    User.NickName,
 				Avatar:      User.Avatar,
 				OnlineCount: len(ConnGroupMap),
-				Date:        time.Now(),
+				CreatedAt:   time.Now(),
 			})
 		}
 

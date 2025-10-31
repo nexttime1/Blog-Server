@@ -3,6 +3,7 @@ package redis_count
 import (
 	"Blog_server/global"
 	"Blog_server/models"
+	"Blog_server/utils/es"
 	"context"
 	"encoding/json"
 	"errors"
@@ -104,7 +105,7 @@ func (c CountDB) Clear() {
 }
 
 func Update() {
-
+	ctx := context.Background()
 	result, err := global.Es.Search(models.ArticleModel{}.Index()).
 		Query(elastic.NewMatchAllQuery()).
 		Size(10000).
@@ -142,14 +143,12 @@ func Update() {
 			continue
 		}
 		//需要更新
-		_, err = global.Es.
-			Update().
-			Index(models.ArticleModel{}.Index()).
-			Id(hit.Id).
-			Doc(MapEnd).Do(context.Background())
+		_, err := es.SafeESUpdate(ctx, global.Es, models.ArticleModel{}.Index(), hit.Id, MapEnd)
 		if err != nil {
-			logrus.Errorf("es id为 %s 更新失败", hit.Id, err)
+			logrus.Errorf("文章《%s》ES 更新失败: %v", article.Title, err)
+			continue
 		}
+
 		logrus.Infof("%s 更新成功", article.Title)
 	}
 

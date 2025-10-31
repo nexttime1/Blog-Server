@@ -16,7 +16,7 @@ func UserRouter(r *gin.RouterGroup) {
 	r.POST("email_login", app.UserEmailLogin)
 	r.POST("qq_login", app.UserQQLogin)
 	r.GET("users", middleware.AuthMiddleware, app.UserListInfoView)
-	r.PUT("users_role", middleware.AdminMiddleware, app.UserUpdateView)
+	r.PUT("user_role", middleware.AdminMiddleware, app.UserUpdateView)
 	r.PUT("users_pwd", middleware.AuthMiddleware, app.UserPasswordView)
 	//r.GET("user_info", middleware.AuthMiddleware, app.UserPersonInfoView)
 	r.DELETE("users", middleware.AdminMiddleware, app.UserDeleteView)

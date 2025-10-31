@@ -17,7 +17,7 @@ type MessageApi struct {
 
 type MessageByMeRequest struct {
 	common.PageInfo
-	UserID string `json:"userID"`
+	UserID string `json:"userID" form:"userID" uri:"userID"`
 }
 
 // MessageAddView 发送消息
@@ -145,6 +145,7 @@ func (MessageApi) MessageUserRecordByMeView(c *gin.Context) {
 	list, count, err := common.ListQuery(models.MessageModel{}, common.Options{
 		PageInfo: cr.PageInfo,
 		Where:    global.DB.Where("(send_user_id = ? and rev_user_id = ?) or (rev_user_id = ? and send_user_id = ?)", claim.UserID, cr.UserID, claim.UserID, cr.UserID),
+		Debug:    true,
 	})
 	if err != nil {
 		res.FailWithErr(c, err)
