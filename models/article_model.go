@@ -195,6 +195,18 @@ func (a *ArticleModel) Create() (err error) {
 		return fmt.Errorf("创建文章数据失败  特指 id")
 
 	}
+	// 放入 userid 与 文章ID 的对于 数据库里
+	model := ArticleUserIDModel{
+		UserID:    a.UserID,
+		ArticleID: a.ID,
+	}
+
+	err = global.DB.Create(&model).Error
+	if err != nil {
+		logrus.Error(err.Error())
+		return fmt.Errorf("创建关联表失败")
+	}
+
 	return nil
 }
 

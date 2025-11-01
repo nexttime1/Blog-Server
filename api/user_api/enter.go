@@ -1,7 +1,6 @@
 package user_api
 
 import (
-	"Blog_server/common"
 	"Blog_server/common/res"
 	"Blog_server/core"
 	"Blog_server/global"
@@ -9,6 +8,7 @@ import (
 	"Blog_server/models/enum"
 	"Blog_server/plugins/email"
 	"Blog_server/plugins/qq"
+	"Blog_server/service/article_service"
 	"Blog_server/service/log_service"
 	"Blog_server/service/redis_service/redis_jwt"
 	"Blog_server/service/user_service"
@@ -20,7 +20,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/liu-cn/json-filter/filter"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 type UserApi struct {
@@ -66,6 +65,7 @@ type UserInfoResponse struct {
 // @Router /api/email_login [post]
 func (u UserApi) UserEmailLogin(c *gin.Context) {
 	var request user_service.EmailLoginRequest
+
 	err := c.ShouldBindJSON(&request)
 	if err != nil {
 		res.FailWithErr(c, err)
@@ -75,12 +75,16 @@ func (u UserApi) UserEmailLogin(c *gin.Context) {
 	if err != nil {
 		logrus.Errorf("UserEmailLogin %s  err:  %s", msg, err)
 		//记录登录失败的日志
-		log_service.NewLoginFail(c, enum.EmailLoginType, msg, request.Username, request.Password)
+		ip := c.ClientIP()
+		addr := core.GetIpAddr(ip)
+		log_service.NewLoginFail(c, enum.EmailLoginType, msg, request.Username, request.Password, addr)
 		res.FailWithMsg(c, msg)
 		return
 	}
 	//记录登录日志
-	log_service.NewLoginSuccess(c, enum.EmailLoginType, model)
+	ip := c.ClientIP()
+	addr := core.GetIpAddr(ip)
+	log_service.NewLoginSuccess(c, enum.EmailLoginType, model, addr)
 
 	//记录用户登录数据
 	global.DB.Create(&models.LoginDataModel{
@@ -144,32 +148,41 @@ func (u UserApi) UserListInfoView(c *gin.Context) {
 // @Failure 500 {object} res.Response "服务器内部错误"
 // @Router /api/user_role [put]
 func (u UserApi) UserUpdateView(c *gin.Context) {
-	_, ok := c.Get("claims")
+	_Claim, ok := c.Get("claims")
 	if !ok {
 		return
 	}
+	claim := _Claim.(*jwts.MyClaims)
 	var cr UserTypeUpdateRequest
 	err := c.ShouldBindJSON(&cr)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
+	log := log_service.GetLog(c)
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetTitle("修改用户权限")
+	log.SetItem("修改者的用户名", claim.Username)
 
 	var model models.UserModel
 	err = global.DB.Where("id = ?", cr.UserID).Take(&model).Error
 	if err != nil {
+		log.SetItemError("id 未找到", err)
 		res.FailWithMsg(c, "id 未找到")
 		return
 	}
-	fmt.Println(cr.Role)
+	oldRole := model.Role.ParseRole()
 	err = global.DB.Model(&model).Updates(map[string]any{
 		"nickname": cr.NickName,
 		"role":     cr.Role, // 这里会自动调用 cr.Role.Value()
 	}).Error
 	if err != nil {
+		log.SetItemError("修改权限错误", err)
 		res.FailWithMsg(c, "修改权限错误")
 		return
 	}
+	log.SetItemInfo("修改成功", fmt.Sprintf("%s权限从%s变为%s", model.Username, oldRole, cr.Role.ParseRole()))
 	res.OkWithMessage(c, "修改权限成功")
 
 }
@@ -193,32 +206,43 @@ func (u UserApi) UserPasswordView(c *gin.Context) {
 	if !exists {
 		return
 	}
+	log := log_service.GetLog(c)
 	var cr UserPwdUpdateRequest
 	err := c.ShouldBindJSON(&cr)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetTitle("修改密码")
+
 	claim := _claim.(*jwts.MyClaims)
+	log.SetItem("修改密码的用户", claim.Username)
+
 	var model models.UserModel
 	err = global.DB.Where("id = ?", claim.UserID).Take(&model).Error
 	if err != nil {
+		log.SetItemError("没有该用户", err)
 		res.FailWithMsg(c, "没有该用户")
 		return
 	}
 	//核实旧密码
 	ok := pwd.CheckPwd(model.Password, cr.Pwd)
 	if !ok {
+		log.SetItemError("旧密码错误 无法修改", err)
 		res.FailWithMsg(c, "旧密码错误 无法修改")
 		return
 	}
+	log.SetItem("修改密码的用户原始密码", cr.Pwd)
 	// 可以修改  先加密
 	hashPwd := pwd.HashPwd(cr.NewPwd)
 	global.DB.Model(&model).Update("password", hashPwd)
-
+	log.SetItemInfo("修改密码成功", "")
 	//将token 加入黑名单  因为 修改密码了
 	err = redis_jwt.TokenBlackByGin(c, redis_jwt.UserBlackType)
 	if err != nil {
+		log.SetItemError("token 加入黑名单失败", err)
 		res.FailWithMsg(c, "token 加入黑名单失败")
 	}
 
@@ -240,30 +264,102 @@ func (u UserApi) UserPasswordView(c *gin.Context) {
 // @Router /api/users [delete]
 func (u UserApi) UserDeleteView(c *gin.Context) {
 	//这个是管理员 才能进的
-	_, exists := c.Get("claims")
+	_Claim, exists := c.Get("claims")
 	if !exists {
 		return
 	}
-	var mr models.RemoveRequest
-	err := c.ShouldBindJSON(&mr)
+	claim := _Claim.(*jwts.MyClaims)
+	tx := global.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	var cr models.RemoveRequest
+	err := c.ShouldBindJSON(&cr)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
+	log := log_service.GetLog(c)
+	log.SetTitle("删除用户")
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户为", claim.Username)
 	var Count int
-	err = global.DB.Transaction(func(tx *gorm.DB) error {
-		var model []models.UserModel
-		ModelList := common.BatchRemove(model, mr)
-		Count = len(ModelList)
-		//todo: 删除关联表
 
-		return nil
-	})
+	var ModelList []models.UserModel
+	tx.Where("id in ?", cr.IDList).Find(&ModelList)
+	if len(ModelList) > 0 {
+		if len(ModelList) != len(cr.IDList) {
+			log.SetItem("部分用户不存在", cr.IDList)
+			res.FailWithMsg(c, "部分用户不存在")
+			return
+		}
+
+		err := tx.Delete(&ModelList).Error
+		if err != nil {
+			tx.Rollback()
+			log.SetItem("删除失败", err)
+			res.FailWithMsg(c, "删除失败")
+		}
+
+	}
+	Count = len(ModelList)
+
+	// 删除用户的文章
+	var idList []string
+	tx.Model(models.ArticleUserIDModel{}).Select("article_id").Where("user_id in ?", cr.IDList).Scan(&idList) //找到所有的 文章列表
+
+	err, articleCount := article_service.ArticleDeleteByIdListService(idList, log)
 	if err != nil {
-		res.FailWithErr(c, err)
+		tx.Rollback()
+		log.SetItemError("文章删除失败", err)
+		res.FailWithMsg(c, fmt.Sprintf("%v", err))
 		return
 	}
-	res.OkWithMessage(c, fmt.Sprintf("删除成功，共删除%d个用户", Count))
+	// 删除 消息数据
+	var MessageModels []models.MessageModel
+	tx.Where("(send_user_id in ?) or (rev_user_id in ?)", cr.IDList, cr.IDList).Find(&MessageModels)
+	if len(MessageModels) > 0 {
+		err := tx.Delete(&MessageModels).Error
+		if err != nil {
+			tx.Rollback()
+			logrus.Error(err)
+			res.FailWithMsg(c, "关联消息删除失败")
+		}
+	}
+	//删除 大模型会议 和 对应的对话
+	var SessionIDList []int
+	var SessionModels []models.BigModelSessionModel
+	tx.Model(models.BigModelSessionModel{}).Select("id").Where("user_id in ?", cr.IDList).Scan(&SessionIDList)
+	tx.Where("user_id in ?", cr.IDList).Find(&SessionModels)
+	if len(SessionModels) > 0 {
+		err := tx.Delete(&SessionModels).Error
+		if err != nil {
+			tx.Rollback()
+			logrus.Error(err)
+			res.FailWithMsg(c, "关联大模型会话删除失败")
+		}
+	}
+	var CommunicateModel []models.BigModelChatModel
+	tx.Where("session_id in ?", SessionIDList).Find(&CommunicateModel)
+	if len(CommunicateModel) > 0 {
+		err := tx.Delete(&CommunicateModel).Error
+		if err != nil {
+			tx.Rollback()
+			logrus.Error(err)
+			res.FailWithMsg(c, "关联大模型对话话删除失败")
+		}
+	}
+
+	if tx.Commit().Error != nil {
+		tx.Rollback()
+		logrus.Error(tx.Commit().Error)
+		res.FailWithMsg(c, "事务提交失败")
+	}
+
+	res.OkWithMessage(c, fmt.Sprintf("删除成功，共删除%d个用户, 删除文章%d个", Count, articleCount))
 
 }
 
@@ -292,13 +388,18 @@ func (u UserApi) UserBindEmailView(c *gin.Context) {
 		res.FailWithErr(c, err)
 		return
 	}
-
+	log := log_service.GetLog(c)
+	log.SetTitle("用户绑定邮箱")
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户", claims.Username)
 	session := sessions.Default(c)
 	if mr.Code == nil {
 		//第一次发送
 		code := random.DigitCode()
 		err = email.NewCode().Send(mr.Email, "您的验证码是: "+code)
 		if err != nil {
+			log.SetItemError("邮件发送失败", err)
 			res.FailWithMsg(c, fmt.Sprintf("邮件发送失败  %v", err))
 			return
 		}
@@ -312,6 +413,7 @@ func (u UserApi) UserBindEmailView(c *gin.Context) {
 			res.FailWithMsg(c, fmt.Sprintf("session 保存错误 %v", err))
 			return
 		}
+		log.SetItemInfo("验证码发送成功", code)
 		res.OkWithMessage(c, "验证码发送成功 请注意查收")
 		return
 	}
@@ -321,6 +423,7 @@ func (u UserApi) UserBindEmailView(c *gin.Context) {
 	fmt.Println(validEmail)
 	fmt.Println(mr.Email)
 	if len(mr.Password) < 4 {
+		log.SetItemError("设置密码强度过低", mr.Password)
 		res.FailWithMsg(c, "密码强度过低")
 		return
 	}
@@ -331,6 +434,7 @@ func (u UserApi) UserBindEmailView(c *gin.Context) {
 	}
 
 	if validCode != *mr.Code {
+		log.SetItemError("验证码错误", validCode)
 		res.FailWithMsg(c, "验证码错误")
 		return
 	}
@@ -395,7 +499,9 @@ func (u UserApi) UserQQLogin(c *gin.Context) {
 		if err != nil {
 			res.FailWithMsg(c, fmt.Sprintf("注册用户失败 %v", err))
 			//失败日志
-			log_service.NewLoginFail(c, enum.QQLoginType, fmt.Sprintf("注册用户失败 %v", err), model.Username, model.Password)
+			ip := c.ClientIP()
+			addr := core.GetIpAddr(ip)
+			log_service.NewLoginFail(c, enum.QQLoginType, fmt.Sprintf("注册用户失败 %v", err), model.Username, model.Password, addr)
 			return
 		}
 	}
@@ -408,11 +514,15 @@ func (u UserApi) UserQQLogin(c *gin.Context) {
 	if err != nil {
 		res.FailWithMsg(c, fmt.Sprintf("token 申请失败 %v", err))
 		//失败日志
-		log_service.NewLoginFail(c, enum.QQLoginType, fmt.Sprintf("token 申请失败 %v", err), model.Username, model.Password)
+		ip := c.ClientIP()
+		addr := core.GetIpAddr(ip)
+		log_service.NewLoginFail(c, enum.QQLoginType, fmt.Sprintf("token 申请失败 %v", err), model.Username, model.Password, addr)
 		return
 	}
 	// 登录成功日志
-	log_service.NewLoginSuccess(c, enum.QQLoginType, model)
+	ip := c.ClientIP()
+	addr := core.GetIpAddr(ip)
+	log_service.NewLoginSuccess(c, enum.QQLoginType, model, addr)
 
 	//记录用户登录数据
 	global.DB.Create(&models.LoginDataModel{
@@ -463,22 +573,29 @@ func (UserApi) UserPersonInfoView(c *gin.Context) {
 // @Failure 500 {object} res.Response "服务器内部错误"
 // @Router /api/users [post]
 func (u UserApi) UserCreateView(c *gin.Context) {
-	_, exists := c.Get("claims")
+	_claim, exists := c.Get("claims")
 	if !exists {
 		return
 	}
+	claim := _claim.(*jwts.MyClaims)
 	var mr user_service.UserCreateRequest
 	err := c.ShouldBindJSON(&mr)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
+	log := log_service.GetLog(c)
+	log.SetTitle("创建用户")
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户", claim.Username)
 	err = user_service.UserCreateService(mr.UserName, mr.NickName, mr.Password, mr.Role, "", c.ClientIP(), core.GetIpAddr(c.ClientIP()))
 	if err != nil {
+		log.SetItemError("创造用户失败", err)
 		res.FailWithMsg(c, fmt.Sprintf("创造用户失败 %v", err))
 		return
 	}
-
+	log.SetItemInfo("创造用户成功", fmt.Sprintf("用户名为%s", mr.UserName))
 	res.OkWithMessage(c, fmt.Sprintf("创建%s用户成功", mr.UserName))
 }
 
@@ -504,7 +621,12 @@ func (UserApi) UserUpdateInfoView(c *gin.Context) {
 		res.FailWithErr(c, err)
 		return
 	}
-	err = user_service.UserInfoPutService(cr, claims)
+	log := log_service.GetLog(c)
+	log.SetTitle("修改用户信息")
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户", claims.Username)
+	err = user_service.UserInfoPutService(cr, claims, log)
 	if err != nil {
 		res.FailWithMsg(c, err.Error())
 		return
@@ -587,7 +709,9 @@ func (UserApi) UserLogoutView(c *gin.Context) {
 		res.FailWithMsg(c, "注销失败")
 		return
 	}
-	log_service.LogoutSuccess(c, user)
+	ip := c.ClientIP()
+	addr := core.GetIpAddr(ip)
+	log_service.LogoutSuccess(c, user, addr)
 
 	logrus.Info(fmt.Sprintf("用户 %s 注销登录", claim.Username))
 

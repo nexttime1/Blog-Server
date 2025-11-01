@@ -58,10 +58,10 @@ func LogMiddleware(c *gin.Context) {
 	//fmt.Println("中间件响应") //走完 路由中的函数 再走这里
 	//fmt.Println("res", string(res.Body))
 	log.SetResponse(res.Body)
-
+	log.ShowResponse()
 	//使用c.JSON类似操作   res.Head 会被填充，且填充的是响应头
 	log.SetResponseHeader(res.Head)
-
+	log.ShowResponseHeader()
 	log.MiddleSave()
 
 }

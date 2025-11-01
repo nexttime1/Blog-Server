@@ -9,6 +9,7 @@ import (
 	"Blog_server/service/log_service"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"time"
 )
 
 type LogApi struct {
@@ -16,12 +17,14 @@ type LogApi struct {
 
 type LogListView struct {
 	common.PageInfo
-	LogType     enum.LogType   `form:"logType"` //日志类型 1 2 3
-	Level       enum.LevelType `form:"level"`   //日志级别  1 2 3
-	UserID      uint           `form:"userID"`  //用户id   可以没有  没登录  设置为0
+	LogType     enum.LogType   `form:"type"`   //日志类型 1 2 3
+	Level       enum.LevelType `form:"level"`  //日志级别  1 2 3
+	UserID      uint           `form:"userID"` //用户id   可以没有  没登录  设置为0
 	IP          string         `form:"ip"`
-	LoginStatus bool           `form:"loginStatus"` //登录状态
-	ServiceName string         `form:"serviceName"`
+	Addr        string         `form:"addr"`
+	Date        string         `form:"date"`
+	LoginStatus *bool          `form:"status"`                   //登录状态
+	UserName    string         `json:"userName" form:"userName"` // 查用户名
 }
 
 type LogListResponse struct {
@@ -37,17 +40,30 @@ func (LogApi) LogListNew(c *gin.Context) {
 		res.FailWithErr(c, err)
 		return
 	}
+	var query = global.DB.Where("")
+	if cr.Date != "" {
+		_, dateTimeErr := time.Parse("2006-01-02", cr.Date)
+		if dateTimeErr != nil {
+			res.FailWithMsg(c, "时间格式错误")
+			return
+		}
+		query.Where("date(created_at) = ?", cr.Date)
+	}
+	if cr.LoginStatus != nil {
+		query.Where("login_status = ?", cr.LoginStatus)
+	}
 
 	list, count, err := common.ListQuery(models.LogModel{ //前端没赋值  就相当于没用  Where  就是显示全部
-		LogType:     cr.LogType,
-		Level:       cr.Level,
-		UserID:      cr.UserID,
-		IP:          cr.IP,
-		LoginStatus: cr.LoginStatus,
-		ServiceName: cr.ServiceName,
+		LogType:  cr.LogType,
+		Level:    cr.Level,
+		UserID:   cr.UserID,
+		IP:       cr.IP,
+		UserName: cr.UserName,
+		Addr:     cr.Addr,
 	}, common.Options{
 		PageInfo:     cr.PageInfo,
-		Likes:        []string{"title"},
+		Where:        query,
+		Likes:        []string{"title", "user_name"},
 		Preload:      []string{"UserModel"},
 		Debug:        true,
 		DefaultOrder: "created_at DESC", //写死了  默认降序排序  前端修改的话

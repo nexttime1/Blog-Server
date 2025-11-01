@@ -35,6 +35,7 @@ func FlagUser(permission string) {
 	if permission == "admin" {
 		role = enum.AdminRole
 	}
+
 	err := user_service.UserCreateService(UserName, NickName, Password, role, Email, "内网", "内网ip")
 	if err != nil {
 		return

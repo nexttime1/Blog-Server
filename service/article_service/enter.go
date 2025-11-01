@@ -6,6 +6,7 @@ import (
 	"Blog_server/global"
 	"Blog_server/models"
 	"Blog_server/models/enum"
+	"Blog_server/service/log_service"
 	"Blog_server/utils/jwts"
 	"Blog_server/utils/struct_to_map"
 	"context"
@@ -82,7 +83,7 @@ type ArticleUpdateRequest struct {
 	ID       string   `json:"id" binding:"required" structs:"id"`
 }
 
-func ArticleCreateService(cr ArticleAddRequest, claims *jwts.MyClaims) (err error) {
+func ArticleCreateService(cr ArticleAddRequest, claims *jwts.MyClaims, log *log_service.ActionLog) (err error) {
 
 	UserID := claims.UserID
 	UserNickName := claims.Username
@@ -155,15 +156,20 @@ func ArticleCreateService(cr ArticleAddRequest, claims *jwts.MyClaims) (err erro
 	}
 	if article.ISExistData() {
 		//已经存在
+		log.SetItemError("文章已经存在", article.ID)
 		return errors.New("文章已经存在")
 	}
 
 	err = article.Create()
 	if err != nil {
+		log.SetItemError("创建文章失败", err)
 		return fmt.Errorf("创建文章失败 %s", err.Error())
 	}
-	res.AsyncArticleByFullText(article.ID, article.Title, article.Content)
-
+	log.SetItem("文章ID", article.ID)
+	log.SetItem("操作人ID", UserID)
+	log.SetItem("操作人昵称", UserNickName)
+	res.AsyncArticleByFullText(article.ID, article.Title, article.Content, log)
+	log.SetLink("文章查看地址", "http://127.0.0.1:8080/api/articles/"+article.ID)
 	return nil
 }
 
@@ -282,7 +288,8 @@ func ArticleTagsService(cr common.PageInfo) ([]*TagsResponse, int, error) {
 
 }
 
-func ArticleUpdateService(cr ArticleUpdateRequest) error {
+func ArticleUpdateService(cr ArticleUpdateRequest, log *log_service.ActionLog) error {
+	log.SetItem("操作的文章ID", cr.ID)
 	toMap := struct_to_map.StructToMap(&cr)
 	now := time.Now().Format("2006-01-02 15:04:05")
 	toMap["updated_at"] = now
@@ -295,6 +302,7 @@ func ArticleUpdateService(cr ArticleUpdateRequest) error {
 		var bannerIdUrl string
 		err := global.DB.Model(models.BannerModel{}).Where("id = ?", toMap["banner_id"]).Select("path").Scan(&bannerIdUrl).Error
 		if err != nil {
+			log.SetItemError("图片id查询错误", err)
 			logrus.Errorf("图片id查询错误 %s", err.Error())
 			return fmt.Errorf("图片id查询错误 %s", err.Error())
 		}
@@ -303,8 +311,13 @@ func ArticleUpdateService(cr ArticleUpdateRequest) error {
 
 	fmt.Println(toMap)
 	err := ArticleUpdate(cr.ID, toMap)
+	if err != nil {
+		log.SetItemError("文章更新失败", err)
+		return err
+	}
+	log.SetLink("文章查看地址", "http://127.0.0.1:8080/api/articles/"+cr.ID)
 
-	return err
+	return nil
 
 }
 
@@ -315,5 +328,45 @@ func ArticleUpdate(id string, toMap map[string]interface{}) error {
 		return fmt.Errorf("更新失败 %s", err.Error())
 	}
 	return nil
+
+}
+
+func ArticleDeleteByIdListService(IDList []string, log *log_service.ActionLog) (error, int) {
+	bulkService := global.Es.Bulk().Index(models.ArticleModel{}.Index()).Refresh("true")
+	for _, id := range IDList {
+		req := elastic.NewBulkDeleteRequest().Id(id)
+		bulkService.Add(req)
+	}
+	result, err := bulkService.Do(context.Background())
+	if err != nil {
+		log.SetItemError("删除失败", err)
+		logrus.Errorf("删除失败 %s", err)
+
+		return fmt.Errorf("删除失败"), 0
+	}
+
+	// 删除全文搜索
+	for _, id := range IDList {
+		res.AsyncArticleDeleteByArticleID(id, log)
+	}
+
+	//万一 有人收藏了这个文章
+	var ArticleUserModelList []models.UserCollectModel
+	global.DB.Where("article_id in ? ", IDList).Find(&ArticleUserModelList)
+	err = global.DB.Delete(&ArticleUserModelList).Error
+	if err != nil {
+		logrus.Errorf("文章收藏表删除失败 %s", err)
+		return fmt.Errorf("文章收藏表删除失败"), 0
+	}
+	// 删除所有的评论
+	var CommentModelList []models.CommentModel
+	global.DB.Where("article_id in ?", IDList).Find(&CommentModelList)
+	err = global.DB.Delete(&CommentModelList).Error
+	if err != nil {
+		log.SetItemError("评论删除失败", err)
+		logrus.Errorf("评论删除失败 %s", err)
+		return fmt.Errorf("评论删除失败"), 0
+	}
+	return nil, len(result.Succeeded())
 
 }

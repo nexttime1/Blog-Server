@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	"net/http"
 	"os"
 	"path"
 )
@@ -402,7 +403,7 @@ func (BigModelApi) BigModelTagUpdateView(c *gin.Context) {
 		res.OkWithData(c, "标签添加成功")
 		return
 	}
-	res.FailWithMsg(c, "标签修改成功")
+	res.OkWithMessage(c, "标签修改成功")
 
 }
 
@@ -513,7 +514,7 @@ func (BigModelApi) BigModelRoleUpdateView(c *gin.Context) {
 		res.OkWithData(c, "角色添加成功")
 		return
 	}
-	res.FailWithMsg(c, "角色更新成功")
+	res.OkWithMessage(c, "角色更新成功")
 }
 
 // BigModelRoleListView 获取大模型角色分页列表
@@ -630,9 +631,9 @@ func (BigModelApi) BigModelSessionCreateView(c *gin.Context) {
 		return
 	}
 
-	sessionID, err := big_model_service.BigModelSessionCreateService(claims, cr)
+	sessionID, err, flag := big_model_service.BigModelSessionCreateService(claims, cr)
 	if err != nil {
-		if sessionID != 0 {
+		if !flag {
 			res.Ok(c, "已经存在新的会话", sessionID)
 			return
 		}
@@ -663,6 +664,14 @@ func (BigModelApi) BigModelChatCreateView(c *gin.Context) {
 		return
 	}
 	claims := _claims.(*jwts.MyClaims)
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+	c.Header("X-Accel-Buffering", "no")
+	c.Header("Access-Control-Allow-Origin", "*")
+
+	// 确保在设置头部后立即开始流式响应
+	c.Writer.WriteHeader(http.StatusOK)
 	var cr big_model_service.ChatCreateRequest
 	err := c.ShouldBindQuery(&cr)
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"Blog_server/global"
 	"Blog_server/models"
 	"Blog_server/service/log_service"
+	"Blog_server/utils/jwts"
 	"Blog_server/utils/struct_to_map"
 	"errors"
 	"fmt"
@@ -52,6 +53,11 @@ type AdvertApi struct {
 // @Failure 500 {object} res.Response "服务器内部错误"
 // @Router /api/adverts [post]
 func (AdvertApi) AdvertAddView(c *gin.Context) {
+	_claim, exists := c.Get("claims")
+	if !exists {
+		return
+	}
+	claim := _claim.(*jwts.MyClaims)
 	var ar AdvertRequest
 	err := c.ShouldBindJSON(&ar)
 	if err != nil {
@@ -60,13 +66,16 @@ func (AdvertApi) AdvertAddView(c *gin.Context) {
 	}
 	//记录日志
 	log := log_service.GetLog(c)
+	log.SetTitle("创建广告")
+	log.SetRequest(c)
 	log.ShowRequest()
-	log.ShowResponse()
+	log.SetItem("操作用户", claim.Username)
 	//先查看是否重复
 	var advert models.AdvertModel
 	err = global.DB.Take(&advert, "title = ?", ar.Title).Error
 	if err == nil {
 		//说明已经存在
+		log.SetItemError("广告已存在", advert.Title)
 		res.FailWithErr(c, errors.New("广告已存在"))
 		return
 	}
@@ -78,9 +87,11 @@ func (AdvertApi) AdvertAddView(c *gin.Context) {
 		IsShow: ar.IsShow,
 	}).Error
 	if err != nil {
+		log.SetItemError("添加广告失败", err)
 		res.FailWithErr(c, fmt.Errorf("添加广告失败  %v", err))
 		return
 	}
+	log.SetItemInfo("广告标题", ar.Title)
 	res.OkWithMessage(c, "添加成功")
 
 }

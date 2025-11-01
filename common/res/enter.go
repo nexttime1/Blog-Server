@@ -4,6 +4,8 @@ import (
 	"Blog_server/utils/validate"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
+	"io"
+	"net/http"
 )
 
 type Response struct {
@@ -87,39 +89,75 @@ func OkWithList(c *gin.Context, List any, Count int) {
 	}, "成功"}.Json(c)
 }
 
+// 辅助函数：设置SSE标准响应头
+func setSSEHeaders(c *gin.Context) {
+	// 只有在头部未设置时才设置
+	if c.Writer.Header().Get("Content-Type") == "" {
+		c.Header("Content-Type", "text/event-stream")
+		c.Header("Cache-Control", "no-cache")
+		c.Header("Connection", "keep-alive")
+		c.Header("X-Accel-Buffering", "no")
+		c.Header("Access-Control-Allow-Origin", "*")
+	}
+}
+
+// 辅助函数：按SSE标准格式写入数据（data: {json}\n\n）
+func writeSSEData(w io.Writer, dataJson string) {
+	// 拼接格式：data: + JSON字符串 + 双换行
+	sseFormat := "data: " + dataJson + "\n\n"
+	_, _ = w.Write([]byte(sseFormat))
+	// 强制刷新缓冲区，确保数据立即发送
+	if flusher, ok := w.(http.Flusher); ok {
+		flusher.Flush()
+	}
+}
+
+// OkWithMessageSSE 发送带消息的SSE（用于流式增量内容）
 func OkWithMessageSSE(c *gin.Context, message string) {
+	// 1. 设置SSE必须的响应头（每次调用都设置，避免被覆盖）
+	setSSEHeaders(c)
+
+	// 2. 构建响应体
 	data := Response{
 		Code: SuccessCode,
-		Data: map[string]interface{}{},
-		Msg:  message,
+		Data: empty,
+		Msg:  message, // 增量内容放在msg字段
 	}.ToJson()
-	c.SSEvent("", data)
+
+	// 3. 按SSE标准格式发送：data: {json}\n\n
+	writeSSEData(c.Writer, data)
 }
 
+// OkWithDataSSE 发送带数据的SSE
 func OkWithDataSSE(c *gin.Context, data interface{}) {
-	data = Response{SuccessCode, data, "成功"}.ToJson()
-	c.SSEvent("", data)
+	setSSEHeaders(c)
+	dataJson := Response{SuccessCode, data, "成功"}.ToJson()
+	writeSSEData(c.Writer, dataJson)
 }
 
+// FailWithMsgSSE 发送错误消息的SSE
 func FailWithMsgSSE(c *gin.Context, message string) {
-	msg := Response{FailValidCode, empty, message}.ToJson()
-	c.SSEvent("", msg)
+	setSSEHeaders(c)
+	data := Response{FailValidCode, empty, message}.ToJson()
+	writeSSEData(c.Writer, data)
 }
 
+// FailWithDataSSE 发送带数据的错误SSE
 func FailWithDataSSE(c *gin.Context, message string, data interface{}) {
-	data = Response{FailServiceCode, data, message}.ToJson()
-	c.SSEvent("", data)
+	setSSEHeaders(c)
+	dataJson := Response{FailServiceCode, data, message}.ToJson()
+	writeSSEData(c.Writer, dataJson)
 }
 
+// FailWithErrSSE 发送错误的SSE
 func FailWithErrSSE(c *gin.Context, err error) {
 	data, msg := validate.ValidateErr(err)
 	FailWithDataSSE(c, msg, data)
 }
+
+// OkWithSSE 发送带消息和数据的SSE（用于结束标识）
 func OkWithSSE(c *gin.Context, message string, data interface{}) {
-	Result := Response{
-		Code: SuccessCode,
-		Data: data,
-		Msg:  message,
-	}.ToJson()
-	c.SSEvent("", Result)
+	setSSEHeaders(c)
+	dataJson := Response{SuccessCode, data, message}.ToJson()
+	writeSSEData(c.Writer, dataJson)
 }

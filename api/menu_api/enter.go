@@ -103,7 +103,7 @@ func (MenuApi) MenuListView(c *gin.Context) {
 			banner := MenuBannerList[i]
 			banners = append(banners, Banners{
 				ID:   banner.BannerID,
-				Path: banner.BannerModel.Path,
+				Path: "http://127.0.0.1:8080/" + banner.BannerModel.Path,
 			})
 		}
 		menus = append(menus, MenuListResponse{
@@ -111,7 +111,7 @@ func (MenuApi) MenuListView(c *gin.Context) {
 			Banners:   banners,
 		})
 	}
-	res.OkWithData(c, menus)
+	res.OkWithList(c, menus, len(menus))
 }
 
 // MenuNameListView 菜单名称列表

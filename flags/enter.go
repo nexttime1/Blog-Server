@@ -26,6 +26,7 @@ func Parse() {
 }
 
 func Run() {
+
 	if FileOption.DB { //数据库迁移
 		fmt.Println("数据库开始迁移")
 		FlagDB()

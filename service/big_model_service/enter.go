@@ -536,7 +536,8 @@ func BigModelTagRoleListService() (error, []TagRoleListResponse) {
 	return tx.Commit().Error, response
 }
 
-func BigModelSessionCreateService(claims *jwts.MyClaims, cr SessionCreateRequest) (uint, error) {
+func BigModelSessionCreateService(claims *jwts.MyClaims, cr SessionCreateRequest) (uint, error, bool) {
+	flag := true // 说明可以创建
 	tx := global.DB.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -549,7 +550,7 @@ func BigModelSessionCreateService(claims *jwts.MyClaims, cr SessionCreateRequest
 	if err != nil {
 		tx.Rollback()
 		logrus.Errorf("%#v", err)
-		return 0, errors.New("大模型角色不存在")
+		return 0, errors.New("大模型角色不存在"), flag
 	}
 	// 拿到这个 user 的积分看看够不够
 	var user models.UserModel
@@ -557,27 +558,27 @@ func BigModelSessionCreateService(claims *jwts.MyClaims, cr SessionCreateRequest
 	if err != nil {
 		tx.Rollback()
 		logrus.Errorf("%#v", err)
-		return 0, errors.New("登录的用户不存在")
+		return 0, errors.New("登录的用户不存在"), flag
 	}
 	scope := global.Config.BigModel.SessionSetting.SessionScope
 	if user.Scope < scope {
 		tx.Rollback()
-		return 0, errors.New("用户积分不足")
+		return 0, errors.New("用户积分不足"), flag
 	}
 	// 如果创建了新的会话没有聊天  那就不能再创建
 	var sessionList []models.BigModelSessionModel
 	tx.Where("user_id = ? and role_id = ?", user.ID, cr.RoleID).Preload("ChatList").Find(&sessionList)
-	flag := true // 说明可以创建
+
 	var SessionID uint
 	for _, model := range sessionList {
-		if len(model.ChatList) <= 1 {
+		if len(model.ChatList) <= 0 {
 			SessionID = model.ID
 			flag = false //说明没聊天
 		}
 	}
 	if !flag {
 		tx.Rollback()
-		return SessionID, errors.New("已经存在新的会话")
+		return SessionID, errors.New("已经存在新的会话"), flag
 	}
 
 	//创建会话
@@ -593,7 +594,7 @@ func BigModelSessionCreateService(claims *jwts.MyClaims, cr SessionCreateRequest
 	// 扣除积分
 	tx.Model(&user).Update("scope", gorm.Expr("scope - ?", scope))
 
-	return session.ID, tx.Commit().Error
+	return session.ID, tx.Commit().Error, flag
 }
 
 func BigModelChatCreateService(c *gin.Context, claims *jwts.MyClaims, cr ChatCreateRequest) {
@@ -678,24 +679,27 @@ func BigModelChatCreateService(c *gin.Context, claims *jwts.MyClaims, cr ChatCre
 	// 流式传输
 	c.Stream(func(w io.Writer) bool {
 		if content, ok := <-msgChan; ok {
-			res.FailWithMsg(c, content)
+			res.OkWithMessageSSE(c, content)
 			botContent += content
+			c.Writer.Flush()
 			return true
 		}
-		return false
+		// 关键修复2：流结束时，在Stream回调内发送最后一条消息（包含ID）
+		// 更新数据库（放在流结束后，确保内容完整）
+		if err = global.DB.Model(chatModel).Updates(map[string]interface{}{
+			"bot_content": botContent,
+			"status":      true,
+		}).Error; err != nil {
+			logrus.Errorf("更新聊天记录失败: %#v", err)
+			res.FailWithMsgSSE(c, "更新聊天记录失败")
+		} else {
+			// 发送成功标识+ID（在流关闭前发送）
+			res.OkWithSSE(c, "成功", chatModel.ID)
+		}
+		c.Writer.Flush() // 刷新最后一条消息
+		return false     // 结束流
 	})
 	// 这个时候再更新
-	if err = global.DB.Model(chatModel).Updates(map[string]interface{}{
-		"bot_content": botContent,
-		"status":      true,
-	}).Error; err != nil {
-		logrus.Errorf("更新聊天记录失败: %#v", err)
-		// 这里失败不影响用户使用，只是记录不完整，可后续补偿
-		res.FailWithMsgSSE(c, "更新聊天记录失败")
-		return
-	}
-	// 返回Id 好删除
-	res.OkWithSSE(c, "成功", chatModel.ID)
 
 	return
 }

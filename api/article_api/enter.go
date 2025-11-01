@@ -6,7 +6,9 @@ import (
 	"Blog_server/common/res"
 	"Blog_server/global"
 	"Blog_server/models"
+	"Blog_server/models/enum"
 	"Blog_server/service/article_service"
+	"Blog_server/service/log_service"
 	"Blog_server/service/redis_service/redis_count"
 	"Blog_server/utils/jwts"
 	"context"
@@ -125,17 +127,22 @@ func (ArticleApi) ArticleCreateView(c *gin.Context) {
 	if !exists {
 		return
 	}
+	log := log_service.GetLog(c)
 	var cr article_service.ArticleAddRequest
 	err := c.ShouldBindJSON(&cr)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
-	err = article_service.ArticleCreateService(cr, claims)
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetTitle("创建新文章")
+	err = article_service.ArticleCreateService(cr, claims, log)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
+
 	res.OkWithMessage(c, "文章发布成功")
 }
 
@@ -258,39 +265,60 @@ func (ArticleApi) ArticleTagListView(c *gin.Context) {
 // @Failure 500 {object} res.Response "服务器内部错误"
 // @Router /api/articles [put]
 func (ArticleApi) ArticleUpdateView(c *gin.Context) {
+	_claim, exists := c.Get("claims")
+	if !exists {
+		return
+	}
+	claim := _claim.(*jwts.MyClaims)
+	log := log_service.GetLog(c)
 	var cr article_service.ArticleUpdateRequest
 	err := c.ShouldBindJSON(&cr)
 	if err != nil {
+		log.SetItemError("参数错误", err)
 		res.FailWithErr(c, err)
 		return
 	}
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetTitle("更新文章")
+	log.SetItem("更新文章id为", cr.ID)
+	log.SetItem("操作人ID", claim.UserID)
+
 	//id 是否存在
 	var article models.ArticleModel
 	err = article.ExistById(cr.ID)
 	if err != nil {
+		log.SetItemError("文章不存在", err)
 		res.FailWithErr(c, err)
 		return
 	}
 	OldModel, err := Es_option.EsArticleDetailByIdQuery(cr.ID)
 	if err != nil {
+		log.SetItemError("文章搜索错误", err)
 		logrus.Errorf("这也能错？")
 		return
 	}
+	if claim.Role != enum.AdminRole && claim.UserID != OldModel.UserID {
+		log.SetItemError("权限错误", fmt.Sprintf("角色不为管理员 登录者id为 %d, 文章作者为 %d", claim.UserID, OldModel.UserID))
+		res.FailWithMsg(c, "不能修改别人的文章哦~")
+	}
 
-	err = article_service.ArticleUpdateService(cr)
+	err = article_service.ArticleUpdateService(cr, log)
 	if err != nil {
+		log.SetItemError("文章更新错误", err)
 		res.FailWithErr(c, err)
 		return
 	}
 
 	NewModel, err := Es_option.EsArticleDetailByIdQuery(cr.ID)
 	if err != nil {
+		log.SetItemError("文章搜索错误", err)
 		logrus.Errorf("这也能错?")
 		return
 	}
 	if OldModel.Title != NewModel.Title || OldModel.Content != NewModel.Content {
-		res.AsyncArticleDeleteByArticleID(NewModel.ID)
-		res.AsyncArticleByFullText(NewModel.ID, NewModel.Title, NewModel.Content)
+		res.AsyncArticleDeleteByArticleID(NewModel.ID, log)
+		res.AsyncArticleByFullText(NewModel.ID, NewModel.Title, NewModel.Content, log)
 
 	}
 
@@ -312,50 +340,42 @@ func (ArticleApi) ArticleUpdateView(c *gin.Context) {
 // @Failure 500 {object} res.Response "服务器内部错误"
 // @Router /api/articles [delete]
 func (ArticleApi) ArticleDeleteView(c *gin.Context) {
+	_claim, exists := c.Get("claims")
+	if !exists {
+		return
+	}
+	claim := _claim.(*jwts.MyClaims)
+	log := log_service.GetLog(c)
 	var cr IDListRequest
 	err := c.ShouldBindJSON(&cr)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
-
-	bulkService := global.Es.Bulk().Index(models.ArticleModel{}.Index()).Refresh("true")
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetTitle("删除文章")
+	log.SetItem("删除文章id列表为", cr.IDList)
+	log.SetItem("操作人ID", claim.UserID)
+	// 查一下这些文章的作者是不是 自己
 	for _, id := range cr.IDList {
-		req := elastic.NewBulkDeleteRequest().Id(id)
-		bulkService.Add(req)
-	}
-	result, err := bulkService.Do(context.Background())
-	if err != nil {
-		logrus.Errorf("删除失败 %s", err)
-		res.FailWithMsg(c, "删除失败")
-		return
-	}
-
-	// 删除全文搜索
-	for _, id := range cr.IDList {
-		res.AsyncArticleDeleteByArticleID(id)
+		model, err := Es_option.EsArticleDetailByIdQuery(id)
+		if err != nil {
+			log.SetItemError("部分文章不存在", err)
+			res.FailWithMsg(c, "部分文章不存在")
+		}
+		if model.UserID != claim.UserID && claim.Role != enum.AdminRole {
+			log.SetItemError("权限错误", fmt.Sprintf("角色不为管理员 登录者id为 %d, 文章作者为 %d", claim.UserID, model.UserID))
+			res.FailWithMsg(c, "部分文章不存在")
+		}
 	}
 
-	//万一 有人收藏了这个文章
-	var ArticleUserModelList []models.UserCollectModel
-	global.DB.Where("article_id in ? ", cr.IDList).Find(&ArticleUserModelList)
-	err = global.DB.Delete(&ArticleUserModelList).Error
+	err, count := article_service.ArticleDeleteByIdListService(cr.IDList, log)
 	if err != nil {
-		logrus.Errorf("文章收藏表删除失败 %s", err)
-		res.FailWithMsg(c, fmt.Sprintf("文章收藏表删除失败 %s", err))
-		return
+		res.FailWithMsg(c, fmt.Sprintf("%v", err))
 	}
-	// 删除所有的评论
-	var CommentModelList []models.CommentModel
-	global.DB.Where("article_id in ?", cr.IDList).Find(&CommentModelList)
-	err = global.DB.Delete(&CommentModelList).Error
-	if err != nil {
-		logrus.Errorf("评论删除失败 %s", err)
-		res.FailWithMsg(c, fmt.Sprintf("评论删除失败 %s", err))
-		return
-	}
+	res.OkWithMessage(c, fmt.Sprintf("成功删除 %d 篇文章", count))
 
-	res.OkWithMessage(c, fmt.Sprintf("成功删除 %d 篇文章", len(result.Succeeded())))
 }
 
 // ArticleFullSearchView 全文搜索

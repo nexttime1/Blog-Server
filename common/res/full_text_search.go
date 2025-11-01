@@ -3,7 +3,9 @@ package res
 import (
 	"Blog_server/global"
 	"Blog_server/models"
+	"Blog_server/service/log_service"
 	"context"
+	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/olivere/elastic/v7"
 	"github.com/russross/blackfriday"
@@ -68,7 +70,7 @@ func GetSlug(slug string) string {
 	return "#" + slug
 }
 
-func AsyncArticleByFullText(id, title, content string) {
+func AsyncArticleByFullText(id, title, content string, log *log_service.ActionLog) {
 	indexList := GetSearchIndexDataByContent(id, title, content)
 	// 批量添加
 	bulk := global.Es.Bulk()
@@ -81,9 +83,11 @@ func AsyncArticleByFullText(id, title, content string) {
 		logrus.Error(err)
 	}
 	logrus.Infof("%s 添加成功共 %d 条", title, len(resultData.Succeeded()))
+	log.SetItem("全文搜索创建详细", fmt.Sprintf("%s 添加成功共 %d 条", title, len(resultData.Succeeded())))
+
 }
 
-func AsyncArticleDeleteByArticleID(id string) {
+func AsyncArticleDeleteByArticleID(id string, log *log_service.ActionLog) {
 	query := elastic.NewTermQuery("key", id)
 	result, err := global.Es.DeleteByQuery().Index(models.FullTextModel{}.Index()).
 		Query(query).Do(context.Background())
@@ -91,5 +95,5 @@ func AsyncArticleDeleteByArticleID(id string) {
 		logrus.Error(err)
 	}
 	logrus.Infof("%s 成功删除 %d 条记录", id, result.Deleted)
-
+	log.SetItem("全文搜索删除详细", fmt.Sprintf("id 为%s 成功删除共 %d 条", id, result.Deleted))
 }

@@ -45,6 +45,7 @@ func FlagDB() {
 		&models.BigModelRoleTagModel{}, // 角色和大模型的 关联表
 		&models.BigModelChatModel{},
 		&models.BigModelSessionModel{},
+		&models.ArticleUserIDModel{},
 	)
 	if err != nil {
 		logrus.Errorf("\n数据库迁移失败  %s", err)

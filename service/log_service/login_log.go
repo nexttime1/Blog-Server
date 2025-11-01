@@ -1,21 +1,20 @@
 package log_service
 
 import (
-	"Blog_server/core"
 	"Blog_server/global"
 	"Blog_server/models"
 	"Blog_server/models/enum"
 	"github.com/gin-gonic/gin"
 )
 
-func NewLoginSuccess(c *gin.Context, loginType enum.LoginType, model models.UserModel) {
+func NewLoginSuccess(c *gin.Context, loginType enum.LoginType, model models.UserModel, addr string) {
 	ip := c.ClientIP()
-	addr := core.GetIpAddr(ip)
 
 	global.DB.Create(&models.LogModel{
 		LogType:     enum.LoginLogType,
+		Level:       enum.LogInfoLevel,
 		Title:       "用户登录",
-		Content:     "",
+		Content:     "用户登录成功",
 		UserID:      model.ID,
 		IP:          ip,
 		Addr:        addr,
@@ -26,13 +25,13 @@ func NewLoginSuccess(c *gin.Context, loginType enum.LoginType, model models.User
 	})
 
 }
-func NewLoginFail(c *gin.Context, loginType enum.LoginType, msg string, username string, pwd string) {
+func NewLoginFail(c *gin.Context, loginType enum.LoginType, msg string, username string, pwd string, addr string) {
 	ip := c.ClientIP()
-	addr := core.GetIpAddr(ip)
 
 	global.DB.Create(&models.LogModel{
 		LogType:     enum.LoginLogType,
 		Title:       "用户登录失败",
+		Level:       enum.LogErrLevel,
 		Content:     msg,
 		IP:          ip,
 		Addr:        addr,
@@ -43,14 +42,14 @@ func NewLoginFail(c *gin.Context, loginType enum.LoginType, msg string, username
 	})
 }
 
-func LogoutSuccess(c *gin.Context, model models.UserModel) {
+func LogoutSuccess(c *gin.Context, model models.UserModel, addr string) {
 	ip := c.ClientIP()
-	addr := core.GetIpAddr(ip)
 
 	global.DB.Create(&models.LogModel{
 		LogType:     enum.LoginLogType,
 		Title:       "用户注销",
-		Content:     "",
+		Level:       enum.LogInfoLevel,
+		Content:     "用户注销成功",
 		UserID:      model.ID,
 		IP:          ip,
 		Addr:        addr,

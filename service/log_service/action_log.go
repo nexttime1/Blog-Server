@@ -1,15 +1,16 @@
 package log_service
 
 import (
-	"Blog_server/core"
 	"Blog_server/global"
 	"Blog_server/models"
 	"Blog_server/models/enum"
+	UtilsIp "Blog_server/utils/ip"
 	"Blog_server/utils/jwts"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/lionsoul2014/ip2region/binding/golang/xdb"
 	e "github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"io"
@@ -210,7 +211,7 @@ func (ac *ActionLog) Save() uint {
 	}
 
 	ip := ac.c.ClientIP()
-	addr := core.GetIpAddr(ip)
+	addr := GetIpAddr(ip)
 	claims, err := jwts.ParseTokenByGin(ac.c)
 	UserID := uint(0) //提前定义好  找不到Token 就ID = 0
 	if err == nil && claims != nil {
@@ -252,4 +253,42 @@ func GetLog(c *gin.Context) *ActionLog {
 	c.Set("SaveLog", true) //这样如果没有调用该Save的函数  就可以不去走 Save方法  因为中间件必走 最后会调用Save
 	return log
 
+}
+
+var searcher *xdb.Searcher
+
+func GetIpAddr(ip string) (ipAddr string) {
+	addr := UtilsIp.HasLocalIPAddr(ip)
+	if addr {
+		return "内网ip"
+	}
+
+	region, err := searcher.SearchByStr(ip)
+	if err != nil {
+		logrus.Warnf(" ip地址错误  %s", err.Error())
+		return "错误的ip地址"
+	}
+
+	ListDdata := strings.Split(region, "|") //中国|0|山东省|济南市|联通
+	if len(ListDdata) != 5 {
+		logrus.Warnf("异常的Ip地址", ip)
+		return "未知地址"
+
+	}
+	// 国家 0 省份 市区 运营商
+	country := ListDdata[0]
+	province := ListDdata[2]
+	city := ListDdata[3]
+
+	if province != "0" && city != "0" {
+		return fmt.Sprintf("%s %s", province, city)
+	}
+	if country != "0" && province != "0" {
+		return fmt.Sprintf("%s %s", country, province)
+	}
+	if country != "0" { // 新加坡|0|0|0|xx
+		return fmt.Sprintf("%s", country)
+	}
+
+	return region
 }
