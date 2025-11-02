@@ -6,6 +6,8 @@ import (
 	"Blog_server/global"
 	"Blog_server/models"
 	"Blog_server/service/image_service"
+	"Blog_server/service/log_service"
+	"Blog_server/utils/jwts"
 	"context"
 	"encoding/json"
 	"errors"
@@ -56,6 +58,11 @@ type ImageListInfoResponse struct {
 // @Failure 500 {object} res.Response "服务器错误（如上传七牛云失败、保存文件失败等）"
 // @Router /api/images [post]
 func (ImageApi) ImageUploadView(c *gin.Context) {
+	_claim, exists := c.Get("claims")
+	if !exists {
+		return
+	}
+	claim := _claim.(*jwts.MyClaims)
 	form, err := c.MultipartForm()
 	if err != nil {
 		res.FailWithErr(c, err)
@@ -66,6 +73,11 @@ func (ImageApi) ImageUploadView(c *gin.Context) {
 		res.FailWithErr(c, errors.New("上传的文件图片不存在"))
 		return
 	}
+	log := log_service.GetLog(c)
+	log.SetTitle("图片上传")
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户", claim.Username)
 	// 记录n个照片上传
 	var responseList []image_service.ImageListResponse
 
@@ -80,7 +92,8 @@ func (ImageApi) ImageUploadView(c *gin.Context) {
 		logrus.Infof("response.FilePath %v", response.FilePath)
 		responseList = append(responseList, response)
 	}
-	res.OkWithData(c, responseList)
+	log.SetItemInfo("上传图片个数为", len(responseList))
+	res.OkWithMessage(c, "上传成功")
 }
 
 // ImageInfoView 查看图片  无  @Accept
@@ -181,12 +194,22 @@ func (ImageApi) ImageInfoView(c *gin.Context) {
 // @Failure 500 {object} res.Response "服务器内部错误"
 // @Router /api/images [delete]
 func (ImageApi) ImageRemoveView(c *gin.Context) {
+	_claim, exists := c.Get("claims")
+	if !exists {
+		return
+	}
+	claim := _claim.(*jwts.MyClaims)
 	var cr models.RemoveRequest
 	err := c.ShouldBindJSON(&cr)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
+	log := log_service.GetLog(c)
+	log.SetTitle("删除图片")
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户", claim.Username)
 	var ModelList []models.BannerModel
 	ModelList = common.BatchRemove(ModelList, cr)
 
@@ -210,12 +233,22 @@ func (ImageApi) ImageRemoveView(c *gin.Context) {
 // @Failure 500 {object} res.Response "服务器内部错误"
 // @Router /api/images [put]
 func (ImageApi) ImageUpdateView(c *gin.Context) {
+	_claim, exists := c.Get("claims")
+	if !exists {
+		return
+	}
+	claim := _claim.(*jwts.MyClaims)
 	var cr ImageUpdateRequest
 	err := c.ShouldBindJSON(&cr)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
+	log := log_service.GetLog(c)
+	log.SetTitle("更新图片")
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户", claim.Username)
 	var model models.BannerModel
 	err = global.DB.Take(&model, cr.ID).Error
 	if err != nil {

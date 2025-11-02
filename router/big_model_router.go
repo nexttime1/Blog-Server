@@ -38,7 +38,7 @@ func BigModelRouter(r *gin.RouterGroup) {
 	{
 		r.PUT("big_model/roles", middleware.AdminMiddleware, app.BigModelRoleUpdateView)    // 创建或者修改大模型角色
 		r.GET("big_model/roles", middleware.AdminMiddleware, app.BigModelRoleListView)      // 大模型角色列表
-		r.DELETE("big_model/roles", middleware.AdminMiddleware, app.BigModelRoleRemoveView) //
+		r.DELETE("big_model/roles", middleware.AdminMiddleware, app.BigModelRoleRemoveView) // 删除大模型角色
 		r.GET("big_model/roles/:id", app.BigModelRoleDetailView)                            // 角色细节
 		r.GET("big_model/square", app.BigModelTagRoleListView)                              //大模型角色广场
 

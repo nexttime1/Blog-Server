@@ -1,6 +1,7 @@
 package res
 
 import (
+	"Blog_server/global"
 	"Blog_server/utils/validate"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
@@ -67,18 +68,22 @@ func OkWithData(c *gin.Context, data interface{}) {
 
 }
 func FailWithErr(c *gin.Context, err error) {
+	global.LevelFlag = true
 	data, msg := validate.ValidateErr(err)
 	FailWithData(c, msg, data)
 }
 
 func FailWithMsg(c *gin.Context, message string) {
+	global.LevelFlag = true
 	Response{FailValidCode, empty, message}.Json(c)
 }
 
 func FailWithData(c *gin.Context, message string, data interface{}) {
+	global.LevelFlag = true
 	Response{FailServiceCode, data, message}.Json(c)
 }
 func FailWithCode(c *gin.Context, code Code) {
+	global.LevelFlag = true
 	Response{code, empty, code.Message()}.Json(c)
 }
 

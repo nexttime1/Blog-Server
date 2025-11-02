@@ -5,6 +5,8 @@ import (
 	"Blog_server/common/res"
 	"Blog_server/global"
 	"Blog_server/models"
+	"Blog_server/service/log_service"
+	"Blog_server/utils/jwts"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -37,17 +39,22 @@ type TagListRequest struct {
 // @Failure 500 {object} res.Response "服务器内部错误"
 // @Router /api/tags [post]
 func (TagApi) TagAddView(c *gin.Context) {
-	_, exists := c.Get("claims")
+	_claims, exists := c.Get("claims")
 	if !exists {
 		return
 	}
-
+	claim := _claims.(*jwts.MyClaims)
 	var mr TagRequest
 	err := c.ShouldBindJSON(&mr)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
+	log := log_service.GetLog(c)
+	log.SetTitle("添加文章标签")
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户", claim.Username)
 	var model models.TagModel
 	err = global.DB.Where("title = ?", mr.Title).Take(&model).Error
 	if err == nil {
@@ -117,10 +124,11 @@ func (TagApi) TagListView(c *gin.Context) {
 // @Failure 500 {object} res.Response "服务器内部错误"
 // @Router /api/tags/{id} [put]
 func (TagApi) TagUpdateView(c *gin.Context) {
-	_, exists := c.Get("claims")
+	_claims, exists := c.Get("claims")
 	if !exists {
 	}
 	var Request models.IDRequest
+	claim := _claims.(*jwts.MyClaims)
 	err := c.ShouldBindUri(&Request)
 	if err != nil {
 		res.FailWithErr(c, err)
@@ -132,6 +140,11 @@ func (TagApi) TagUpdateView(c *gin.Context) {
 		res.FailWithErr(c, err)
 		return
 	}
+	log := log_service.GetLog(c)
+	log.SetTitle("更新标签")
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户", claim.Username)
 	var model models.TagModel
 	err = global.DB.Where("id = ?", Request.ID).Take(&model).Error
 	if err != nil {
@@ -159,16 +172,22 @@ func (TagApi) TagUpdateView(c *gin.Context) {
 // @Failure 500 {object} res.Response "服务器内部错误"
 // @Router /api/tags [delete]
 func (TagApi) TagDeleteView(c *gin.Context) {
-	_, exists := c.Get("claims")
+	_claims, exists := c.Get("claims")
 	if !exists {
 		return
 	}
+	claim := _claims.(*jwts.MyClaims)
 	var mr models.RemoveRequest
 	err := c.ShouldBindJSON(&mr)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
+	log := log_service.GetLog(c)
+	log.SetTitle("删除标签")
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户", claim.Username)
 	var modelList []models.TagModel
 	modelList = common.BatchRemove(modelList, mr)
 	count := len(modelList)

@@ -113,6 +113,7 @@ func (AdvertApi) AdvertAddView(c *gin.Context) {
 // @Failure 500 {object} res.Response "服务器内部错误"
 // @Router /api/adverts [get]
 func (AdvertApi) AdvertListView(c *gin.Context) {
+
 	var as AdvertListResponse
 	err := c.ShouldBindQuery(&as)
 	if err != nil {
@@ -158,17 +159,27 @@ func (AdvertApi) AdvertListView(c *gin.Context) {
 // @Failure 500 {object} res.Response "服务器内部错误"
 // @Router /api/adverts/{id} [put]
 func (AdvertApi) AdvertUpdateView(c *gin.Context) {
+	_claim, exists := c.Get("claims")
+	if !exists {
+		return
+	}
+	claim := _claim.(*jwts.MyClaims)
 	id := c.Param("id")
-
 	var ac AdvertUpdateRequest
 	err := c.ShouldBindJSON(&ac)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
+	log := log_service.GetLog(c)
+	log.SetTitle("修改广告")
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户", claim.Username)
 	var UpdateAdvert models.AdvertModel
 	err = global.DB.Take(&UpdateAdvert, "id = ?", id).Error
 	if err != nil {
+		log.SetItemError("广告不存在", err)
 		res.FailWithErr(c, err)
 		return
 	}
@@ -176,11 +187,12 @@ func (AdvertApi) AdvertUpdateView(c *gin.Context) {
 	var advert models.AdvertModel
 	err = global.DB.Debug().Where("title = ? and id != ?", ac.Title, id).Take(&advert).Error
 	if err == nil {
+		log.SetItemError("title 值重复", "修改失败")
 		res.FailWithErr(c, errors.New("title 值重复"))
 		return
 	}
 	//把结构体变成map  把没传值的 都给 去掉  不去修改 数据库
-	fmt.Println(ac)
+
 	toMap := struct_to_map.StructToMap(ac)
 	if toMap == nil {
 		toMap["is_show"] = UpdateAdvert.IsShow
@@ -209,12 +221,22 @@ func (AdvertApi) AdvertUpdateView(c *gin.Context) {
 // @Failure 500 {object} res.Response "服务器内部错误"
 // @Router /api/adverts [delete]
 func (AdvertApi) AdvertDeleteView(c *gin.Context) {
+	_claim, exists := c.Get("claims")
+	if !exists {
+		return
+	}
+	claim := _claim.(*jwts.MyClaims)
 	var removeRequest models.RemoveRequest
 	err := c.ShouldBindJSON(&removeRequest)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
+	log := log_service.GetLog(c)
+	log.SetTitle("删除广告")
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户", claim.Username)
 	var advertModels []models.AdvertModel
 	advertModels = common.BatchRemove(advertModels, removeRequest)
 	res.OkWithMessage(c, fmt.Sprintf("成功删除%d条广告", len(advertModels)))

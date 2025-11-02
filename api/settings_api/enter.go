@@ -4,6 +4,8 @@ import (
 	"Blog_server/common/res"
 	"Blog_server/conf"
 	"Blog_server/global"
+	"Blog_server/service/log_service"
+	"Blog_server/utils/jwts"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -20,14 +22,22 @@ type SettingsResponse struct {
 }
 
 func (SettingApi) SettingInfoView(c *gin.Context) {
-	fmt.Println("SettingInfoView")
+	_claim, exists := c.Get("claims")
+	if !exists {
+		return
+	}
+	claim := _claim.(*jwts.MyClaims)
 	var s SettingsResponse
 	err := c.ShouldBindUri(&s)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
-	fmt.Println("打印打印", s.Name)
+	log := log_service.GetLog(c)
+	log.SetTitle("查看系统配置")
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户", claim.Username)
 	if s.Name == "" {
 		fmt.Println("没接收到东西")
 	}
@@ -53,6 +63,8 @@ func (SettingApi) SettingInfoView(c *gin.Context) {
 		res.OkWithData(c, jwt)
 	case "chat_group":
 		res.OkWithData(c, global.Config.ChatGroup)
+	case "gaode":
+		res.OkWithData(c, global.Config.Gaode)
 	default:
 		res.FailWithErr(c, errors.New("配置信息未找到"))
 	}
@@ -61,12 +73,22 @@ func (SettingApi) SettingInfoView(c *gin.Context) {
 }
 
 func (SettingApi) SettingInfoUpdateView(c *gin.Context) {
+	_claim, exists := c.Get("claims")
+	if !exists {
+		return
+	}
+	claim := _claim.(*jwts.MyClaims)
 	var s SettingsResponse
 	err := c.ShouldBindUri(&s)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
+	log := log_service.GetLog(c)
+	log.SetTitle("修改系统配置")
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户", claim.Username)
 	switch s.Name {
 	case "site":
 		var siteData conf.SiteInfo
@@ -140,6 +162,14 @@ func (SettingApi) SettingInfoUpdateView(c *gin.Context) {
 			return
 		}
 		global.Config.ChatGroup = info
+	case "gaode":
+		var info conf.Gaode
+		err = c.ShouldBindJSON(&info)
+		if err != nil {
+			res.FailWithCode(c, res.ArgumentError)
+			return
+		}
+		global.Config.Gaode = info
 	default:
 		res.FailWithErr(c, errors.New("配置信息未找到"))
 	}

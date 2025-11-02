@@ -12,5 +12,6 @@ var (
 	DB          *gorm.DB
 	Redis       *redis.Client
 	Es          *elastic.Client
+	LevelFlag   bool
 	SettingYaml = "D:\\5524\\go_project\\Blog-Server\\settings.yaml"
 )

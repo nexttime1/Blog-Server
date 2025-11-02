@@ -6,6 +6,7 @@ import (
 	"Blog_server/global"
 	"Blog_server/models"
 	"Blog_server/models/enum"
+	"Blog_server/service/log_service"
 	"Blog_server/utils/big_model"
 	"Blog_server/utils/jwts"
 	"Blog_server/utils/struct_to_map"
@@ -208,18 +209,21 @@ func UserScopeService(cr UserScopeRequest, claim *jwts.MyClaims) error {
 
 }
 
-func AutoReplyUpdateService(cr AutoReplyUpdateRequest) (int, error) { // 1为添加  2 为修改   0 为错误
+func AutoReplyUpdateService(cr AutoReplyUpdateRequest, log *log_service.ActionLog) (int, error) { // 1为添加  2 为修改   0 为错误
 
 	// 校验正则是否写错
 	if cr.Mode == 4 {
 		_, err := regexp.Compile(cr.Rule)
 		if err != nil {
+			log.SetTitle("自动回复相关")
+			log.SetItemError("正则表达式错误", err.Error())
 			logrus.Errorf(fmt.Sprintf("正则表达式错误 %s", err.Error()))
 			return 0, errors.New("正则表达式错误")
 		}
 	}
 	if cr.ID == 0 {
-		// 说明要田间
+		// 说明要添加
+		log.SetTitle("添加大模型自动回复")
 		var model models.AutoReplyModel
 		err := global.DB.Take(&model, "name = ?", cr.Name).Error
 		if err == nil {
@@ -234,12 +238,15 @@ func AutoReplyUpdateService(cr AutoReplyUpdateRequest) (int, error) { // 1为添
 		}).Error
 
 		if err != nil {
+			log.SetItemError("添加失败", err.Error())
 			logrus.Errorf("%#v", err)
 			return 0, errors.New("添加失败")
 
 		}
+		log.SetItemInfo("添加自动回复的信息为 ", cr)
 		return 1, nil
 	}
+	log.SetTitle("修改大模型自动回复")
 	var model models.AutoReplyModel
 
 	err := global.DB.Take(&model, "id = ?", cr.ID).Error
@@ -265,25 +272,30 @@ func AutoReplyUpdateService(cr AutoReplyUpdateRequest) (int, error) { // 1为添
 		logrus.Errorf("%#v", err)
 		return 0, errors.New("修改失败")
 	}
+	log.SetItemInfo("修改后的信息为  ", cr)
 	return 2, nil
 }
 
-func BigModelTagUpdateService(cr TagUpdateRequest) (int, error) {
+func BigModelTagUpdateService(cr TagUpdateRequest, log *log_service.ActionLog) (int, error) {
 	if cr.ID == 0 {
 		//增加
+		log.SetTitle("创建大模型标签")
 		var model models.BigModelTagModel
 		err := global.DB.Take(&model, "title = ?", cr.Title).Error
 		if err == nil {
 			// 找到了  重复了
+			log.SetItemError("与已有的标签名称重复", cr.Title)
 			return 0, errors.New("与已有的标签名称重复")
 		}
 		global.DB.Create(&models.BigModelTagModel{
 			Title: cr.Title,
 			Color: cr.Color,
 		})
+		log.SetItemInfo("大模型标签标签为 ", cr.Title)
 		return 1, nil
 	}
 	// 修改
+	log.SetTitle("修改大模型标签")
 	var model models.BigModelTagModel
 	err := global.DB.Take(&model, cr.ID).Error
 	if err != nil {
@@ -294,6 +306,7 @@ func BigModelTagUpdateService(cr TagUpdateRequest) (int, error) {
 	err = global.DB.Take(&arm, "title = ? and id <> ?", cr.Title, cr.ID).Error
 	if err == nil {
 		// 找到了
+		log.SetItemError("与已有的标签名称重复", cr.Title)
 		return 0, errors.New("修改的名称重复")
 	}
 	err = global.DB.Model(&model).Updates(map[string]any{
@@ -304,7 +317,7 @@ func BigModelTagUpdateService(cr TagUpdateRequest) (int, error) {
 		logrus.Errorf("%#v", err)
 		return 0, errors.New("修改失败")
 	}
-
+	log.SetItemInfo("修改后的信息为 ", model)
 	return 2, nil
 
 }
@@ -332,7 +345,7 @@ func BigModelTagListService(cr common.PageInfo) ([]TagListResponse, int, error) 
 
 }
 
-func BigModelTagRemoveService(cr models.RemoveRequest) error {
+func BigModelTagRemoveService(cr models.RemoveRequest, log *log_service.ActionLog) error {
 	// 开启事务，保证操作原子性
 	tx := global.DB.Begin()
 	defer func() {
@@ -340,11 +353,12 @@ func BigModelTagRemoveService(cr models.RemoveRequest) error {
 			tx.Rollback()
 		}
 	}()
-
+	log.SetItemInfo("删除的标签有", cr.IDList)
 	// 1. 删除中间表关联记录
 	err := tx.Where("big_model_tag_model_id in ?", cr.IDList).Delete(&models.BigModelRoleTagModel{}).Error
 	if err != nil {
 		tx.Rollback()
+		log.SetItemError("关联表删除失败", err)
 		logrus.Errorf("中间表关联记录删除失败：%#v", err)
 		return errors.New("关联表删除失败")
 	}
@@ -360,6 +374,7 @@ func BigModelTagRemoveService(cr models.RemoveRequest) error {
 	// 判断 传入的 ID 数量与存在的数量不一致，说明有无效 ID
 	if existCount != int64(len(cr.IDList)) {
 		tx.Rollback()
+		log.SetItemError("部分标签不存在", "删除失败")
 		return errors.New("部分标签不存在，删除失败")
 	}
 
@@ -367,6 +382,7 @@ func BigModelTagRemoveService(cr models.RemoveRequest) error {
 	// 3. 批量删除标签表数据
 	if err != nil {
 		tx.Rollback()
+		log.SetItemError("标签删除失败", err)
 		logrus.Errorf("标签删除失败：%#v", err)
 		return errors.New("标签删除失败")
 	}
@@ -374,7 +390,7 @@ func BigModelTagRemoveService(cr models.RemoveRequest) error {
 	return tx.Commit().Error
 }
 
-func BigModelRoleUpdateService(cr RoleUpdateRequest) (int, error) {
+func BigModelRoleUpdateService(cr RoleUpdateRequest, log *log_service.ActionLog) (int, error) {
 	// 开启事务，保证操作原子性
 	tx := global.DB.Begin()
 	defer func() {
@@ -387,11 +403,13 @@ func BigModelRoleUpdateService(cr RoleUpdateRequest) (int, error) {
 	count := tx.Where("id in ?", cr.TagList).Find(&tags).RowsAffected
 	if count != int64(len(cr.TagList)) {
 		tx.Rollback()
+		log.SetItemError("部分标签不存在", cr.TagList)
 		return 0, errors.New("部分标签不存在")
 	}
 
 	if cr.ID == 0 {
 		// 添加
+		log.SetTitle("添加大模型角色")
 		var model models.BigModelRoleModel
 		count := tx.Where("name = ?", cr.Name).Find(&model).RowsAffected
 		if count != 0 {
@@ -419,6 +437,7 @@ func BigModelRoleUpdateService(cr RoleUpdateRequest) (int, error) {
 	}
 
 	//修改
+	log.SetTitle("修改大模型角色")
 	var model models.BigModelRoleModel
 	err := tx.Where("id = ?", cr.ID).Take(&model).Error
 	if err != nil {

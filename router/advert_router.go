@@ -9,8 +9,8 @@ import (
 func AdvertRouter(c *gin.RouterGroup) {
 	app := api.App.AdvertApi
 	c.POST("adverts", middleware.AuthMiddleware, app.AdvertAddView)
-	c.GET("adverts", app.AdvertListView)
-	c.PUT("adverts/:id", app.AdvertUpdateView)
-	c.DELETE("adverts", app.AdvertDeleteView)
+	c.GET("adverts", middleware.AuthMiddleware, app.AdvertListView)
+	c.PUT("adverts/:id", middleware.AuthMiddleware, app.AdvertUpdateView)
+	c.DELETE("adverts", middleware.AuthMiddleware, app.AdvertDeleteView)
 
 }

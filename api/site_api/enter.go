@@ -65,7 +65,6 @@ func (SiteApi) SiteUpdateView(c *gin.Context) {
 	log := log_service.GetLog(c)
 	log.ShowRequest()
 	log.ShowResponse()
-	fmt.Println("SiteUpdateView")
 
 	var req SiteUpdateRequest
 	err := c.ShouldBindJSON(&req)

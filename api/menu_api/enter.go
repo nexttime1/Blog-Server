@@ -4,7 +4,9 @@ import (
 	"Blog_server/common/res"
 	"Blog_server/global"
 	"Blog_server/models"
+	"Blog_server/service/log_service"
 	"Blog_server/service/menu_service"
+	"Blog_server/utils/jwts"
 	"Blog_server/utils/struct_to_map"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -42,12 +44,22 @@ type MenuNameListResponse struct {
 // @Failure 500 {object} res.Response "服务器内部错误"
 // @Router /api/menus [post]
 func (MenuApi) MenuCreateView(c *gin.Context) {
+	_claim, exists := c.Get("claims")
+	if !exists {
+		return
+	}
+	claim := _claim.(*jwts.MyClaims)
 	var mc menu_service.MenuRequest
 	err := c.ShouldBindJSON(&mc)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
+	log := log_service.GetLog(c)
+	log.SetTitle("添加菜单")
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户", claim.Username)
 	err, menuBannerList := menu_service.MenuAddService(c, mc)
 	if err != nil {
 		res.FailWithErr(c, err)
@@ -149,6 +161,11 @@ func (MenuApi) MenuNameListView(c *gin.Context) {
 // @Failure 500 {object} res.Response "服务器内部错误"
 // @Router /api/menus/{id} [put]
 func (MenuApi) MenuUpdateView(c *gin.Context) {
+	_claim, exists := c.Get("claims")
+	if !exists {
+		return
+	}
+	claim := _claim.(*jwts.MyClaims)
 	id := c.Param("id")
 	var mc menu_service.MenuRequest
 	err := c.ShouldBindJSON(&mc)
@@ -156,7 +173,11 @@ func (MenuApi) MenuUpdateView(c *gin.Context) {
 		res.FailWithErr(c, err)
 		return
 	}
-
+	log := log_service.GetLog(c)
+	log.SetTitle("菜单更新")
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户", claim.Username)
 	var model models.MenuModel
 	err = global.DB.Where("id = ?", id).Take(&model).Error
 	if err != nil {
@@ -211,12 +232,22 @@ func (MenuApi) MenuUpdateView(c *gin.Context) {
 // @Failure 500 {object} res.Response "服务器内部错误"
 // @Router /api/menus [delete]
 func (MenuApi) MenuDeleteView(c *gin.Context) {
+	_claim, exists := c.Get("claims")
+	if !exists {
+		return
+	}
+	claim := _claim.(*jwts.MyClaims)
 	var deleteRequest models.RemoveRequest
 	err := c.ShouldBindJSON(&deleteRequest)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
+	log := log_service.GetLog(c)
+	log.SetTitle("菜单删除")
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户", claim.Username)
 	if len(deleteRequest.IDList) == 0 {
 		res.FailWithMsg(c, "请给出 删除的菜单列表")
 		return

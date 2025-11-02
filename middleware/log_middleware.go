@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"Blog_server/global"
+	"Blog_server/models/enum"
 	"Blog_server/service/log_service"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -40,13 +42,15 @@ func (w *ResponseWriter) WriteHeader(code int) {
 func LogMiddleware(c *gin.Context) {
 	//请求部分
 	//fmt.Println("中间件") //先走中间件
+	//日志等级
+	global.LevelFlag = false
 	log := log_service.NewActionLogByGin(c)
 
 	log.SetRequest(c)
 	//"log"是设定的键，这是个字符串类型。  存到上下文中   c.get就开源拿出来
 	//log则是要存储的值，它属于*ActionLog类型。
 	c.Set("log", log)
-
+	log.SetLevel(enum.LogInfoLevel)
 	res := &ResponseWriter{
 		ResponseWriter: c.Writer, //只要一个类型实现了接口的所有方法，就可以将该类型的值赋值给该接口变量 go 多态
 		Head:           make(http.Header),
@@ -63,5 +67,8 @@ func LogMiddleware(c *gin.Context) {
 	log.SetResponseHeader(res.Head)
 	log.ShowResponseHeader()
 	log.MiddleSave()
+	if global.LevelFlag {
+		log.SetLevel(enum.LogErrLevel)
+	}
 
 }

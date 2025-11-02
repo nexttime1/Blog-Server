@@ -7,6 +7,7 @@ import (
 	"Blog_server/models"
 	"Blog_server/models/enum"
 	"Blog_server/service/log_service"
+	"Blog_server/utils/jwts"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"time"
@@ -34,6 +35,10 @@ type LogListResponse struct {
 }
 
 func (LogApi) LogListNew(c *gin.Context) {
+	_, exists := c.Get("claims")
+	if !exists {
+		return
+	}
 	var cr LogListView
 	err := c.ShouldBindQuery(&cr)
 	if err != nil {
@@ -71,6 +76,7 @@ func (LogApi) LogListNew(c *gin.Context) {
 
 	var _list = make([]LogListResponse, 0)
 	for _, v := range list {
+		v.UserName = v.UserModel.Username
 		_list = append(_list, LogListResponse{
 			LogModel:     v,
 			UserNickName: v.UserModel.Nickname,
@@ -82,6 +88,10 @@ func (LogApi) LogListNew(c *gin.Context) {
 }
 
 func (LogApi) LogReadView(c *gin.Context) {
+	_, exists := c.Get("claims")
+	if !exists {
+		return
+	}
 	var cr models.IDRequest
 	err := c.ShouldBindQuery(&cr)
 	if err != nil {
@@ -103,6 +113,11 @@ func (LogApi) LogReadView(c *gin.Context) {
 }
 
 func (LogApi) LogRemoveView(c *gin.Context) {
+	_claim, exists := c.Get("claims")
+	if !exists {
+		return
+	}
+	claim := _claim.(*jwts.MyClaims)
 	var rc models.RemoveRequest
 	err := c.ShouldBindJSON(&rc)
 	if err != nil {
@@ -111,8 +126,10 @@ func (LogApi) LogRemoveView(c *gin.Context) {
 	}
 	//删除我 需要保存操作日志   先走中间件  中间件 设置了Set  Log  所以我这里可以获得 log  可以激活Save函数
 	log := log_service.GetLog(c)
+	log.SetTitle("日志删除")
+	log.SetItem("操作用户", claim.Username)
+	log.SetRequest(c)
 	log.ShowRequest()
-	log.ShowResponse()
 
 	var ModelList []models.LogModel
 

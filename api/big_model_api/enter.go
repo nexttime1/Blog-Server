@@ -8,6 +8,7 @@ import (
 	"Blog_server/models"
 	"Blog_server/models/enum"
 	"Blog_server/service/big_model_service"
+	"Blog_server/service/log_service"
 	"Blog_server/utils/jwts"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -177,23 +178,30 @@ func (BigModelApi) BigModelSessionView(c *gin.Context) {
 // @Failure 500 {object} res.Response "配置文件写入失败"
 // @Router /big_model/session_setting [put]
 func (BigModelApi) BigModelSessionUpdateView(c *gin.Context) {
-	_, exist := c.Get("claims")
+	_claim, exist := c.Get("claims")
 	if !exist {
 		return
 	}
+	claim := _claim.(*jwts.MyClaims)
 	var cr conf.SessionSetting
 	err := c.ShouldBindJSON(&cr)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
+	log := log_service.GetLog(c)
+	log.SetTitle("修改大模型会话配置")
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户", claim.Username)
 	global.Config.BigModel.SessionSetting = cr
 	err = common.ToYAML(global.SettingYaml, global.Config)
 	if err != nil {
+		log.SetItemError("修改错误", err)
 		res.FailWithErr(c, err)
 		return
 	}
-	res.FailWithMsg(c, "修改成功")
+	res.OkWithMessage(c, "修改成功")
 }
 
 // UserScopeEnableView
@@ -250,9 +258,14 @@ func (BigModelApi) UserScopeView(c *gin.Context) {
 		res.FailWithErr(c, err)
 		return
 	}
-
+	log := log_service.GetLog(c)
+	log.SetTitle("用户领取积分")
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户", Claims.Username)
 	err = big_model_service.UserScopeService(cr, Claims)
 	if err != nil {
+
 		res.FailWithMsg(c, fmt.Sprintf("%v", err))
 		return
 	}
@@ -274,17 +287,22 @@ func (BigModelApi) UserScopeView(c *gin.Context) {
 // @Failure 500 {object} res.Response "操作失败"
 // @Router /big_model/auto_reply [put]
 func (BigModelApi) AutoReplyUpdateView(c *gin.Context) {
-	_, exist := c.Get("claims")
+	_claims, exist := c.Get("claims")
 	if !exist {
 		return
 	}
+	claim := _claims.(*jwts.MyClaims)
 	var cr big_model_service.AutoReplyUpdateRequest
 	err := c.ShouldBindJSON(&cr)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
-	flag, err := big_model_service.AutoReplyUpdateService(cr)
+	log := log_service.GetLog(c)
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户", claim.Username)
+	flag, err := big_model_service.AutoReplyUpdateService(cr, log)
 	if err != nil {
 		res.FailWithMsg(c, fmt.Sprintf("%v", err))
 		return
@@ -345,16 +363,22 @@ func (BigModelApi) AutoReplyListView(c *gin.Context) {
 // @Failure 500 {object} res.Response "数据库操作失败"
 // @Router /big_model/auto_reply [delete]
 func (BigModelApi) AutoReplyDeleteView(c *gin.Context) {
-	_, exist := c.Get("claims")
+	_claims, exist := c.Get("claims")
 	if !exist {
 		return
 	}
+	claim := _claims.(*jwts.MyClaims)
 	var cr models.RemoveRequest
 	err := c.ShouldBindJSON(&cr)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
+	log := log_service.GetLog(c)
+	log.SetTitle("删除大模型自动回复")
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户", claim.Username)
 	var AutoModels []models.AutoReplyModel
 
 	err = global.DB.Take(&AutoModels, "id in ?", cr.IDList).Error
@@ -365,7 +389,7 @@ func (BigModelApi) AutoReplyDeleteView(c *gin.Context) {
 	}
 	global.DB.Delete(&AutoModels)
 
-	res.FailWithMsg(c, fmt.Sprintf("共删除%d个自动恢复", len(AutoModels)))
+	res.OkWithMessage(c, fmt.Sprintf("共删除%d个自动恢复", len(AutoModels)))
 
 }
 
@@ -383,17 +407,23 @@ func (BigModelApi) AutoReplyDeleteView(c *gin.Context) {
 // @Failure 500 {object} res.Response "服务内部错误（如数据库操作失败、标签名称重复等）"
 // @Router /big_model/tags [put]
 func (BigModelApi) BigModelTagUpdateView(c *gin.Context) {
-	_, exist := c.Get("claims")
+	_claims, exist := c.Get("claims")
 	if !exist {
 		return
 	}
+	claim := _claims.(*jwts.MyClaims)
 	var cr big_model_service.TagUpdateRequest
 	err := c.ShouldBindJSON(&cr)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
-	flag, err := big_model_service.BigModelTagUpdateService(cr)
+	log := log_service.GetLog(c)
+
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户", claim.Username)
+	flag, err := big_model_service.BigModelTagUpdateService(cr, log)
 	if err != nil {
 		res.FailWithMsg(c, fmt.Sprintf("%v", err))
 		return
@@ -454,18 +484,23 @@ func (BigModelApi) BigModelTagListView(c *gin.Context) {
 // @Failure 1001 {object} res.Response{code=int,data=map[string]interface{},msg=string} "参数错误或删除失败"
 // @Router /big_model/tags [delete]
 func (BigModelApi) BigModelTagRemoveView(c *gin.Context) {
-	_, exist := c.Get("claims")
+	_claims, exist := c.Get("claims")
 	if !exist {
 		return
 	}
+	claim := _claims.(*jwts.MyClaims)
 	var cr models.RemoveRequest
 	err := c.ShouldBindJSON(&cr)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
-
-	err = big_model_service.BigModelTagRemoveService(cr)
+	log := log_service.GetLog(c)
+	log.SetTitle("删除大模型标签")
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户", claim.Username)
+	err = big_model_service.BigModelTagRemoveService(cr, log)
 
 	if err != nil {
 		res.FailWithMsg(c, fmt.Sprintf("%v", err))
@@ -495,17 +530,22 @@ func (BigModelApi) BigModelTagRemoveView(c *gin.Context) {
 // @Failure 1001 {object} res.Response{code=int,data=map[string]interface{},msg=string} "参数错误或操作失败"
 // @Router /big_model/roles [put]
 func (BigModelApi) BigModelRoleUpdateView(c *gin.Context) {
-	_, exist := c.Get("claims")
+	_claims, exist := c.Get("claims")
 	if !exist {
 		return
 	}
+	claim := _claims.(*jwts.MyClaims)
 	var cr big_model_service.RoleUpdateRequest
 	err := c.ShouldBindJSON(&cr)
 	if err != nil {
 		res.FailWithErr(c, err)
 		return
 	}
-	flag, err := big_model_service.BigModelRoleUpdateService(cr)
+	log := log_service.GetLog(c)
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户", claim.Username)
+	flag, err := big_model_service.BigModelRoleUpdateService(cr, log)
 	if err != nil {
 		res.FailWithMsg(c, fmt.Sprintf("%v", err))
 		return
@@ -567,15 +607,21 @@ func (BigModelApi) BigModelRoleListView(c *gin.Context) {
 // @Failure 1002 {object} res.Response{code=int,data=map[string]interface{},msg=string} "服务异常（如删除失败）"
 // @Router /big_model/roles [delete]
 func (BigModelApi) BigModelRoleRemoveView(c *gin.Context) {
-	_, exist := c.Get("claims")
+	_claims, exist := c.Get("claims")
 	if !exist {
 		return
 	}
+	claim := _claims.(*jwts.MyClaims)
 	var cr models.RemoveRequest
 	err := c.ShouldBindJSON(&cr)
 	if err != nil {
 		res.FailWithErr(c, err)
 	}
+	log := log_service.GetLog(c)
+	log.SetTitle("删除大模型角色")
+	log.SetRequest(c)
+	log.ShowRequest()
+	log.SetItem("操作用户", claim.Username)
 	err, msg := big_model_service.BigModelRoleRemoveService(cr)
 	if err != nil {
 		res.FailWithMsg(c, fmt.Sprintf("%v", err))

@@ -25,13 +25,13 @@ import (
 
 type ArticleAddRequest struct {
 	Title    string     `json:"title" binding:"required" msg:"文章标题必填"`   // 文章标题
-	Abstract string     `json:"abstract"`                                // 文章简介
+	Abstract string     `json:"abstract"`                                      // 文章简介
 	Content  string     `json:"content" binding:"required" msg:"文章内容必填"` // 文章内容
-	Category string     `json:"category"`                                // 文章分类
-	Source   string     `json:"source"`                                  // 文章来源
-	Link     string     `json:"link"`                                    // 原文链接
-	BannerID uint       `json:"banner_id"`                               // 文章封面id
-	Tags     enum.Array `json:"tags"`                                    // 文章标签
+	Category string     `json:"category"`                                      // 文章分类
+	Source   string     `json:"source"`                                        // 文章来源
+	Link     string     `json:"link"`                                          // 原文链接
+	BannerID uint       `json:"banner_id"`                                     // 文章封面id
+	Tags     enum.Array `json:"tags"`                                          // 文章标签
 }
 
 type CalendarResponse struct {
@@ -169,7 +169,7 @@ func ArticleCreateService(cr ArticleAddRequest, claims *jwts.MyClaims, log *log_
 	log.SetItem("操作人ID", UserID)
 	log.SetItem("操作人昵称", UserNickName)
 	res.AsyncArticleByFullText(article.ID, article.Title, article.Content, log)
-	log.SetLink("文章查看地址", "http://127.0.0.1:8080/api/articles/"+article.ID)
+	log.SetLink("文章查看地址", "http://localhost/article/"+article.ID)
 	return nil
 }
 
@@ -184,15 +184,15 @@ func CalendarService() ([]CalendarResponse, error) {
 	// 构建查询条件：只查询"created_at"在[一年前, 现在]范围内的文章
 	query := elastic.NewRangeQuery("created_at").
 		Gte(AYearsAgo.Format(format)). // 大于等于：一年前的时间（格式化为上面定义的字符串）
-		Lte(now.Format(format))        // 小于等于：当前时间（格式化后）
+		Lte(now.Format(format)) // 小于等于：当前时间（格式化后）
 
 	// 调用Elasticsearch客户端执行查询
 	result, err := global.Es.
 		Search(models.ArticleModel{}.Index()). // 指定查询的索引（从文章模型中获取索引名）
-		Query(query).                          // 设置查询条件（上面定义的范围查询）
-		Aggregation("calendar", agg).          // 添加聚合条件，命名为"calendar"（后续用于获取结果）
-		Size(0).                               // 不返回实际文档数据（只需要聚合结果，提高效率）
-		Do(context.Background())               // 执行查询，传入上下文（用于控制超时等）
+		Query(query). // 设置查询条件（上面定义的范围查询）
+		Aggregation("calendar", agg). // 添加聚合条件，命名为"calendar"（后续用于获取结果）
+		Size(0). // 不返回实际文档数据（只需要聚合结果，提高效率）
+		Do(context.Background()) // 执行查询，传入上下文（用于控制超时等）
 
 	if err != nil {
 		return nil, fmt.Errorf("查询错误 %s", err)
