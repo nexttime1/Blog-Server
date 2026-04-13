@@ -1,9 +1,9 @@
 package struct_to_map
 
 import (
-	"Blog_server/models/enum"
 	"github.com/fatih/structs"
 	"github.com/sirupsen/logrus"
+	"reflect"
 )
 
 func StructToMap(obj interface{}) map[string]interface{} {
@@ -37,11 +37,20 @@ func DeleteEmpty(m map[string]interface{}) map[string]interface{} {
 			if val != nil {
 				data[key] = val
 			}
-		case enum.Array:
-			if len(val) != 0 {
-				data[key] = val
-			}
+
+		//case enum.Array:
+		//	if len(val) != 0 {
+		//		data[key] = val
+		//	}
 		default:
+			// 看看指针为空么 为空取消赋值
+			value := reflect.ValueOf(v)
+			if value.Kind() == reflect.Ptr {
+				// 如果是指针且指向为空，则跳过
+				if value.IsNil() {
+					continue
+				}
+			}
 			data[key] = v
 		}
 
