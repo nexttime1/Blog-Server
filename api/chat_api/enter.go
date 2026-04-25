@@ -63,18 +63,8 @@ func (ChatApi) ChatGroupView(c *gin.Context) {
 		},
 	}
 
-	// 调用 Upgrader.Upgrade 方法将 HTTP 连接升级为 WebSocket 连接
-	// 参数说明：
-	// c.Writer：HTTP 响应写入器（用于发送升级响应）
-	// c.Request：HTTP 请求对象（包含客户端的连接信息）
-	// nil：额外的响应头（此处不需要，传 nil）
 	conn, err := upGrader.Upgrade(c.Writer, c.Request, nil)
-	// 打印升级过程中可能出现的错误（如协议不支持、鉴权失败等）
-	fmt.Println(err)
-	// 如果升级失败（err 不为 nil），返回参数错误响应
 	if err != nil {
-		// res.FailWithCode 是自定义的响应工具函数，用于返回错误码
-		// res.FailArgumentCode 表示参数错误（通常对应 HTTP 400）
 		logrus.Errorf("%v", err)
 		res.FailWithCode(c, res.FailArgumentCode)
 		return // 终止函数执行
@@ -102,11 +92,7 @@ func (ChatApi) ChatGroupView(c *gin.Context) {
 	})
 	// 循环读取客户端发送的消息（WebSocket 连接是长连接，需要持续监听）
 	for {
-		// 调用 conn.ReadMessage 读取客户端消息
-		// 返回值说明：
-		// 第一个返回值：消息类型（如 websocket.TextMessage 文本消息、BinaryMessage 二进制消息等）
-		// p：消息内容（字节数组）
-		// err：读取过程中的错误（如客户端断开连接会返回错误）
+
 		_, p, err := conn.ReadMessage()
 
 		// 如果读取错误（如客户端断开连接），退出循环
