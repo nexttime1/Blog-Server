@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"sync"
 )
 
 func main() {
@@ -23,4 +25,6 @@ func main() {
 	}
 	// 连接成功
 	fmt.Println(db)
+	_ = sync.WaitGroup{}
+	_ = context.Background()
 }

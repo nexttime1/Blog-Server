@@ -1,151 +1,151 @@
 system:
-  ip: 0.0.0.0
-  port: 8080
-  gin_mode: release
-  env: dev
+    ip: 0.0.0.0
+    port: 8080
+    gin_mode: release
+    env: dev
 log:
-  app: blog_server
-  dir: logs
+    app: blog_server
+    dir: logs
 db:
-  user: root
-  password: root
-  host: 127.0.0.1
-  port: 3306
-  db: blog
-  debug: false
-  source: mysql
+    user: root
+    password: root
+    host: 127.0.0.1
+    port: 3306
+    db: blog
+    debug: false
+    source: mysql
 db1:
-  user: root
-  password: root
-  host: 127.0.0.1
-  port: 3306
-  db: blog
-  debug: false
-  source: mysql
+    user: root
+    password: root
+    host: 127.0.0.1
+    port: 3306
+    db: blog
+    debug: false
+    source: mysql
 jwt:
-  expire: 3
-  secret: skw
-  issuer: xiaosong
+    expire: 3
+    secret: skw
+    issuer: xiaosong
 redis:
-  addr: 127.0.0.1:6379
-  password: ""
-  db: 0
+    addr: 127.0.0.1:6379
+    password: ""
+    db: 0
 site:
-  site-info:
-    title: ""
-    logo: ""
-    beian: ""
-    mode: 0
-  project:
-    title: ""
-    icon: ""
-    webPath: ""
-  seo:
-    keywords: ""
-    description: ""
-  about:
-    siteDate: ""
-    qq: ""
-    weChat: ""
-    gitee: ""
-    bilibili: ""
-    github: ""
-  login:
-    qqLogin: ""
-    usernamePwdLogin: ""
-    emailLogin: ""
-    captcha: false
-  indexRight: {}
-  article:
-    noExamine: false
+    site-info:
+        title: ""
+        logo: ""
+        beian: ""
+        mode: 0
+    project:
+        title: ""
+        icon: ""
+        webPath: ""
+    seo:
+        keywords: ""
+        description: ""
+    about:
+        siteDate: ""
+        qq: ""
+        weChat: ""
+        gitee: ""
+        bilibili: ""
+        github: ""
+    login:
+        qqLogin: ""
+        usernamePwdLogin: ""
+        emailLogin: ""
+        captcha: false
+    indexRight: {}
+    article:
+        noExamine: false
 email:
-  host: smtp.qq.com
-  port: 465
-  user: 2083933996@qq.com
-  password: ebwamormxkmqccje
-  default_from_email: 下次一定
-  use_ssl: true
-  user_tls: true
+    host: smtp.qq.com
+    port: 465
+    user: 2083933996@qq.com
+    password: ebwamormxkmqccje
+    default_from_email: 下次一定
+    use_ssl: true
+    user_tls: true
 qq:
-  app_id: "1112383751"
-  key: VURxpNMnpwPKsJPo
-  redirect: ""
+    app_id: "1112383751"
+    key: VURxpNMnpwPKsJPo
+    redirect: ""
 qiniu:
-  enable: false
-  access_key: D3bqvd7CrziBb7S70D-0dQHReO-h0xwperqoVUbg
-  secret_key: sv2jm0MGuHM4bn8ca_6qjBTItOlxxjDm4bKq1fY8
-  bucket: xiaciyiding
-  cdn: http://t01tk5089.hn-bkt.clouddn.com/
-  zone: z2
-  prefix: gvb
-  size: 5
+    enable: false
+    access_key: D3bqvd7CrziBb7S70D-0dQHReO-h0xwperqoVUbg
+    secret_key: sv2jm0MGuHM4bn8ca_6qjBTItOlxxjDm4bKq1fY8
+    bucket: xiaciyiding
+    cdn: http://t01tk5089.hn-bkt.clouddn.com/
+    zone: z2
+    prefix: gvb
+    size: 5
 ai:
-  enable: false
-  secretKey: ""
-  nickname: ""
-  avatar: ""
+    enable: false
+    secretKey: ""
+    nickname: ""
+    avatar: ""
 site_info:
-  created_at: "2025-05-15"
-  bei_an: 北京工业大学平乐园100号
-  title: 下次一定
-  qq_image: /uploads/file/qq.png
-  version: 8.0.1
-  email: 2663456523@qq.com
-  wechat_image: /uploads/file/wechat.png
-  name: 下次一定
-  job: 后端开发
-  addr: 中国北京
-  slogan: 下次一定
-  slogan_en: FFENGZHIDAO
-  web: http://www.fengfengzhidao.com/
-  bilibili_url: https://space.bilibili.com/1382556399?spm_id_from=333.788.0.0
-  gitee_url: https://gitee.com/
-  github_url: https://github.com/nexttime1
+    created_at: "2025-05-15"
+    bei_an: 北京工业大学平乐园100号
+    title: 下次一定
+    qq_image: /uploads/file/qq.png
+    version: 8.0.1
+    email: 2663456523@qq.com
+    wechat_image: /uploads/file/wechat.png
+    name: 下次一定
+    job: 后端开发
+    addr: 中国北京
+    slogan: 下次一定
+    slogan_en: FFENGZHIDAO
+    web: http://www.fengfengzhidao.com/
+    bilibili_url: https://space.bilibili.com/1382556399?spm_id_from=333.788.0.0
+    gitee_url: https://gitee.com/
+    github_url: https://github.com/nexttime1
 upload:
-  size: 2
-  path: uploads/file
+    size: 2
+    path: uploads/file
 es:
-  username: elastic
-  password: "123456"
+    username: elastic
+    password: "123456"
 chat_group:
-  isAnonymous: true
-  isShowTime: false
-  defaultLimit: 0
-  contentLength: 0
-  welcomeTitle: ""
-  isOnlinePeople: true
-  isSendImage: false
-  isSendFile: false
-  isMd: false
+    isAnonymous: true
+    isShowTime: false
+    defaultLimit: 0
+    contentLength: 0
+    welcomeTitle: ""
+    isOnlinePeople: true
+    isSendImage: false
+    isSendFile: false
+    isMd: false
 gaode:
-  enable: true
-  key: ""
-big_model:
-  setting:
-    name: qwen
     enable: true
-    api_key: sk-e8ed4fd4fc82489f8494ef9b6317e9e8
-    api_secret: xxxx-xx-xxxx
-    title: 下次一定.
-    prompt: You are a helpful assistant
-    slogan: ""
-  model_list:
-  - label: 通义千问
-    value: qwen
-    disabled: true
-  - label: 文心一言
-    value: wenxin
-    disabled: false
-  - label: 星火大模型
-    value: xinghuo
-    disabled: false
-  - label: 天工大模型
-    value: tiangong
-    disabled: false
-  - label: ChatGPT
-    value: ChatGPT
-    disabled: false
-  session_setting:
-    chat_scope: 3
-    session_scope: 5
-    day_scope: 100
+    key: ""
+big_model:
+    setting:
+        name: xtm
+        enable: true
+        api_key: sk-e8ed4fd4fc82489f8494ef9b6317e9e8
+        api_secret: xxxx-xx-xxxx
+        title: 下次一定.
+        prompt: ""
+        slogan: ""
+    model_list:
+        - label: 通义千问
+          value: qwen
+          disabled: false
+        - label: X-Assistant
+          value: xtm
+          disabled: false
+        - label: 星火大模型
+          value: xinghuo
+          disabled: true
+        - label: 天工大模型
+          value: tiangong
+          disabled: true
+        - label: ChatGPT
+          value: ChatGPT
+          disabled: true
+    session_setting:
+        chat_scope: 3
+        session_scope: 5
+        day_scope: 100

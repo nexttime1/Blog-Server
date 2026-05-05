@@ -142,7 +142,7 @@ func (BigModelApi) BigModelUpdateView(c *gin.Context) {
 		res.FailWithErr(c, err)
 		return
 	}
-	res.FailWithMsg(c, "修改成功")
+	res.OkWithMessage(c, "修改成功")
 
 }
 
