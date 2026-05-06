@@ -188,6 +188,7 @@ func (a *ArticleModel) Create() (err error) {
 	toMap := map[string]interface{}{
 		"id": indexResponse.Id,
 	}
+
 	_, err = global.Es.Update().Index(a.Index()).Id(indexResponse.Id).Doc(toMap).
 		Do(context.Background())
 	if err != nil {

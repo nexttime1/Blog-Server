@@ -85,10 +85,15 @@ func (x XModel) Send(Content string) (msgChan chan string, err error) {
 				continue
 			}
 
-			msgChan <- res.Output.Text
+			// 如果是结束标记，直接关闭通道
 			if res.Output.FinishReason == "stop" {
 				close(msgChan)
 				break
+			}
+
+			// 只发送非空的增量内容
+			if res.Output.Text != "" {
+				msgChan <- res.Output.Text
 			}
 		}
 	}()

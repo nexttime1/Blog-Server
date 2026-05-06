@@ -136,7 +136,7 @@ func (BigModelApi) BigModelUpdateView(c *gin.Context) {
 		return
 	}
 	global.Config.BigModel.Setting = setting
-
+	fmt.Println(global.Config)
 	err = common.ToYAML(global.SettingYaml, global.Config)
 	if err != nil {
 		res.FailWithErr(c, err)
